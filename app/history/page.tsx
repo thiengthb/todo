@@ -1,0 +1,233 @@
+import Link from "next/link";
+import {
+  ArrowLeft,
+  CalendarRange,
+  ChevronRight,
+  Frown,
+  Meh,
+  Smile,
+  type LucideIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { prisma } from "@/lib/db";
+import {
+  addDays,
+  dayLabel,
+  formatDateShort,
+  todayStr,
+} from "@/lib/dates";
+import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+export const dynamic = "force-dynamic";
+
+interface DaySummary {
+  date: string;
+  total: number;
+  done: number;
+  percent: number;
+  emotions: { love: number; meh: number; hard: number };
+  note: string | null;
+  /** vài tiêu đề đầu — preview cho ngày tương lai */
+  titles: string[];
+}
+
+const EMOTION_ICONS: Record<
+  keyof DaySummary["emotions"],
+  { icon: LucideIcon; className: string }
+> = {
+  love: { icon: Smile, className: "text-emerald-600 dark:text-emerald-400" },
+  meh: { icon: Meh, className: "text-amber-600 dark:text-amber-400" },
+  hard: { icon: Frown, className: "text-rose-600 dark:text-rose-400" },
+};
+
+function EmotionSummary({ emotions }: { emotions: DaySummary["emotions"] }) {
+  const keys = (Object.keys(EMOTION_ICONS) as (keyof typeof EMOTION_ICONS)[]).filter(
+    (k) => emotions[k] > 0
+  );
+  if (keys.length === 0) return null;
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
+      {keys.map((k) => {
+        const { icon: Icon, className } = EMOTION_ICONS[k];
+        return (
+          <span key={k} className="flex items-center gap-0.5 text-muted-foreground">
+            <Icon className={`size-3.5 ${className}`} />
+            {emotions[k]}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function DayRow({ day, isFuture }: { day: DaySummary; isFuture: boolean }) {
+  return (
+    <Link
+      href={`/?date=${day.date}`}
+      className="group flex items-center gap-4 border-b border-border/70 py-3 transition-colors last:border-b-0 hover:bg-muted/40"
+    >
+      <div className="w-24 shrink-0">
+        <p className="text-sm font-medium capitalize">{dayLabel(day.date)}</p>
+        <p className="text-xs text-muted-foreground">{formatDateShort(day.date)}</p>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        {isFuture ? (
+          <p className="truncate text-xs text-muted-foreground">
+            {day.titles.slice(0, 3).join(" · ")}
+            {day.titles.length > 3 && ` +${day.titles.length - 3}`}
+          </p>
+        ) : (
+          <>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-foreground/70"
+                style={{ width: `${day.percent}%` }}
+              />
+            </div>
+            {day.note && (
+              <p className="mt-1.5 line-clamp-1 text-xs text-muted-foreground italic">
+                “{day.note}”
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      {isFuture ? (
+        <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
+          {day.total} việc
+        </span>
+      ) : (
+        <>
+          <EmotionSummary emotions={day.emotions} />
+          <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+            {day.done}/{day.total}
+            <span className="ml-1 text-xs text-muted-foreground">{day.percent}%</span>
+          </span>
+        </>
+      )}
+      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+    </Link>
+  );
+}
+
+export default async function HistoryPage() {
+  const today = todayStr();
+  const [tasks, notes] = await Promise.all([
+    prisma.task.findMany({ orderBy: { date: "asc" } }),
+    prisma.dailyNote.findMany(),
+  ]);
+  const noteByDate = new Map(notes.map((n) => [n.date, n.note]));
+
+  // Gom theo ngày
+  const byDate = new Map<string, typeof tasks>();
+  for (const t of tasks) {
+    const arr = byDate.get(t.date) ?? [];
+    arr.push(t);
+    byDate.set(t.date, arr);
+  }
+  const days: DaySummary[] = [...byDate.entries()].map(([date, list]) => {
+    const done = list.filter((t) => t.done).length;
+    const emotions = { love: 0, meh: 0, hard: 0 };
+    for (const t of list) {
+      if (t.emotion && t.emotion in emotions) {
+        emotions[t.emotion as keyof typeof emotions] += 1;
+      }
+    }
+    return {
+      date,
+      total: list.length,
+      done,
+      percent: list.length ? Math.round((done / list.length) * 100) : 0,
+      emotions,
+      note: noteByDate.get(date) ?? null,
+      titles: list.filter((t) => !t.done).map((t) => t.title),
+    };
+  });
+
+  const future = days.filter((d) => d.date > today); // đã asc theo query
+  const pastAndToday = days.filter((d) => d.date <= today).reverse(); // mới nhất trước
+
+  // Dải hoạt động 14 ngày gần nhất (kết thúc hôm nay)
+  const strip = Array.from({ length: 14 }, (_, i) => {
+    const date = addDays(today, i - 13);
+    const day = days.find((d) => d.date === date);
+    return { date, percent: day?.percent ?? null };
+  });
+
+  return (
+    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
+      <header className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Toàn cảnh các ngày</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            Lịch sử & kế hoạch
+          </h1>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+            <Link href="/">
+              <ArrowLeft className="size-4" /> Hôm nay
+            </Link>
+          </Button>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      {/* Dải hoạt động 14 ngày */}
+      <section aria-label="Hoạt động 14 ngày gần nhất" className="mb-10">
+        <p className="mb-2 text-xs text-muted-foreground">
+          Tỉ lệ hoàn thành · 14 ngày gần nhất
+        </p>
+        <div className="flex h-12 items-end gap-1">
+          {strip.map((s) => (
+            <Link
+              key={s.date}
+              href={`/?date=${s.date}`}
+              title={`${formatDateShort(s.date)}${s.percent !== null ? ` — ${s.percent}%` : " — không có dữ liệu"}`}
+              className="flex h-full flex-1 items-end overflow-hidden rounded-sm bg-muted/50 transition-colors hover:bg-muted"
+            >
+              <div
+                className={cn(
+                  "w-full rounded-sm",
+                  s.date === today ? "bg-foreground" : "bg-foreground/35"
+                )}
+                style={{ height: `${Math.max(s.percent ?? 0, s.percent !== null ? 6 : 0)}%` }}
+              />
+            </Link>
+          ))}
+        </div>
+        <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+          <span>{formatDateShort(strip[0].date)}</span>
+          <span>hôm nay</span>
+        </div>
+      </section>
+
+      {future.length > 0 && (
+        <section className="mb-10">
+          <h2 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            <CalendarRange className="size-3.5" /> Kế hoạch sắp tới
+          </h2>
+          {future.map((d) => (
+            <DayRow key={d.date} day={d} isFuture />
+          ))}
+        </section>
+      )}
+
+      <section>
+        <h2 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Đã qua
+        </h2>
+        {pastAndToday.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Chưa có dữ liệu — bắt đầu thêm việc cho hôm nay nhé.
+          </p>
+        ) : (
+          pastAndToday.map((d) => <DayRow key={d.date} day={d} isFuture={false} />)
+        )}
+      </section>
+    </main>
+  );
+}

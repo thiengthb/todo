@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  done        Boolean   @default(false)
+  emotion     String? // "love" | "meh" | "hard" | null
+  date        String // ngày gắn task, dạng "YYYY-MM-DD"
+  carriedFrom String? // nếu được carry-over từ ngày trước, lưu ngày gốc
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}
+
+model DailyNote {
+  id   String @id @default(cuid())
+  date String @unique // "YYYY-MM-DD"
+  note String // ghi chú cuối ngày của người dùng
+}
