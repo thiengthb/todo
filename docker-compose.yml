@@ -1,35 +1,16 @@
+# Compose này CHỈ dùng chạy thử local (dev). Trên NUC dùng
+# /opt/apps/todo/docker-compose.yml (pull image từ ghcr.io, route qua Traefik).
+# Migration Prisma đã nhúng vào entrypoint của image — không cần service riêng.
 services:
-  # Chạy 1 lần mỗi đợt deploy: áp migration mới vào DB trong volume rồi thoát.
-  # Dùng stage "build" (có đủ node_modules + prisma CLI) nên không phải
-  # nhét prisma vào runtime image.
-  migrate:
-    build:
-      context: .
-      target: build
-    image: smart-todo-build:latest
-    container_name: smart-todo-migrate
-    command: sh -c "npx prisma migrate deploy && chown -R node:node /data"
-    environment:
-      DATABASE_URL: "file:/data/todo.db"
-    volumes:
-      - todo_data:/data
-    restart: "no"
-
   todo:
     build: .
-    image: smart-todo:latest
+    image: smart-todo:local
     container_name: smart-todo
     restart: unless-stopped
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     ports:
-      # 3001 đã dành cho link-manager trên miniserver → todo dùng 3002
       - "${HOST_PORT:-3002}:3000"
     environment:
-      DATABASE_URL: "file:/data/todo.db"
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
-      # Truyền từ GitHub Secrets qua workflow (hoặc shell khi chạy tay)
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-gemini-2.5-flash}
     volumes:

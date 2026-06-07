@@ -1,0 +1,56 @@
+name: build-and-push
+
+# GitHub build image → push ghcr.io → Watchtower trên miniserver
+# tự pull về và restart (xem /opt/apps/todo trên miniserver).
+# KHÔNG dùng self-hosted runner.
+
+on:
+  push:
+    branches: [ main ]
+  # Cho phép bấm nút "Run workflow" thủ công trên GitHub
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# Không build 2 bản chồng nhau
+concurrency:
+  group: build-and-push
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # cho phép GITHUB_TOKEN push lên ghcr.io
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tag bằng cả "latest" lẫn git-SHA ngắn → rollback được bằng cách
+      # đổi tag trong /opt/apps/todo/docker-compose.yml
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=,format=short
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

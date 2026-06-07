@@ -13,6 +13,14 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx prisma generate && npm run build
 
+# ---------- Stage 2b: prisma CLI tối thiểu (chỉ để migrate deploy) ----------
+# Cài riêng trong stage này để lấy đủ CLI + dependency của nó (effect, @prisma/config...)
+# đúng version khai báo trong package.json, không phình node_modules của app.
+FROM node:24-alpine AS prisma-cli
+WORKDIR /cli
+COPY package.json ./
+RUN npm install --no-save --omit=dev prisma@"$(node -p "require('./package.json').devDependencies.prisma")"
+
 # ---------- Stage 3: runtime ----------
 FROM node:24-alpine
 WORKDIR /app
@@ -23,11 +31,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN apk add --no-cache openssl tzdata
 
 # Output standalone của Next: server.js + node_modules đã tỉa gọn
-# (migration chạy bằng service "migrate" riêng trong docker-compose,
-#  dùng stage build có đủ prisma CLI — runtime image giữ gọn)
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+
+# Prisma CLI + schema/migrations để chạy "migrate deploy" lúc khởi động.
+# Trên NUC, Watchtower pull image mới rồi restart container — migration mới
+# (nếu có) tự áp vào DB trong volume /data, không cần service migrate riêng.
+# Để CLI ở đường dẫn riêng, không đè node_modules đã tỉa của standalone.
+COPY --from=prisma-cli /cli/node_modules ./prisma-cli/node_modules
+COPY --from=build /app/prisma ./prisma
 
 RUN mkdir -p /data && chown node:node /data
 ENV DATABASE_URL="file:/data/todo.db"
@@ -40,4 +53,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 
-CMD ["node", "server.js"]
+# Áp migration vào /data trước rồi mới chạy server (exec để node nhận signal)
+CMD ["sh", "-c", "./prisma-cli/node_modules/.bin/prisma migrate deploy && exec node server.js"]
