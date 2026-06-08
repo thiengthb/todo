@@ -3,12 +3,14 @@ import {
   ArrowLeft,
   CalendarRange,
   ChevronRight,
+  Flame,
   Frown,
   Meh,
   Smile,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
 import {
   addDays,
@@ -16,6 +18,7 @@ import {
   formatDateShort,
   todayStr,
 } from "@/lib/dates";
+import { computeStreaks } from "@/lib/streak";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -150,6 +153,12 @@ export default async function HistoryPage() {
   const future = days.filter((d) => d.date > today); // đã asc theo query
   const pastAndToday = days.filter((d) => d.date <= today).reverse(); // mới nhất trước
 
+  // Chuỗi giữ lửa — tính động từ các ngày có ≥1 việc done
+  const streak = computeStreaks(
+    days.filter((d) => d.done > 0).map((d) => d.date),
+    today
+  );
+
   // Dải hoạt động 14 ngày gần nhất (kết thúc hôm nay)
   const strip = Array.from({ length: 14 }, (_, i) => {
     const date = addDays(today, i - 13);
@@ -175,6 +184,72 @@ export default async function HistoryPage() {
           <ThemeToggle />
         </div>
       </header>
+
+      {/* Chuỗi giữ lửa */}
+      <section aria-label="Chuỗi giữ lửa" className="mb-10">
+        <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          <Flame className="size-3.5" /> Chuỗi giữ lửa
+        </h2>
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          <Card className="gap-1 rounded-lg border-border/70 p-4 shadow-none">
+            <p className="text-xs text-muted-foreground">
+              Hiện tại{streak.atRisk && " · đang treo"}
+            </p>
+            <p className="flex items-baseline gap-1.5 text-xl font-semibold tracking-tight tabular-nums">
+              {streak.current > 0 && (
+                <Flame
+                  className={cn(
+                    "size-4",
+                    streak.atRisk ? "text-muted-foreground" : "text-amber-500"
+                  )}
+                />
+              )}
+              {streak.current} ngày
+            </p>
+          </Card>
+          <Card className="gap-1 rounded-lg border-border/70 p-4 shadow-none">
+            <p className="text-xs text-muted-foreground">Kỷ lục</p>
+            <p className="text-xl font-semibold tracking-tight tabular-nums">
+              {streak.longest} ngày
+            </p>
+          </Card>
+        </div>
+
+        {streak.runs.length === 0 ? (
+          <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
+            Chưa có chuỗi nào — hoàn thành 1 việc mỗi ngày để nhóm lửa.
+          </p>
+        ) : (
+          <ul>
+            {streak.runs.map((run, i) => {
+              // run mới nhất (i===0) đang chạy khi current>0
+              const isLive = i === 0 && streak.current > 0;
+              return (
+                <li
+                  key={run.start}
+                  className="flex items-center justify-between border-b border-border/70 py-2.5 text-sm last:border-b-0"
+                >
+                  <span className="text-muted-foreground tabular-nums">
+                    {formatDateShort(run.start)}
+                    {run.end !== run.start && ` – ${formatDateShort(run.end)}`}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {isLive && (
+                      <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                        <Flame className="size-3" />
+                        {streak.atRisk ? "đang treo" : "đang chạy"}
+                      </span>
+                    )}
+                    <span className="font-medium tabular-nums">
+                      {run.length} ngày
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* Dải hoạt động 14 ngày */}
       <section aria-label="Hoạt động 14 ngày gần nhất" className="mb-10">
