@@ -27,7 +27,7 @@ export function TaskItem({ task }: { task: TaskDTO }) {
   const [, startTransition] = useTransition();
 
   return (
-    <div className="group flex items-center gap-3 border-b border-border/70 py-2.5 last:border-b-0">
+    <div className="group flex items-center gap-2.5 border-b border-border/70 py-3 last:border-b-0 sm:gap-3">
       {/* Checkbox tròn */}
       <button
         type="button"
@@ -74,7 +74,7 @@ export function TaskItem({ task }: { task: TaskDTO }) {
                 aria-label={e.label}
                 onClick={() => startTransition(() => setEmotion(task.id, e.value))}
                 className={cn(
-                  "rounded-md p-1 leading-none transition-all",
+                  "rounded-md p-1.5 leading-none transition-all",
                   !task.done && "cursor-not-allowed text-muted-foreground/30",
                   task.done && "hover:bg-muted",
                   task.emotion === e.value
@@ -92,12 +92,12 @@ export function TaskItem({ task }: { task: TaskDTO }) {
         ))}
       </div>
 
-      {/* Xóa — hiện khi hover */}
+      {/* Xóa — luôn hiện trên cảm ứng (không có hover), chỉ ẩn-hiện theo hover ở desktop */}
       <button
         type="button"
         aria-label="Xóa task"
         onClick={() => startTransition(() => deleteTask(task.id))}
-        className="shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60 hover:!opacity-100 hover:text-destructive focus-visible:opacity-100"
+        className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-60 transition-opacity hover:!opacity-100 hover:text-destructive focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60"
       >
         <Trash2 className="size-3.5" />
       </button>

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowLeft,
   CalendarRange,
   ChevronRight,
   Flame,
@@ -9,7 +8,6 @@ import {
   Smile,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
 import {
@@ -20,7 +18,6 @@ import {
 } from "@/lib/dates";
 import { computeStreaks } from "@/lib/streak";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +67,7 @@ function DayRow({ day, isFuture }: { day: DaySummary; isFuture: boolean }) {
       href={`/?date=${day.date}`}
       className="group flex items-center gap-4 border-b border-border/70 py-3 transition-colors last:border-b-0 hover:bg-muted/40"
     >
-      <div className="w-24 shrink-0">
+      <div className="w-20 shrink-0 sm:w-24">
         <p className="text-sm font-medium capitalize">{dayLabel(day.date)}</p>
         <p className="text-xs text-muted-foreground">{formatDateShort(day.date)}</p>
       </div>
@@ -104,14 +101,16 @@ function DayRow({ day, isFuture }: { day: DaySummary; isFuture: boolean }) {
         </span>
       ) : (
         <>
-          <EmotionSummary emotions={day.emotions} />
-          <span className="w-20 shrink-0 text-right text-sm tabular-nums">
+          <div className="hidden sm:block">
+            <EmotionSummary emotions={day.emotions} />
+          </div>
+          <span className="w-16 shrink-0 text-right text-sm tabular-nums sm:w-20">
             {day.done}/{day.total}
             <span className="ml-1 text-xs text-muted-foreground">{day.percent}%</span>
           </span>
         </>
       )}
-      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      <ChevronRight className="hidden size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
     </Link>
   );
 }
@@ -167,22 +166,12 @@ export default async function HistoryPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
-      <header className="mb-8 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Toàn cảnh các ngày</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            Lịch sử & kế hoạch
-          </h1>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-            <Link href="/">
-              <ArrowLeft className="size-4" /> Hôm nay
-            </Link>
-          </Button>
-          <ThemeToggle />
-        </div>
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+      <header className="mb-8">
+        <p className="text-sm text-muted-foreground">Toàn cảnh các ngày</p>
+        <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
+          Lịch sử & kế hoạch
+        </h1>
       </header>
 
       {/* Chuỗi giữ lửa */}

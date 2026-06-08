@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { vi } from "react-day-picker/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, History } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -13,7 +13,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { addDays, toDateStr } from "@/lib/dates";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 interface DayNavProps {
   /** ngày đang xem, "YYYY-MM-DD" */
@@ -34,8 +33,13 @@ export function DayNav({ date, today }: DayNavProps) {
   return (
     <nav className="flex shrink-0 items-center gap-0.5" aria-label="Điều hướng ngày">
       {date !== today && (
-        <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-          <Link href="/">Hôm nay</Link>
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+        >
+          <Link href="/">Về hôm nay</Link>
         </Button>
       )}
 
@@ -73,14 +77,6 @@ export function DayNav({ date, today }: DayNavProps) {
           <ChevronRight className="size-4" />
         </Link>
       </Button>
-
-      <Button asChild variant="ghost" size="icon" aria-label="Lịch sử & kế hoạch">
-        <Link href="/history">
-          <History className="size-4" />
-        </Link>
-      </Button>
-
-      <ThemeToggle />
     </nav>
   );
 }

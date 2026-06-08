@@ -63,13 +63,13 @@ export default async function DayPage({ searchParams }: PageProps) {
   }));
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
-      <header className="mb-8 flex items-end justify-between gap-4">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+      <header className="mb-8 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground capitalize">
             {formatDateVN(date)}
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight capitalize">
+          <h1 className="mt-1 text-xl font-semibold tracking-tight capitalize sm:text-2xl">
             {dayLabel(date)}
           </h1>
         </div>
