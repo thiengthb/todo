@@ -4,7 +4,13 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppHeader } from "@/components/app-header";
+import { prisma } from "@/lib/db";
+import { todayStr } from "@/lib/dates";
+import { computeStreaks } from "@/lib/streak";
 import "./globals.css";
+
+// Streak hiện trên thanh menu => layout phải render động theo dữ liệu mỗi request
+export const dynamic = "force-dynamic";
 
 // Inter hỗ trợ subset tiếng Việt (Geist trên Google Fonts thì không)
 const interSans = Inter({
@@ -22,11 +28,22 @@ export const metadata: Metadata = {
   description: "Todo list cá nhân thông minh — AI đề xuất ngày mai từ dữ liệu thật",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // các ngày "giữ lửa" — tính streak một lần ở đây cho chip trên thanh menu
+  const activeRows = await prisma.task.findMany({
+    where: { done: true },
+    select: { date: true },
+    distinct: ["date"],
+  });
+  const streak = computeStreaks(
+    activeRows.map((r) => r.date),
+    todayStr()
+  );
+
   return (
     <html
       lang="vi"
@@ -41,7 +58,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={300}>
-            <AppHeader />
+            <AppHeader
+              streak={{
+                current: streak.current,
+                atRisk: streak.atRisk,
+                longest: streak.longest,
+              }}
+            />
             {children}
           </TooltipProvider>
           <Toaster position="bottom-center" />

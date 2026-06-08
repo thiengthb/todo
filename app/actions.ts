@@ -23,7 +23,8 @@ export async function toggleTask(id: string, done: boolean): Promise<void> {
       ...(done ? {} : { emotion: null }),
     },
   });
-  revalidatePath("/");
+  // "layout" để chip streak trên thanh menu (render ở root layout) cập nhật theo
+  revalidatePath("/", "layout");
 }
 
 export async function setEmotion(id: string, emotion: Emotion): Promise<void> {
@@ -40,7 +41,8 @@ export async function setEmotion(id: string, emotion: Emotion): Promise<void> {
 
 export async function deleteTask(id: string): Promise<void> {
   await prisma.task.delete({ where: { id } });
-  revalidatePath("/");
+  // xoá task done có thể làm đứt streak → revalidate cả layout cho chip trên menu
+  revalidatePath("/", "layout");
 }
 
 /**

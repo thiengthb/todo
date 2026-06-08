@@ -8,11 +8,9 @@ import {
 } from "@/lib/dates";
 import { DayNav } from "@/components/day-nav";
 import type { Emotion, TaskDTO } from "@/lib/types";
-import { computeStreaks } from "@/lib/streak";
 import { AddTask } from "@/components/today/add-task";
 import { NoteBox } from "@/components/today/note-box";
 import { StatsCards } from "@/components/today/stats-cards";
-import { StreakIndicator } from "@/components/streak-indicator";
 import { SuggestDialog } from "@/components/today/suggest-dialog";
 import { TaskItem } from "@/components/today/task-item";
 
@@ -30,28 +28,13 @@ export default async function DayPage({ searchParams }: PageProps) {
   const isToday = date === today;
   const isPast = date < today;
 
-  const [tasks, dailyNote, activeRows] = await Promise.all([
+  const [tasks, dailyNote] = await Promise.all([
     prisma.task.findMany({
       where: { date },
       orderBy: { createdAt: "asc" },
     }),
     prisma.dailyNote.findUnique({ where: { date } }),
-    // các ngày "giữ lửa" — chỉ cần cho thẻ streak ở màn Hôm nay
-    isToday
-      ? prisma.task.findMany({
-          where: { done: true },
-          select: { date: true },
-          distinct: ["date"],
-        })
-      : Promise.resolve([]),
   ]);
-
-  const streak = isToday
-    ? computeStreaks(
-        activeRows.map((r) => r.date),
-        today
-      )
-    : null;
 
   const dtos: TaskDTO[] = tasks.map((t) => ({
     id: t.id,
@@ -75,16 +58,6 @@ export default async function DayPage({ searchParams }: PageProps) {
         </div>
         <DayNav date={date} today={today} />
       </header>
-
-      {streak && (
-        <div className="mb-4">
-          <StreakIndicator
-            current={streak.current}
-            atRisk={streak.atRisk}
-            longest={streak.longest}
-          />
-        </div>
-      )}
 
       <StatsCards done={dtos.filter((t) => t.done).length} total={dtos.length} />
 
