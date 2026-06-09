@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Loader2, Plus, RefreshCw, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Target,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,9 +41,11 @@ const PRIORITY_CLASS: Record<Priority, string> = {
 function SuggestionRow({
   item,
   isCarryOver,
+  planLink,
 }: {
   item: SuggestionItem;
   isCarryOver: boolean;
+  planLink?: { planId: string; milestoneId: string | null };
 }) {
   const [added, setAdded] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -46,7 +56,7 @@ function SuggestionRow({
         variant="outline"
         className={cn(
           "mt-0.5 shrink-0 text-[11px] font-normal",
-          PRIORITY_CLASS[item.priority]
+          PRIORITY_CLASS[item.priority],
         )}
       >
         {PRIORITY_LABEL[item.priority]}
@@ -61,7 +71,7 @@ function SuggestionRow({
         disabled={added || pending}
         onClick={() =>
           startTransition(async () => {
-            await addTomorrowTask(item.title, isCarryOver);
+            await addTomorrowTask(item.title, isCarryOver, planLink);
             setAdded(true);
           })
         }
@@ -125,7 +135,8 @@ export function SuggestDialog() {
             <Sparkles className="size-4" /> Đề xuất cho ngày mai
           </DialogTitle>
           <DialogDescription>
-            Dựa trên việc đã xong, việc còn dở, cảm xúc và tốc độ thực tế của bạn.
+            Dựa trên việc đã xong, việc còn dở, cảm xúc và tốc độ thực tế của
+            bạn.
           </DialogDescription>
         </DialogHeader>
 
@@ -156,6 +167,23 @@ export function SuggestDialog() {
               {result.capacity_note}
             </p>
 
+            {/* cảnh báo chậm tiến độ kế hoạch */}
+            {result.plan_alerts.map((a) => (
+              <div
+                key={a.planId}
+                className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40"
+              >
+                <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="size-3.5 shrink-0" />
+                  {a.planTitle} đang chậm ~{a.behindDays} ngày
+                </p>
+                <p className="mt-1 text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                  Mở trang kế hoạch để giãn deadline, bỏ bớt cột mốc, hoặc tăng
+                  tốc.
+                </p>
+              </div>
+            ))}
+
             {result.carry_over.length > 0 && (
               <section>
                 <h3 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -173,16 +201,41 @@ export function SuggestDialog() {
                   Việc mới đề xuất
                 </h3>
                 {result.suggested_tasks.map((item, i) => (
-                  <SuggestionRow key={`s-${i}`} item={item} isCarryOver={false} />
+                  <SuggestionRow
+                    key={`s-${i}`}
+                    item={item}
+                    isCarryOver={false}
+                  />
                 ))}
               </section>
             )}
 
-            {result.carry_over.length === 0 && result.suggested_tasks.length === 0 && (
-              <p className="py-2 text-center text-sm text-muted-foreground">
-                Chưa đủ dữ liệu để đề xuất — dùng app thêm vài ngày nhé.
-              </p>
+            {result.plan_tasks.length > 0 && (
+              <section>
+                <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  <Target className="size-3" /> Theo kế hoạch
+                </h3>
+                {result.plan_tasks.map((item, i) => (
+                  <SuggestionRow
+                    key={`p-${i}`}
+                    item={item}
+                    isCarryOver={false}
+                    planLink={{
+                      planId: item.planId,
+                      milestoneId: item.milestoneId,
+                    }}
+                  />
+                ))}
+              </section>
             )}
+
+            {result.carry_over.length === 0 &&
+              result.suggested_tasks.length === 0 &&
+              result.plan_tasks.length === 0 && (
+                <p className="py-2 text-center text-sm text-muted-foreground">
+                  Chưa đủ dữ liệu để đề xuất — dùng app thêm vài ngày nhé.
+                </p>
+              )}
 
             <Button
               variant="ghost"

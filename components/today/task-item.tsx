@@ -1,7 +1,15 @@
 "use client";
 
 import { useTransition } from "react";
-import { Check, Frown, Meh, Smile, Trash2, type LucideIcon } from "lucide-react";
+import {
+  Check,
+  Frown,
+  Meh,
+  Smile,
+  Target,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -18,9 +26,24 @@ const EMOTIONS: {
   label: string;
   activeClass: string;
 }[] = [
-  { value: "love", icon: Smile, label: "Dễ", activeClass: "text-emerald-600 dark:text-emerald-400" },
-  { value: "meh", icon: Meh, label: "Bình thường", activeClass: "text-amber-600 dark:text-amber-400" },
-  { value: "hard", icon: Frown, label: "Mệt", activeClass: "text-rose-600 dark:text-rose-400" },
+  {
+    value: "love",
+    icon: Smile,
+    label: "Dễ",
+    activeClass: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    value: "meh",
+    icon: Meh,
+    label: "Bình thường",
+    activeClass: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    value: "hard",
+    icon: Frown,
+    label: "Mệt",
+    activeClass: "text-rose-600 dark:text-rose-400",
+  },
 ];
 
 export function TaskItem({ task }: { task: TaskDTO }) {
@@ -37,20 +60,35 @@ export function TaskItem({ task }: { task: TaskDTO }) {
           "flex size-[18px] shrink-0 items-center justify-center rounded-full border transition-colors",
           task.done
             ? "border-foreground bg-foreground text-background"
-            : "border-muted-foreground/50 hover:border-foreground"
+            : "border-muted-foreground/50 hover:border-foreground",
         )}
       >
         {task.done && <Check className="size-3" strokeWidth={3} />}
       </button>
 
-      {/* Tiêu đề */}
-      <span
-        className={cn(
-          "min-w-0 flex-1 truncate text-sm",
-          task.done && "text-muted-foreground line-through"
+      {/* Tiêu đề + chip plan nếu task phục vụ một kế hoạch */}
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span
+          className={cn(
+            "min-w-0 truncate text-sm",
+            task.done && "text-muted-foreground line-through",
+          )}
+        >
+          {task.title}
+        </span>
+        {task.planTitle && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex shrink-0 items-center gap-1 rounded-md border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                <Target className="size-3" />
+                <span className="hidden max-w-[8rem] truncate sm:inline">
+                  {task.planTitle}
+                </span>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Thuộc kế hoạch: {task.planTitle}</TooltipContent>
+          </Tooltip>
         )}
-      >
-        {task.title}
       </span>
 
       {/* Badge trì hoãn ≥ 2 ngày (chỉ task chưa xong) */}
@@ -72,14 +110,17 @@ export function TaskItem({ task }: { task: TaskDTO }) {
                 type="button"
                 disabled={!task.done}
                 aria-label={e.label}
-                onClick={() => startTransition(() => setEmotion(task.id, e.value))}
+                onClick={() =>
+                  startTransition(() => setEmotion(task.id, e.value))
+                }
                 className={cn(
                   "rounded-md p-1.5 leading-none transition-all",
                   !task.done && "cursor-not-allowed text-muted-foreground/30",
                   task.done && "hover:bg-muted",
                   task.emotion === e.value
                     ? cn("bg-muted", e.activeClass)
-                    : task.done && "text-muted-foreground/50 hover:text-foreground"
+                    : task.done &&
+                        "text-muted-foreground/50 hover:text-foreground",
                 )}
               >
                 <e.icon className="size-4" />

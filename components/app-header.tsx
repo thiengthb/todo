@@ -13,6 +13,7 @@ import {
 
 const NAV = [
   { href: "/", label: "Hôm nay" },
+  { href: "/plans", label: "Kế hoạch" },
   { href: "/history", label: "Lịch sử" },
 ] as const;
 
@@ -53,7 +54,7 @@ function StreakChip(streak: StreakProps) {
             "flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors",
             live
               ? "text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
-              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
           )}
         >
           <Flame
@@ -91,10 +92,17 @@ export function AppHeader({ streak }: { streak: StreakProps }) {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-0.5" aria-label="Điều hướng chính">
+        <nav
+          className="flex items-center gap-0.5"
+          aria-label="Điều hướng chính"
+        >
           <StreakChip {...streak} />
           {NAV.map((item) => {
-            const active = pathname === item.href;
+            const active =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
@@ -104,7 +112,7 @@ export function AppHeader({ streak }: { streak: StreakProps }) {
                   "rounded-md px-2.5 py-1.5 text-sm transition-colors sm:px-3",
                   active
                     ? "bg-muted font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
                 {item.label}

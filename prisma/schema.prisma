@@ -16,6 +16,38 @@ model Task {
   carriedFrom String? // nếu được carry-over từ ngày trước, lưu ngày gốc
   createdAt   DateTime  @default(now())
   completedAt DateTime?
+
+  // task có thể phục vụ một kế hoạch (mục 10) — optional để CRUD task thường không đổi
+  planId      String?
+  milestoneId String?
+  plan        Plan?      @relation(fields: [planId], references: [id], onDelete: SetNull)
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+}
+
+// Kế hoạch dài hạn (mục 10) — roadmap cuốn chiếu, AI rót task hằng ngày bám tốc độ thật
+model Plan {
+  id         String      @id @default(cuid())
+  title      String
+  goal       String // định nghĩa "xong" + bối cảnh
+  startDate  String // "YYYY-MM-DD"
+  endDate    String // mốc mục tiêu
+  status     String      @default("active") // active | paused | done | archived
+  intensity  String      @default("vừa") // nhẹ | vừa | dồn — gợi ý mềm cho AI
+  createdAt  DateTime    @default(now())
+  milestones Milestone[]
+  tasks      Task[]
+}
+
+// Cột mốc trong roadmap của một plan — tiến độ tính ĐỘNG, chỉ lưu cờ done
+model Milestone {
+  id         String  @id @default(cuid())
+  planId     String
+  plan       Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  title      String
+  order      Int // thứ tự trong roadmap
+  targetDate String?
+  done       Boolean @default(false)
+  tasks      Task[]
 }
 
 model DailyNote {

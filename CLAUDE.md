@@ -128,3 +128,114 @@ Input gửi cho model (server tự lắp từ DB):
 
 Hỏi lại một câu ngắn trước khi tự quyết định những thứ ảnh hưởng kiến trúc.
 Không thêm phụ thuộc nặng (auth, state manager, ORM khác) mà không xác nhận.
+
+---
+
+## 10. Tính năng Kế hoạch (Plan)
+
+> Mở rộng app sang **mục tiêu dài hạn** (vd "Học tiếng Nhật cơ bản trong 1 tháng").
+> Triết lý bất biến: **bám tốc độ thật, không theo mong muốn** — y như phần đề xuất ngày mai.
+> KHÔNG làm "lịch cứng 30 ngày" (đẻ sẵn mọi task → lệch là chất đống task quá hạn, đi ngược app).
+
+### 10.1 Cơ chế cốt lõi — Roadmap cuốn chiếu (rolling)
+
+Kế hoạch tách 2 tầng:
+
+- **Roadmap (cột mốc)** — tương đối ổn định: mục tiêu + vài milestone lớn do AI sinh lúc tạo,
+  người dùng chỉnh được. VD: Tuần 1 Hiragana → Tuần 2 Katakana → Tuần 3: 100 từ vựng → Tuần 4: câu đơn.
+- **Task hằng ngày** — sinh động, cuốn chiếu: AI KHÔNG đẻ sẵn 30 ngày. Mỗi ngày chỉ rót 1–2 task
+  kế tiếp dựa trên *đang ở đâu trên roadmap* + *tốc độ thật mấy hôm nay* + *cảm xúc*. Đi nhanh → đẩy
+  tới; chậm → co task / giãn deadline.
+
+### 10.2 Tích hợp — HÒA vào `/api/suggest`, không tạo luồng đề xuất riêng
+
+Task của plan chỉ là loại đề xuất thứ 3 bên cạnh `carry_over` và `suggested_tasks`. Một nút "Đề xuất
+ngày mai" ra cả 3 nhóm. `reason` của plan task truy ngược về **milestone** (thay vì việc hôm qua).
+
+### 10.3 Nhiều plan song song — chia sức
+
+Cho phép nhiều plan `active` cùng lúc (vd vừa tiếng Nhật vừa gym). AI biết tổng sức/ngày có hạn
+(= `avgDonePerDay` thật) nên **chia đều giữa các plan**, không nhồi. Tổng (carry_over + suggested +
+plan_tasks) vẫn ≈ `avgDonePerDay` (±1).
+
+### 10.4 Khi chậm tiến độ — cảnh báo + để người dùng chọn
+
+AI phát hiện trễ, nói rõ "chậm ~N ngày" rồi đưa 2–3 lựa chọn (giãn deadline / bỏ bớt milestone /
+giữ nguyên & tăng tốc) để người dùng bấm. **Không tự co giãn ngầm** (giữ minh bạch).
+
+### 10.5 Đo tiến độ — ĐỘNG, không lưu cứng (giống `delay`, `streak`)
+
+Không có cột `progress` trong DB. Tính trên đường truyền (đặt trong `lib/plan.ts`):
+
+```
+milestoneKỳvọng = round( daysBetween(start, today) / daysBetween(start, end) × tổngMilestone )
+behindDays      = quy ra ngày từ chênh lệch giữa số milestone đã done thực tế và mốc kỳ vọng
+progressPct     = milestone done / tổng milestone
+```
+
+### 10.6 Mô hình dữ liệu (Task gần như không đổi)
+
+```prisma
+model Plan {
+  id        String   @id @default(cuid())
+  title     String
+  goal      String   // định nghĩa "xong" + bối cảnh
+  startDate String   // "YYYY-MM-DD"
+  endDate   String   // mốc mục tiêu
+  status    String   @default("active") // active | paused | done | archived
+  intensity String   @default("vừa")    // nhẹ | vừa | dồn — gợi ý mềm cho AI
+  createdAt DateTime @default(now())
+  milestones Milestone[]
+  tasks      Task[]
+}
+
+model Milestone {
+  id         String   @id @default(cuid())
+  planId     String
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  title      String
+  order      Int      // thứ tự trong roadmap
+  targetDate String?
+  done       Boolean  @default(false)
+  tasks      Task[]
+}
+
+// Task CHỈ thêm 2 cột optional + relation → streak/stats/emotion/delay chạy nguyên vẹn:
+//   planId      String?
+//   milestoneId String?
+//   plan        Plan?      @relation(fields: [planId], references: [id])
+//   milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+```
+
+### 10.7 Hai lời gọi AI
+
+- **Decompose** — route mới `/api/plan/decompose`, chỉ chạy lúc tạo plan. Input: `title`, `goal`,
+  `durationDays`, `intensity`. Output JSON `{ milestones: [{ title, order, targetDate }] }`. ĐÂY là
+  chỗ AI ĐƯỢC dùng kiến thức chung (giáo trình chuẩn mực); mỗi milestone là kết quả kiểm chứng được
+  ("Thuộc bảng Hiragana"), không mơ hồ ("Học chăm chỉ"). Logic + prompt đặt trong `lib/ai.ts`.
+- **Daily inject** — mở rộng `/api/suggest`: `SuggestContext` thêm `activePlans` (id, title, goal,
+  currentMilestone, progressPct, behindDays); `RESPONSE_SCHEMA` thêm `plan_tasks` (kèm `planId`,
+  `milestoneId`) và `plan_alerts: [{ planId, behindDays, options: string[] }]`.
+
+### 10.8 Quy ước đã chốt (mặc định)
+
+- **Sức chứa** lấy từ `avgDonePerDay` thật; `intensity` chỉ là gợi ý mềm — KHÔNG bắt nhập "phút/ngày".
+- **Milestone done**: người dùng tự tick trên trang chi tiết; AI chỉ được *gợi ý*, KHÔNG tự tick.
+- **Tạo plan xong KHÔNG tự sinh task hôm nay** — chỉ rót qua nút "Đề xuất ngày mai".
+
+### 10.9 Màn hình
+
+1. Nav thêm **"Kế hoạch"** → danh sách plan (card: vòng % tiến độ, milestone hiện tại, badge "chậm Nd").
+2. **Dialog tạo plan**: mục tiêu + số ngày + intensity → gọi decompose → xem trước/chỉnh roadmap → Lưu.
+3. **Chi tiết plan**: checklist milestone (tự tick), tiến độ động, khối cảnh báo "chậm + lựa chọn".
+4. **Dialog suggest** (đã có): thêm nhóm **"Theo kế hoạch"**; "Thêm vào ngày mai" gắn sẵn `planId`/`milestoneId`.
+5. **Task trang Hôm nay**: task thuộc plan hiện chip nhỏ tên plan (icon lucide).
+
+### 10.10 Thứ tự build (commit từng bước)
+
+1. Schema `Plan` + `Milestone` + 2 cột trên `Task` → `prisma migrate dev`.
+2. `lib/plan.ts` (tính tiến độ động) + decompose trong `lib/ai.ts` + route `/api/plan/decompose`.
+3. Trang danh sách "Kế hoạch" + dialog tạo plan (xem trước roadmap) + server actions CRUD plan.
+4. Trang chi tiết plan: milestone checklist, tiến độ, cảnh báo chậm.
+5. Mở rộng `/api/suggest`: `activePlans` vào context, `plan_tasks` + `plan_alerts` vào schema/prompt;
+   dialog suggest thêm nhóm "Theo kế hoạch"; chip plan trên task.

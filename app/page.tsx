@@ -32,6 +32,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     prisma.task.findMany({
       where: { date },
       orderBy: { createdAt: "asc" },
+      include: { plan: { select: { title: true } } },
     }),
     prisma.dailyNote.findUnique({ where: { date } }),
   ]);
@@ -43,6 +44,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     emotion: t.emotion as Emotion | null,
     // badge trì hoãn chỉ có nghĩa khi nhìn về hiện tại/tương lai
     delay: t.done || isPast ? 0 : delayDays(t),
+    planTitle: t.plan?.title ?? null,
   }));
 
   return (
@@ -59,7 +61,10 @@ export default async function DayPage({ searchParams }: PageProps) {
         <DayNav date={date} today={today} />
       </header>
 
-      <StatsCards done={dtos.filter((t) => t.done).length} total={dtos.length} />
+      <StatsCards
+        done={dtos.filter((t) => t.done).length}
+        total={dtos.length}
+      />
 
       <section aria-label="Danh sách việc" className="mt-8">
         {dtos.length === 0 ? (
