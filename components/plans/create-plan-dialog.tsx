@@ -140,7 +140,7 @@ export function CreatePlanDialog() {
           <Plus className="size-4" /> Kế hoạch mới
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Kế hoạch mới</DialogTitle>
           <DialogDescription>
@@ -149,86 +149,94 @@ export function CreatePlanDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[65vh] space-y-4 overflow-y-auto pr-1">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Tên kế hoạch
-            </label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="VD: Học tiếng Nhật cơ bản"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Mục tiêu — bạn muốn đạt được gì?
-            </label>
-            <Textarea
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder="VD: Đọc viết được Hiragana/Katakana và 100 từ vựng cơ bản, nói được câu chào hỏi."
-              rows={3}
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-4">
+        <div
+          className={cn(
+            "max-h-[72vh] space-y-4 overflow-y-auto pr-1",
+            milestones &&
+              "sm:grid sm:grid-cols-2 sm:gap-5 sm:space-y-0 sm:overflow-visible sm:pr-0",
+          )}
+        >
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Bắt đầu
+                Tên kế hoạch
               </label>
               <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-auto"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="VD: Học tiếng Nhật cơ bản"
               />
             </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Kéo dài
+                Mục tiêu — bạn muốn đạt được gì?
+              </label>
+              <Textarea
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                placeholder="VD: Đọc viết được Hiragana/Katakana và 100 từ vựng cơ bản, nói được câu chào hỏi."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Bắt đầu
+                </label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Kéo dài
+                </label>
+                <div className="flex gap-1">
+                  {DURATIONS.map((d) => (
+                    <Button
+                      key={d}
+                      type="button"
+                      size="sm"
+                      variant={duration === d ? "default" : "outline"}
+                      onClick={() => setDuration(d)}
+                    >
+                      {d}d
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Cường độ
               </label>
               <div className="flex gap-1">
-                {DURATIONS.map((d) => (
+                {INTENSITIES.map((it) => (
                   <Button
-                    key={d}
+                    key={it.value}
                     type="button"
                     size="sm"
-                    variant={duration === d ? "default" : "outline"}
-                    onClick={() => setDuration(d)}
+                    variant={intensity === it.value ? "default" : "outline"}
+                    onClick={() => setIntensity(it.value)}
+                    className="flex-1"
+                    title={it.hint}
                   >
-                    {d}d
+                    {it.label}
                   </Button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Cường độ
-            </label>
-            <div className="flex gap-1">
-              {INTENSITIES.map((it) => (
-                <Button
-                  key={it.value}
-                  type="button"
-                  size="sm"
-                  variant={intensity === it.value ? "default" : "outline"}
-                  onClick={() => setIntensity(it.value)}
-                  className="flex-1"
-                  title={it.hint}
-                >
-                  {it.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Roadmap xem trước — chỉnh được trước khi lưu */}
+          {/* Roadmap xem trước — chỉnh được trước khi lưu (cột phải khi đã có) */}
           {milestones && (
-            <div className="space-y-2 rounded-md border border-border/70 bg-muted/30 p-3">
+            <div className="space-y-2 rounded-md border border-border/70 bg-muted/30 p-3 sm:max-h-[60vh] sm:overflow-y-auto">
               <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 Lộ trình ({milestones.length} cột mốc) — chỉnh tuỳ ý
               </p>

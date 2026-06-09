@@ -15,7 +15,7 @@ import { AddTask } from "@/components/today/add-task";
 import { CheckinBox } from "@/components/today/checkin-box";
 import { NoteBox } from "@/components/today/note-box";
 import { StatsCards } from "@/components/today/stats-cards";
-import { SuggestDialog } from "@/components/today/suggest-dialog";
+import { SuggestSheet } from "@/components/today/suggest-sheet";
 import { TaskItem } from "@/components/today/task-item";
 
 export const dynamic = "force-dynamic";
@@ -162,7 +162,7 @@ export default async function DayPage({ searchParams }: PageProps) {
               }}
             />
           )}
-          {isToday && <SuggestDialog />}
+          {isToday && <SuggestSheet />}
         </aside>
       </div>
 
