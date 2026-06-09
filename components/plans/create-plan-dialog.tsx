@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { InfoHint } from "@/components/info-hint";
 import { cn } from "@/lib/utils";
 import { addDays, todayStr } from "@/lib/dates";
 import { createPlan } from "@/app/actions";
@@ -213,9 +214,18 @@ export function CreatePlanDialog() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 Cường độ
-              </label>
+                <InfoHint label="Cường độ là gì?">
+                  Quyết định lộ trình dày hay thưa:{" "}
+                  <strong className="font-medium text-foreground">nhẹ</strong> =
+                  ít cột mốc, mỗi mốc nhỏ;{" "}
+                  <strong className="font-medium text-foreground">dồn</strong> =
+                  nhiều cột mốc, dày hơn;{" "}
+                  <strong className="font-medium text-foreground">vừa</strong> ở
+                  giữa.
+                </InfoHint>
+              </span>
               <div className="flex gap-1">
                 {INTENSITIES.map((it) => (
                   <Button

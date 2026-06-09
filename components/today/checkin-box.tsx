@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { InfoHint } from "@/components/info-hint";
 import { upsertCheckin } from "@/app/actions";
 
 export interface CheckinValues {
@@ -68,11 +69,16 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
 
   return (
     <Card className="gap-3 rounded-lg border-border/70 p-4 shadow-none">
-      <p className="text-sm font-medium">
+      <p className="flex items-center gap-1.5 text-sm font-medium">
         Trạng thái hôm nay
-        <span className="ml-2 font-normal text-muted-foreground">
-          (tùy chọn — giúp AI chia sức)
-        </span>
+        <InfoHint label="Trạng thái hôm nay để làm gì?">
+          Tùy chọn, chạm 1 lần. Những hôm năng lượng thấp / căng thẳng cao / ngủ
+          ít, AI sẽ
+          <strong className="font-medium text-foreground"> giảm tải</strong> và
+          có thể đề xuất một{" "}
+          <strong className="font-medium text-foreground">ngày phục hồi</strong>
+          . Bỏ trống cũng không sao.
+        </InfoHint>
       </p>
       <Scale
         label="Năng lượng"

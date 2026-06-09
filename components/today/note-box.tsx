@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { InfoHint } from "@/components/info-hint";
 import { saveNote } from "@/app/actions";
 
 export function NoteBox({ initialNote }: { initialNote: string }) {
@@ -21,15 +22,18 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
 
   return (
     <div>
-      <label
-        htmlFor="daily-note"
-        className="mb-2 block text-sm font-medium text-foreground"
-      >
-        Hôm nay của bạn thế nào?
-        <span className="ml-2 font-normal text-muted-foreground">
-          (tùy chọn — AI sẽ đọc khi đề xuất)
-        </span>
-      </label>
+      <div className="mb-2 flex items-center gap-1.5">
+        <label
+          htmlFor="daily-note"
+          className="text-sm font-medium text-foreground"
+        >
+          Hôm nay của bạn thế nào?
+        </label>
+        <InfoHint label="Ghi chú để làm gì?">
+          Tùy chọn. AI sẽ đọc ghi chú này khi đề xuất việc cho ngày mai — cứ
+          viết tự nhiên.
+        </InfoHint>
+      </div>
       <Textarea
         id="daily-note"
         value={note}
@@ -40,7 +44,11 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
         className="resize-none shadow-none"
       />
       <p className="mt-1.5 h-4 text-xs text-muted-foreground">
-        {pending ? "Đang lưu..." : savedAt ? "Đã lưu ✓" : "Tự lưu khi rời ô nhập"}
+        {pending
+          ? "Đang lưu..."
+          : savedAt
+            ? "Đã lưu ✓"
+            : "Tự lưu khi rời ô nhập"}
       </p>
     </div>
   );
