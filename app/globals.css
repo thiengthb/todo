@@ -127,4 +127,38 @@
   html {
     @apply font-sans;
   }
+
+  /* Thanh cuộn tùy biến theo theme (mục giao diện) — chuẩn + fallback webkit */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  @supports selector(::-webkit-scrollbar) {
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 9999px;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background: var(--muted-foreground);
+    }
+  }
+
+  /* A11y: tôn trọng prefers-reduced-motion — tắt animation/transition gây chóng mặt */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

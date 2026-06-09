@@ -107,8 +107,8 @@ export default async function DayPage({ searchParams }: PageProps) {
     : null;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 flex items-start justify-between gap-3">
+    <div className="py-6 sm:py-8">
+      <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground capitalize">
             {formatDateVN(date)}
@@ -116,71 +116,71 @@ export default async function DayPage({ searchParams }: PageProps) {
           <h1 className="mt-1 text-xl font-semibold tracking-tight capitalize sm:text-2xl">
             {dayLabel(date)}
           </h1>
+          {/* phản chiếu danh tính — feedback thông tin, không điểm số (mục 11) */}
+          {reflection && (
+            <p className="mt-2 text-xs text-muted-foreground">{reflection}</p>
+          )}
         </div>
         <DayNav date={date} today={today} />
       </header>
 
-      <StatsCards done={doneCount} total={leaves.length} />
+      {/* Dashboard 2 cột: việc (trái) · thống kê/check-in/đề xuất (phải) */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section aria-label="Danh sách việc" className="min-w-0">
+          {dtos.length === 0 ? (
+            <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
+              {isPast
+                ? "Ngày này không có việc nào."
+                : isToday
+                  ? "Chưa có việc nào — thêm việc đầu tiên bên dưới."
+                  : "Chưa có kế hoạch cho ngày này — thêm trước bên dưới."}
+            </p>
+          ) : (
+            <div>
+              {dtos.map((t) => (
+                <TaskItem key={t.id} task={t} mitId={mitId} />
+              ))}
+            </div>
+          )}
+          {/* Quá khứ chỉ để quan sát — không thêm việc ngược thời gian */}
+          {!isPast && (
+            <div className="mt-1">
+              <AddTask date={date} isToday={isToday} />
+            </div>
+          )}
+        </section>
 
-      {/* phản chiếu danh tính — feedback thông tin, không điểm số (mục 11) */}
-      {reflection && (
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          {reflection}
-        </p>
-      )}
+        <aside className="flex flex-col gap-4 lg:gap-5">
+          <StatsCards done={doneCount} total={leaves.length} />
+          {isToday && (
+            <CheckinBox
+              initial={{
+                energy: checkin?.energy ?? null,
+                mood: checkin?.mood ?? null,
+                stress: checkin?.stress ?? null,
+                sleepHours: checkin?.sleepHours ?? null,
+              }}
+            />
+          )}
+          {isToday && <SuggestDialog />}
+        </aside>
+      </div>
 
-      <section aria-label="Danh sách việc" className="mt-8">
-        {dtos.length === 0 ? (
-          <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
-            {isPast
-              ? "Ngày này không có việc nào."
-              : isToday
-                ? "Chưa có việc nào — thêm việc đầu tiên bên dưới."
-                : "Chưa có kế hoạch cho ngày này — thêm trước bên dưới."}
-          </p>
-        ) : (
-          <div>
-            {dtos.map((t) => (
-              <TaskItem key={t.id} task={t} mitId={mitId} />
-            ))}
-          </div>
-        )}
-        {/* Quá khứ chỉ để quan sát — không thêm việc ngược thời gian */}
-        {!isPast && (
-          <div className="mt-1">
-            <AddTask date={date} isToday={isToday} />
-          </div>
-        )}
-      </section>
-
+      {/* Ghi chú — full-width bên dưới, giới hạn bề rộng cho dễ đọc/gõ */}
       {isToday && (
-        <section className="mt-10 space-y-4">
-          <CheckinBox
-            initial={{
-              energy: checkin?.energy ?? null,
-              mood: checkin?.mood ?? null,
-              stress: checkin?.stress ?? null,
-              sleepHours: checkin?.sleepHours ?? null,
-            }}
-          />
+        <section className="mt-8 max-w-2xl">
           <NoteBox initialNote={dailyNote?.note ?? ""} />
         </section>
       )}
 
       {isPast && dailyNote?.note && (
-        <section className="mt-10">
+        <section className="mt-8 max-w-2xl">
           <p className="mb-2 text-sm font-medium">Ghi chú của ngày này</p>
           <blockquote className="rounded-md border border-border/70 bg-muted/40 p-3 text-sm text-muted-foreground italic">
             “{dailyNote.note}”
           </blockquote>
         </section>
       )}
-
-      {isToday && (
-        <section className="mt-6">
-          <SuggestDialog />
-        </section>
-      )}
-    </main>
+    </div>
   );
 }

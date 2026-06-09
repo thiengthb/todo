@@ -49,7 +49,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
   const behind = status === "active" && progress.behindDays >= 1;
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-3xl py-6 sm:py-8">
       <Link
         href="/plans"
         className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -123,6 +123,6 @@ export default async function PlanDetailPage({ params }: PageProps) {
         </h2>
         <MilestoneList planId={plan.id} milestones={plan.milestones} />
       </section>
-    </main>
+    </div>
   );
 }

@@ -3,7 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppHeader } from "@/components/app-header";
+import { AppShell } from "@/components/app-shell";
 import { prisma } from "@/lib/db";
 import { todayStr } from "@/lib/dates";
 import { computeStreaks } from "@/lib/streak";
@@ -25,7 +25,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Smart Todo",
-  description: "Todo list cá nhân thông minh — AI đề xuất ngày mai từ dữ liệu thật",
+  description:
+    "Todo list cá nhân thông minh — AI đề xuất ngày mai từ dữ liệu thật",
 };
 
 export default async function RootLayout({
@@ -41,7 +42,7 @@ export default async function RootLayout({
   });
   const streak = computeStreaks(
     activeRows.map((r) => r.date),
-    todayStr()
+    todayStr(),
   );
 
   return (
@@ -58,14 +59,15 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={300}>
-            <AppHeader
+            <AppShell
               streak={{
                 current: streak.current,
                 atRisk: streak.atRisk,
                 longest: streak.longest,
               }}
-            />
-            {children}
+            >
+              {children}
+            </AppShell>
           </TooltipProvider>
           <Toaster position="bottom-center" />
         </ThemeProvider>

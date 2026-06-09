@@ -111,7 +111,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 export default function GuidePage() {
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 sm:py-16">
+    <div className="mx-auto max-w-2xl py-10 sm:py-16">
       {/* Hero */}
       <section className="text-center">
         <Reveal>
@@ -252,6 +252,6 @@ export default function GuidePage() {
           </div>
         </Reveal>
       </section>
-    </main>
+    </div>
   );
 }

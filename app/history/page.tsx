@@ -10,12 +10,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
-import {
-  addDays,
-  dayLabel,
-  formatDateShort,
-  todayStr,
-} from "@/lib/dates";
+import { addDays, dayLabel, formatDateShort, todayStr } from "@/lib/dates";
 import { computeStreaks } from "@/lib/streak";
 import { cn } from "@/lib/utils";
 
@@ -42,16 +37,19 @@ const EMOTION_ICONS: Record<
 };
 
 function EmotionSummary({ emotions }: { emotions: DaySummary["emotions"] }) {
-  const keys = (Object.keys(EMOTION_ICONS) as (keyof typeof EMOTION_ICONS)[]).filter(
-    (k) => emotions[k] > 0
-  );
+  const keys = (
+    Object.keys(EMOTION_ICONS) as (keyof typeof EMOTION_ICONS)[]
+  ).filter((k) => emotions[k] > 0);
   if (keys.length === 0) return null;
   return (
     <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
       {keys.map((k) => {
         const { icon: Icon, className } = EMOTION_ICONS[k];
         return (
-          <span key={k} className="flex items-center gap-0.5 text-muted-foreground">
+          <span
+            key={k}
+            className="flex items-center gap-0.5 text-muted-foreground"
+          >
             <Icon className={`size-3.5 ${className}`} />
             {emotions[k]}
           </span>
@@ -69,7 +67,9 @@ function DayRow({ day, isFuture }: { day: DaySummary; isFuture: boolean }) {
     >
       <div className="w-20 shrink-0 sm:w-24">
         <p className="text-sm font-medium capitalize">{dayLabel(day.date)}</p>
-        <p className="text-xs text-muted-foreground">{formatDateShort(day.date)}</p>
+        <p className="text-xs text-muted-foreground">
+          {formatDateShort(day.date)}
+        </p>
       </div>
 
       <div className="min-w-0 flex-1">
@@ -106,7 +106,9 @@ function DayRow({ day, isFuture }: { day: DaySummary; isFuture: boolean }) {
           </div>
           <span className="w-16 shrink-0 text-right text-sm tabular-nums sm:w-20">
             {day.done}/{day.total}
-            <span className="ml-1 text-xs text-muted-foreground">{day.percent}%</span>
+            <span className="ml-1 text-xs text-muted-foreground">
+              {day.percent}%
+            </span>
           </span>
         </>
       )}
@@ -155,7 +157,7 @@ export default async function HistoryPage() {
   // Chuỗi giữ lửa — tính động từ các ngày có ≥1 việc done
   const streak = computeStreaks(
     days.filter((d) => d.done > 0).map((d) => d.date),
-    today
+    today,
   );
 
   // Dải hoạt động 14 ngày gần nhất (kết thúc hôm nay)
@@ -166,7 +168,7 @@ export default async function HistoryPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-3xl py-6 sm:py-8">
       <header className="mb-8">
         <p className="text-sm text-muted-foreground">Toàn cảnh các ngày</p>
         <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
@@ -189,7 +191,7 @@ export default async function HistoryPage() {
                 <Flame
                   className={cn(
                     "size-4",
-                    streak.atRisk ? "text-muted-foreground" : "text-amber-500"
+                    streak.atRisk ? "text-muted-foreground" : "text-amber-500",
                   )}
                 />
               )}
@@ -256,9 +258,11 @@ export default async function HistoryPage() {
               <div
                 className={cn(
                   "w-full rounded-sm",
-                  s.date === today ? "bg-foreground" : "bg-foreground/35"
+                  s.date === today ? "bg-foreground" : "bg-foreground/35",
                 )}
-                style={{ height: `${Math.max(s.percent ?? 0, s.percent !== null ? 6 : 0)}%` }}
+                style={{
+                  height: `${Math.max(s.percent ?? 0, s.percent !== null ? 6 : 0)}%`,
+                }}
               />
             </Link>
           ))}
@@ -289,9 +293,11 @@ export default async function HistoryPage() {
             Chưa có dữ liệu — bắt đầu thêm việc cho hôm nay nhé.
           </p>
         ) : (
-          pastAndToday.map((d) => <DayRow key={d.date} day={d} isFuture={false} />)
+          pastAndToday.map((d) => (
+            <DayRow key={d.date} day={d} isFuture={false} />
+          ))
         )}
       </section>
-    </main>
+    </div>
   );
 }

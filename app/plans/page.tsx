@@ -38,7 +38,7 @@ export default async function PlansPage() {
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="py-6 sm:py-8">
       <header className="mb-8 flex items-start justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">Mục tiêu dài hạn</p>
@@ -59,7 +59,7 @@ export default async function PlansPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {cards.map((c) => (
             <PlanCard
               key={c.id}
@@ -72,6 +72,6 @@ export default async function PlansPage() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }
