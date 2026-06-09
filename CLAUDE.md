@@ -282,3 +282,34 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
 - **Task chia nhỏ** = Task con (`parentId`, self-relation, cascade). Task cha có ≥1 con là "container":
   KHÔNG tính vào stats/streak/completion-rate (lọc `subtasks: { none: {} }` ở các query đếm); `done`
   của cha là **suy ra** (mọi con done), không chấm emotion cho cha.
+
+---
+
+## 12. Quy ước giao diện (UI shell & layout) — BẮT BUỘC
+
+> Đại tu 2026-06: app dùng **app-shell** thay nav ngang. Giữ trung tính kiểu Notion nhưng tận dụng
+> desktop, ít ngợp. Dựa trên nghiên cứu (NN/g, Refactoring UI). Mọi trang/feature mới phải bám.
+
+- **Khung:** `components/app-shell.tsx` bọc toàn app (render ở `layout.tsx`). Desktop ≥`lg`: **sidebar
+  trái** thu gọn được (nav + chip streak + theme ở footer). Mobile <`lg`: **top-bar mỏng** (brand +
+  streak + theme) + **bottom tab bar** (4 mục, luôn hiện — KHÔNG hamburger). Chip streak tách ở
+  `components/streak-chip.tsx`.
+- **Bề rộng:** shell tự căn giữa `max-w-7xl` + px. **Trang KHÔNG tự đặt `<main>`/`max-w`/`px` riêng** —
+  chỉ render `<div>` nội dung. Trang Hôm nay dùng full bề rộng (dashboard); trang đọc/cột (Plans detail,
+  History, Guide) bọc `mx-auto max-w-3xl`/`max-w-2xl` cho dễ đọc.
+- **Hôm nay = dashboard 2 cột** (`lg:grid-cols-[minmax(0,1fr)_340px]`): việc bên trái, thống kê/
+  check-in/đề xuất bên phải; mobile xếp dọc. Mục tiêu: thấy hết, đỡ cuộn.
+- **Mô tả dài → `components/info-hint.tsx`** (icon ⓘ mở Popover khi chạm — KHÔNG tooltip-hover, để hợp
+  cảm ứng + a11y). Giữ nhãn thao tác hiển thị; chỉ giấu phần _giải thích khái niệm_.
+- **Luồng tham chiếu (không-chặn) dùng Sheet**, không modal cuộn dài: "Đề xuất ngày mai" =
+  `components/today/suggest-sheet.tsx` (Sheet phải, header/footer cố định, danh sách trong `ScrollArea`).
+  Dialog (centered) chỉ cho xác nhận ngắn / form gọn; form dài → 2 cột + `ScrollArea`.
+- **KHÔNG breadcrumb** (app nông): dùng tiêu đề trang + link "‹ …" ở trang con.
+- **Thanh cuộn** tùy biến theo theme (đã set global trong `globals.css`); vùng bounded dùng shadcn
+  `ScrollArea`.
+- **Motion = CSS + Radix `data-[state]` + (tùy chọn) View Transitions** — **KHÔNG thêm framer-motion**.
+  Micro-interaction nhẹ (`transition-colors`, `active:scale-*`); hiệu ứng cuộn-hiện dùng
+  `components/reveal.tsx`. LUÔN tôn trọng `prefers-reduced-motion` (đã có guard global).
+- **Màu:** trung tính thuần; chỉ dùng màu **ngữ nghĩa** (amber quá hạn, emerald xong/phục hồi, rose mệt).
+  Hành động chính = nút `default` (đen/trắng). KHÔNG thêm accent thương hiệu, KHÔNG gradient.
+- **shadcn:** đã thêm `sheet`, `scroll-area` (unified `radix-ui`, style radix-nova `data-open/closed`).

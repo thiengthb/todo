@@ -32,7 +32,7 @@ export function PlanCard({
   return (
     <Link
       href={`/plans/${id}`}
-      className="group flex items-center gap-4 rounded-lg border border-border/70 p-4 transition-colors hover:bg-muted/40"
+      className="group flex items-center gap-4 rounded-lg border border-border/70 p-4 transition-[background-color,transform] hover:bg-muted/40 active:scale-[0.99]"
     >
       <ProgressRing pct={progress.progressPct} />
 
