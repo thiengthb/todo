@@ -30,6 +30,11 @@ model Task {
 
   // implementation intention (mục 11): gợi ý "khi nào/ở đâu" làm việc — tùy chọn
   cue         String?
+
+  // 80/20 (mục 11): mức tác động "high" | "medium" | "low" — AI suy hoặc người dùng đặt
+  impact      String?
+  // lý do trượt (mục 11): "tired" | "too_hard" | "no_time" | "unclear" | "deprioritized"
+  slipReason  String?
 }
 
 // Kế hoạch dài hạn (mục 10) — roadmap cuốn chiếu, AI rót task hằng ngày bám tốc độ thật
@@ -62,4 +67,15 @@ model DailyNote {
   id   String @id @default(cuid())
   date String @unique // "YYYY-MM-DD"
   note String // ghi chú cuối ngày của người dùng
+}
+
+// Personal OS (mục 11): check-in cấu trúc trong ngày — TẤT CẢ optional, bỏ qua được.
+// Dùng để suy "capacity" (sức/ngày) động; AI giảm tải / đề xuất ngày phục hồi khi sức thấp.
+model DayCheckin {
+  id         String @id @default(cuid())
+  date       String @unique // "YYYY-MM-DD"
+  energy     Int? // 1..5
+  mood       Int? // 1..5
+  stress     Int? // 1..5
+  sleepHours Float?
 }

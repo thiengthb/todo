@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Check,
   Clock,
+  HeartPulse,
   Loader2,
   Plus,
   RefreshCw,
@@ -95,6 +96,7 @@ function SuggestionRow({
               planLink,
               item.subtasks,
               item.cue,
+              item.priority, // priority đề xuất = tín hiệu 80/20 (mục 11)
             );
             setAdded(true);
           })
@@ -186,6 +188,18 @@ export function SuggestDialog() {
 
         {result && (
           <div className="max-h-[60vh] space-y-5 overflow-y-auto pr-1">
+            {/* ngày phục hồi (Personal OS, mục 11) — giọng chăm sóc, không ép */}
+            {result.recovery_day && (
+              <div className="flex items-start gap-2 rounded-md border border-emerald-300 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/40">
+                <HeartPulse className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-xs leading-relaxed text-emerald-700 dark:text-emerald-400">
+                  Hôm nay nên là <strong>ngày phục hồi</strong> — sức đang thấp,
+                  chỉ làm vài việc thật nhẹ để giữ nhịp. Nghỉ ngơi cũng là một
+                  phần của kỷ luật.
+                </p>
+              </div>
+            )}
+
             {/* capacity note */}
             <p className="rounded-md border border-border/70 bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
               {result.capacity_note}

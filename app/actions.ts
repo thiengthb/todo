@@ -57,6 +57,31 @@ export async function setCue(id: string, cue: string): Promise<void> {
   revalidatePath("/");
 }
 
+/** Đặt mức tác động 80/20 (mục 11). null = bỏ đánh dấu. */
+export async function setImpact(
+  id: string,
+  impact: "high" | "medium" | "low" | null,
+): Promise<void> {
+  await prisma.task.update({ where: { id }, data: { impact } });
+  revalidatePath("/");
+}
+
+export type SlipReason =
+  | "tired"
+  | "too_hard"
+  | "no_time"
+  | "unclear"
+  | "deprioritized";
+
+/** Ghi lý do trượt 1 chạm (mục 11) — AI học để chia nhỏ / giảm tải. null = bỏ. */
+export async function setSlipReason(
+  id: string,
+  reason: SlipReason | null,
+): Promise<void> {
+  await prisma.task.update({ where: { id }, data: { slipReason: reason } });
+  revalidatePath("/");
+}
+
 /**
  * Thêm một đề xuất của AI vào ngày mai.
  * Với carry_over: tìm task dở gốc (cùng title) để giữ chuỗi carriedFrom —
@@ -71,6 +96,7 @@ export async function addTomorrowTask(
   link?: { planId?: string | null; milestoneId?: string | null },
   subtasks?: string[],
   cue?: string | null,
+  impact?: string | null,
 ): Promise<void> {
   const t = title.trim();
   if (!t) return;
@@ -97,6 +123,8 @@ export async function addTomorrowTask(
       planId,
       milestoneId,
       cue: cue?.trim() || null,
+      // priority của đề xuất = tín hiệu 80/20 → lưu thành impact (mục 11)
+      impact: impact ?? null,
     },
   });
 
@@ -112,6 +140,28 @@ export async function addTomorrowTask(
       })),
     });
   }
+  revalidatePath("/");
+}
+
+/** Check-in Personal OS (mục 11) — tất cả tùy chọn; null xoá field đó. Upsert theo ngày hôm nay. */
+export async function upsertCheckin(input: {
+  energy?: number | null;
+  mood?: number | null;
+  stress?: number | null;
+  sleepHours?: number | null;
+}): Promise<void> {
+  const date = todayStr();
+  const data = {
+    energy: input.energy ?? null,
+    mood: input.mood ?? null,
+    stress: input.stress ?? null,
+    sleepHours: input.sleepHours ?? null,
+  };
+  await prisma.dayCheckin.upsert({
+    where: { date },
+    create: { date, ...data },
+    update: data,
+  });
   revalidatePath("/");
 }
 

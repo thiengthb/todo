@@ -4,10 +4,13 @@ import { useState, useTransition } from "react";
 import {
   Check,
   Clock,
+  Flag,
   Frown,
+  HelpCircle,
   ListChecks,
   Meh,
   Smile,
+  Star,
   Target,
   Trash2,
   type LucideIcon,
@@ -25,8 +28,138 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { deleteTask, setCue, setEmotion, toggleTask } from "@/app/actions";
-import type { Emotion, TaskDTO } from "@/lib/types";
+import {
+  deleteTask,
+  setCue,
+  setEmotion,
+  setImpact,
+  setSlipReason,
+  toggleTask,
+  type SlipReason,
+} from "@/app/actions";
+import type { Emotion, Priority, TaskDTO } from "@/lib/types";
+
+// lý do trượt 1 chạm (mục 11) — AI học để chia nhỏ / giảm tải
+const SLIP_REASONS: { value: SlipReason; label: string }[] = [
+  { value: "tired", label: "Mệt" },
+  { value: "too_hard", label: "Quá khó" },
+  { value: "no_time", label: "Hết giờ" },
+  { value: "unclear", label: "Chưa rõ làm gì" },
+  { value: "deprioritized", label: "Hết ưu tiên" },
+];
+
+/** Nút ghi lý do trượt — chỉ hiện ở việc quá hạn chưa xong (mục 11) */
+function SlipButton({
+  id,
+  slipReason,
+}: {
+  id: string;
+  slipReason: string | null | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const [, startTransition] = useTransition();
+  const current = SLIP_REASONS.find((r) => r.value === slipReason);
+
+  function pick(value: SlipReason) {
+    setOpen(false);
+    startTransition(() =>
+      setSlipReason(id, slipReason === value ? null : value),
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Vì sao việc này bị trượt?"
+          className={cn(
+            "shrink-0 rounded-md p-1.5 transition-opacity hover:!opacity-100 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60",
+            current
+              ? "text-foreground opacity-70"
+              : "text-muted-foreground opacity-60",
+          )}
+        >
+          <HelpCircle className="size-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-52 p-1.5">
+        <p className="mb-1.5 px-1 text-xs text-muted-foreground">
+          Điều gì đã cản trở?
+        </p>
+        <div className="flex flex-col gap-0.5">
+          {SLIP_REASONS.map((r) => (
+            <button
+              key={r.value}
+              type="button"
+              onClick={() => pick(r.value)}
+              className={cn(
+                "rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted",
+                slipReason === r.value && "bg-muted font-medium",
+              )}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// vòng đặt tác động 80/20: chưa đặt → cao → vừa → thấp → bỏ (mục 11)
+const IMPACT_CYCLE: Record<string, Priority | null> = {
+  none: "high",
+  high: "medium",
+  medium: "low",
+  low: null,
+};
+const IMPACT_LABEL: Record<Priority, string> = {
+  high: "tác động cao",
+  medium: "tác động vừa",
+  low: "tác động thấp",
+};
+const IMPACT_CLASS: Record<Priority, string> = {
+  high: "text-rose-600 dark:text-rose-400",
+  medium: "text-amber-600 dark:text-amber-400",
+  low: "text-muted-foreground",
+};
+
+/** Nút đặt mức tác động 80/20 — 1 chạm để xoay vòng (mục 11) */
+function ImpactButton({
+  id,
+  impact,
+}: {
+  id: string;
+  impact: Priority | null | undefined;
+}) {
+  const [, startTransition] = useTransition();
+  const cur = impact ?? null;
+  const next = IMPACT_CYCLE[cur ?? "none"];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="Đặt mức tác động (80/20)"
+          onClick={() => startTransition(() => setImpact(id, next))}
+          className={cn(
+            "shrink-0 rounded-md p-1.5 transition-opacity hover:!opacity-100 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60",
+            cur
+              ? cn("opacity-70", IMPACT_CLASS[cur])
+              : "text-muted-foreground opacity-60",
+          )}
+        >
+          <Flag className={cn("size-3.5", cur === "high" && "fill-current")} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {cur ? IMPACT_LABEL[cur] : "Đặt mức tác động"}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 const EMOTIONS: {
   value: Emotion;
@@ -131,7 +264,7 @@ function PlanChip({ title }: { title: string }) {
 }
 
 /** Một dòng việc đơn (leaf): checkbox + tiêu đề + badge trì hoãn + cảm xúc + xoá */
-function LeafRow({ task }: { task: TaskDTO }) {
+function LeafRow({ task, isMit }: { task: TaskDTO; isMit?: boolean }) {
   const [, startTransition] = useTransition();
 
   return (
@@ -160,6 +293,16 @@ function LeafRow({ task }: { task: TaskDTO }) {
           >
             {task.title}
           </span>
+          {/* việc chính hôm nay (MIT, 80/20) */}
+          {isMit && !task.done && (
+            <Badge
+              variant="outline"
+              className="shrink-0 gap-1 border-amber-300 bg-amber-50 text-[11px] font-normal text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+            >
+              <Star className="size-3 fill-current" />
+              việc chính
+            </Badge>
+          )}
           {task.planTitle && <PlanChip title={task.planTitle} />}
         </span>
         {/* gợi ý khi nào/ở đâu (implementation intention) */}
@@ -180,6 +323,10 @@ function LeafRow({ task }: { task: TaskDTO }) {
         </Badge>
       )}
 
+      {!task.done && task.delay >= 1 && (
+        <SlipButton id={task.id} slipReason={task.slipReason} />
+      )}
+      <ImpactButton id={task.id} impact={task.impact} />
       <CueButton id={task.id} cue={task.cue} />
 
       <div className="flex shrink-0 items-center gap-0.5">
@@ -226,7 +373,13 @@ function LeafRow({ task }: { task: TaskDTO }) {
 }
 
 /** Task đã chia nhỏ (mục 11): header nhóm + các bước con. Goal-gradient: "còn N bước". */
-function ContainerRow({ task }: { task: TaskDTO }) {
+function ContainerRow({
+  task,
+  mitId,
+}: {
+  task: TaskDTO;
+  mitId?: string | null;
+}) {
   const [, startTransition] = useTransition();
   const steps = task.subtasks ?? [];
   const doneSteps = steps.filter((s) => s.done).length;
@@ -281,16 +434,22 @@ function ContainerRow({ task }: { task: TaskDTO }) {
       {/* Các bước con — thụt vào, có vạch nối */}
       <div className="mt-1 ml-2 border-l border-border/60 pl-3 sm:ml-2.5">
         {steps.map((s) => (
-          <LeafRow key={s.id} task={s} />
+          <LeafRow key={s.id} task={s} isMit={s.id === mitId} />
         ))}
       </div>
     </div>
   );
 }
 
-export function TaskItem({ task }: { task: TaskDTO }) {
+export function TaskItem({
+  task,
+  mitId,
+}: {
+  task: TaskDTO;
+  mitId?: string | null;
+}) {
   if (task.subtasks && task.subtasks.length > 0) {
-    return <ContainerRow task={task} />;
+    return <ContainerRow task={task} mitId={mitId} />;
   }
-  return <LeafRow task={task} />;
+  return <LeafRow task={task} isMit={task.id === mitId} />;
 }

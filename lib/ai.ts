@@ -26,7 +26,7 @@ export interface SuggestContext {
   today: string;
   tomorrow: string;
   doneToday: { title: string; emotion: string | null }[];
-  undone: { title: string; delayDays: number }[];
+  undone: { title: string; delayDays: number; slipReason?: string | null }[];
   todayRate: { done: number; total: number };
   /** trung bình ~7 ngày gần nhất, null nếu chưa đủ dữ liệu */
   weeklyAvg: {
@@ -45,6 +45,15 @@ export interface SuggestContext {
     easyTopics: string[];
     samples: number;
   };
+  /** check-in Personal OS hôm nay (mục 11) — null nếu chưa nhập */
+  todayCheckin: {
+    energy: number | null;
+    mood: number | null;
+    stress: number | null;
+    sleepHours: number | null;
+  } | null;
+  /** sức/ngày suy động 0..100 (mục 11) — null nếu không có check-in */
+  capacityScore: number | null;
 }
 
 const SYSTEM_PROMPT = `Bạn là trợ lý lập kế hoạch cá nhân. Nhiệm vụ: từ dữ liệu thật của người dùng
@@ -59,7 +68,12 @@ Nguyên tắc bắt buộc:
    Title trong carry_over phải GIỮ NGUYÊN VĂN title của việc còn dở trong input (để hệ thống đối chiếu).
 3. TẬN DỤNG ĐÀ: việc mới nên nối tiếp việc vừa hoàn thành, đặc biệt việc có emotion "love" (làm thấy dễ/thích).
 4. HẠ RÀO CẢN cho việc hay bị trượt: đề xuất phiên bản nhỏ hơn, cụ thể hơn, dễ bắt đầu để giữ chuỗi.
-5. Xếp việc nặng (priority high) lên đầu danh sách, việc nhẹ để lấp khoảng nghỉ.
+   Nếu việc dở có "slipReason": "too_hard" → CHIA NHỎ (subtasks); "no_time"/"tired" → giảm tải, đặt việc
+   nhẹ hơn; "unclear" → đề xuất bước đầu tiên là làm rõ/chia việc; "deprioritized" → có thể hạ ưu tiên.
+5. ƯU TIÊN 80/20 (Pareto): "priority" phản ánh GIÁ TRỊ trên CÔNG SỨC (impact ÷ effort), không chỉ
+   độ gấp. Việc tạo nhiều kết quả nhất với công sức hợp lý → priority "high". Đảm bảo CÓ một việc
+   "high" rõ ràng để làm "việc chính" trong ngày (câu hỏi: nếu chỉ làm 1 việc, việc nào đáng nhất?).
+   Xếp việc high lên đầu, việc nhẹ lấp khoảng nghỉ.
 6. TUYỆT ĐỐI KHÔNG bịa task không liên quan tới dữ liệu input. Mỗi "reason" phải ngắn (≤ 20 từ)
    và truy ngược được về một dữ kiện cụ thể trong input (việc nào, cảm xúc nào, trì hoãn bao lâu, ghi chú gì).
 7. Nếu input gần như trống (chưa có lịch sử), trả carry_over rỗng và suggested_tasks rỗng,
@@ -83,7 +97,13 @@ Nguyên tắc bắt buộc:
 12. GỢI Ý "KHI NÀO/Ở ĐÂU" (implementation intention — đòn tâm lý mạnh): với 1–2 việc QUAN TRỌNG nhất,
    thêm trường "cue" dạng cụ thể "khi <mốc thời gian/sự kiện>, ở <nơi chốn>" (vd "sau bữa sáng, ở bàn làm").
    Chỉ gợi ý khi hợp lý; việc khác để "cue" trống. KHÔNG bịa nơi chốn nếu không suy được từ ngữ cảnh.
-13. Viết toàn bộ bằng tiếng Việt.
+13. SỨC/NGÀY (capacity, Personal OS): nếu có "capacityScore"/"todayCheckin", điều chỉnh TẢI theo sức.
+   capacityScore thấp (< 40) hoặc căng thẳng cao/ngủ ít → GIẢM số việc và độ khó, ưu tiên việc nhẹ;
+   nếu rất thấp hoặc gần đây nhiều việc "hard"/trượt liên tục → đặt "recovery_day": true và CHỈ đề xuất
+   2–3 việc rất nhẹ, phục hồi (nghỉ ngơi, dọn dẹp nhẹ, đi bộ), giọng chăm sóc bản thân. capacityScore
+   cao (> 75) → có thể thêm một việc. Không có dữ liệu capacity → dựa vào tốc độ thật như cũ,
+   "recovery_day": false.
+14. Viết toàn bộ bằng tiếng Việt.
 
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
@@ -123,8 +143,15 @@ const RESPONSE_SCHEMA = {
     carry_over: { type: "ARRAY", items: ITEM_SCHEMA },
     suggested_tasks: { type: "ARRAY", items: ITEM_SCHEMA },
     plan_tasks: { type: "ARRAY", items: PLAN_ITEM_SCHEMA },
+    recovery_day: { type: "BOOLEAN" },
   },
-  required: ["capacity_note", "carry_over", "suggested_tasks", "plan_tasks"],
+  required: [
+    "capacity_note",
+    "carry_over",
+    "suggested_tasks",
+    "plan_tasks",
+    "recovery_day",
+  ],
 } as const;
 
 /** Bỏ ```json fences nếu model lỡ thêm */
@@ -219,6 +246,7 @@ function parseResult(raw: string): SuggestionResult {
     suggested_tasks: parseItems("suggested_tasks"),
     plan_tasks: parsePlanItems(),
     plan_alerts: [], // server điền sau (số liệu động, không để model bịa)
+    recovery_day: obj.recovery_day === true,
   };
 }
 

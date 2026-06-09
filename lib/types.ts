@@ -39,6 +39,8 @@ export interface SuggestionResult {
   plan_tasks: PlanSuggestionItem[];
   /** cảnh báo chậm — server điền sau khi model trả về */
   plan_alerts: PlanAlert[];
+  /** ngày phục hồi (mục 11): sức thấp / nhiều ngày "hard" → chỉ đề xuất việc nhẹ */
+  recovery_day: boolean;
 }
 
 /** DTO gọn cho client component — đã tính sẵn delay phía server */
@@ -55,6 +57,10 @@ export interface TaskDTO {
   subtasks?: TaskDTO[];
   /** gợi ý "khi nào/ở đâu" (implementation intention, mục 11) — tùy chọn */
   cue?: string | null;
+  /** mức tác động 80/20 (mục 11) — để tính "việc chính" (MIT) */
+  impact?: Priority | null;
+  /** lý do trượt nếu đã ghi (mục 11) */
+  slipReason?: string | null;
 }
 
 // ---- Kế hoạch (mục 10) ----

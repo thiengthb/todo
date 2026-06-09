@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import {
+  addDays,
   dayLabel,
   delayDays,
   formatDateVN,
@@ -7,8 +8,11 @@ import {
   todayStr,
 } from "@/lib/dates";
 import { DayNav } from "@/components/day-nav";
-import type { Emotion, TaskDTO } from "@/lib/types";
+import { pickMitId } from "@/lib/priority";
+import { buildReflection } from "@/lib/reflection";
+import type { Emotion, Priority, TaskDTO } from "@/lib/types";
 import { AddTask } from "@/components/today/add-task";
+import { CheckinBox } from "@/components/today/checkin-box";
 import { NoteBox } from "@/components/today/note-box";
 import { StatsCards } from "@/components/today/stats-cards";
 import { SuggestDialog } from "@/components/today/suggest-dialog";
@@ -28,7 +32,7 @@ export default async function DayPage({ searchParams }: PageProps) {
   const isToday = date === today;
   const isPast = date < today;
 
-  const [tasks, dailyNote] = await Promise.all([
+  const [tasks, dailyNote, checkin, recentDone7] = await Promise.all([
     // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
     prisma.task.findMany({
       where: { date, parentId: null },
@@ -42,6 +46,21 @@ export default async function DayPage({ searchParams }: PageProps) {
       },
     }),
     prisma.dailyNote.findUnique({ where: { date } }),
+    // check-in chỉ cần cho hôm nay (Personal OS, mục 11)
+    isToday
+      ? prisma.dayCheckin.findUnique({ where: { date } })
+      : Promise.resolve(null),
+    // việc xong 7 ngày gần đây (bỏ container) để phản chiếu danh tính (mục 11)
+    isToday
+      ? prisma.task.findMany({
+          where: {
+            done: true,
+            date: { gte: addDays(today, -6), lte: today },
+            subtasks: { none: {} },
+          },
+          select: { date: true, emotion: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const dtos: TaskDTO[] = tasks.map((t) => {
@@ -53,6 +72,8 @@ export default async function DayPage({ searchParams }: PageProps) {
       delay: c.done || isPast ? 0 : delayDays(c),
       planTitle: c.plan?.title ?? null,
       cue: c.cue,
+      impact: c.impact as Priority | null,
+      slipReason: c.slipReason,
     }));
     const isContainer = subtasks.length > 0;
     return {
@@ -65,12 +86,25 @@ export default async function DayPage({ searchParams }: PageProps) {
       planTitle: t.plan?.title ?? null,
       subtasks: isContainer ? subtasks : undefined,
       cue: t.cue,
+      impact: t.impact as Priority | null,
+      slipReason: t.slipReason,
     };
   });
 
   // stats đếm theo việc thật (bước con + việc đơn), bỏ qua container — mục 11
   const leaves = dtos.flatMap((t) => t.subtasks ?? [t]);
   const doneCount = leaves.filter((t) => t.done).length;
+  // "việc chính" hôm nay (MIT, 80/20) — chỉ làm nổi bật, không đổi thứ tự
+  const mitId = isToday ? pickMitId(leaves) : null;
+
+  // phản chiếu danh tính + feedback thông tin (mục 11) — suy từ 7 ngày gần đây
+  const reflection = isToday
+    ? buildReflection({
+        activeDays7: new Set(recentDone7.map((t) => t.date)).size,
+        hardDone7: recentDone7.filter((t) => t.emotion === "hard").length,
+        done7: recentDone7.length,
+      })
+    : null;
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
@@ -88,6 +122,13 @@ export default async function DayPage({ searchParams }: PageProps) {
 
       <StatsCards done={doneCount} total={leaves.length} />
 
+      {/* phản chiếu danh tính — feedback thông tin, không điểm số (mục 11) */}
+      {reflection && (
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          {reflection}
+        </p>
+      )}
+
       <section aria-label="Danh sách việc" className="mt-8">
         {dtos.length === 0 ? (
           <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
@@ -100,7 +141,7 @@ export default async function DayPage({ searchParams }: PageProps) {
         ) : (
           <div>
             {dtos.map((t) => (
-              <TaskItem key={t.id} task={t} />
+              <TaskItem key={t.id} task={t} mitId={mitId} />
             ))}
           </div>
         )}
@@ -113,7 +154,15 @@ export default async function DayPage({ searchParams }: PageProps) {
       </section>
 
       {isToday && (
-        <section className="mt-10">
+        <section className="mt-10 space-y-4">
+          <CheckinBox
+            initial={{
+              energy: checkin?.energy ?? null,
+              mood: checkin?.mood ?? null,
+              stress: checkin?.stress ?? null,
+              sleepHours: checkin?.sleepHours ?? null,
+            }}
+          />
           <NoteBox initialNote={dailyNote?.note ?? ""} />
         </section>
       )}

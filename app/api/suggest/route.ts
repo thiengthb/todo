@@ -14,6 +14,7 @@ import {
 } from "@/lib/dates";
 import { computePlanProgress } from "@/lib/plan";
 import { computeDifficultyHints } from "@/lib/difficulty";
+import { computeCapacity } from "@/lib/capacity";
 import type { PlanAlert } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -35,32 +36,40 @@ export async function POST(): Promise<NextResponse> {
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
     const twoWeeksAgoStr = toDateStr(twoWeeksAgo);
 
-    const [todayTasks, undoneTasks, recentTasks, ratedTasks, note, plans] =
-      await Promise.all([
-        prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
-        // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
-        prisma.task.findMany({
-          where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
-          orderBy: { createdAt: "asc" },
-        }),
-        prisma.task.findMany({
-          where: { date: { gte: weekAgoStr, lt: today }, ...NOT_CONTAINER },
-        }),
-        // việc đã chấm cảm xúc ~14 ngày → suy độ khó
-        prisma.task.findMany({
-          where: {
-            date: { gte: twoWeeksAgoStr, lte: today },
-            emotion: { not: null },
-            ...NOT_CONTAINER,
-          },
-          select: { title: true, emotion: true },
-        }),
-        prisma.dailyNote.findUnique({ where: { date: today } }),
-        prisma.plan.findMany({
-          where: { status: "active" },
-          include: { milestones: { orderBy: { order: "asc" } } },
-        }),
-      ]);
+    const [
+      todayTasks,
+      undoneTasks,
+      recentTasks,
+      ratedTasks,
+      note,
+      plans,
+      checkin,
+    ] = await Promise.all([
+      prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
+      // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
+      prisma.task.findMany({
+        where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.task.findMany({
+        where: { date: { gte: weekAgoStr, lt: today }, ...NOT_CONTAINER },
+      }),
+      // việc đã chấm cảm xúc ~14 ngày → suy độ khó
+      prisma.task.findMany({
+        where: {
+          date: { gte: twoWeeksAgoStr, lte: today },
+          emotion: { not: null },
+          ...NOT_CONTAINER,
+        },
+        select: { title: true, emotion: true },
+      }),
+      prisma.dailyNote.findUnique({ where: { date: today } }),
+      prisma.plan.findMany({
+        where: { status: "active" },
+        include: { milestones: { orderBy: { order: "asc" } } },
+      }),
+      prisma.dayCheckin.findUnique({ where: { date: today } }),
+    ]);
 
     // Trung bình ~7 ngày: chỉ tính những ngày thực sự có task
     const byDate = new Map<string, { done: number; total: number }>();
@@ -122,6 +131,7 @@ export async function POST(): Promise<NextResponse> {
       undone: undoneTasks.map((t) => ({
         title: t.title,
         delayDays: Math.max(delayDays(t), daysBetween(t.date, today)),
+        slipReason: t.slipReason,
       })),
       todayRate: { done: doneToday.length, total: todayTasks.length },
       weeklyAvg,
@@ -132,6 +142,25 @@ export async function POST(): Promise<NextResponse> {
         .slice(-40)
         .map((t) => ({ title: t.title, emotion: t.emotion })),
       difficultyHints: computeDifficultyHints(ratedTasks),
+      // Personal OS (mục 11): check-in hôm nay + capacity động
+      todayCheckin: checkin
+        ? {
+            energy: checkin.energy,
+            mood: checkin.mood,
+            stress: checkin.stress,
+            sleepHours: checkin.sleepHours,
+          }
+        : null,
+      capacityScore: computeCapacity(
+        checkin
+          ? {
+              energy: checkin.energy,
+              mood: checkin.mood,
+              stress: checkin.stress,
+              sleepHours: checkin.sleepHours,
+            }
+          : null,
+      ),
     };
 
     const result = await suggestTomorrow(ctx);
