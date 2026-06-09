@@ -15,6 +15,7 @@ const NAV = [
   { href: "/", label: "Hôm nay" },
   { href: "/plans", label: "Kế hoạch" },
   { href: "/history", label: "Lịch sử" },
+  { href: "/guide", label: "Hướng dẫn" },
 ] as const;
 
 interface StreakProps {

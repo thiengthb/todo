@@ -5,7 +5,9 @@ Todo list cá nhân thông minh: tạo task trong ngày, đánh dấu xong và c
 AI đọc lịch sử thật (việc xong, việc dở, mức trì hoãn, cảm xúc, tốc độ hoàn thành)
 và đề xuất danh sách **khả thi** kèm **lý do** cho từng việc.
 
-> Spec đầy đủ & rule phát triển: xem `CLAUDE.md`.
+> 📚 Tài liệu đầy đủ trong [`docs/`](./docs/): [sản phẩm](./docs/01-product.md) ·
+> [kỹ thuật](./docs/02-technical.md) · [hướng dẫn sử dụng](./docs/03-user-guide.md).
+> Trang hướng dẫn tương tác trong app: `/guide`. Spec & rule phát triển: `CLAUDE.md`.
 
 ## Stack
 
