@@ -13,9 +13,13 @@ import {
   tomorrowStr,
 } from "@/lib/dates";
 import { computePlanProgress } from "@/lib/plan";
+import { computeDifficultyHints } from "@/lib/difficulty";
 import type { PlanAlert } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+// task "container" (có ≥1 con) là nhóm, không tính vào stats/tốc độ thật (mục 11)
+const NOT_CONTAINER = { subtasks: { none: {} } };
 
 export async function POST(): Promise<NextResponse> {
   try {
@@ -26,16 +30,30 @@ export async function POST(): Promise<NextResponse> {
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekAgoStr = toDateStr(weekAgo);
 
-    const [todayTasks, undoneTasks, recentTasks, note, plans] =
+    // 14 ngày để lắp "reference class" độ khó (mục 11)
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    const twoWeeksAgoStr = toDateStr(twoWeeksAgo);
+
+    const [todayTasks, undoneTasks, recentTasks, ratedTasks, note, plans] =
       await Promise.all([
-        prisma.task.findMany({ where: { date: today } }),
-        // việc còn dở: mọi task chưa done có date đến hôm nay
+        prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
+        // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
         prisma.task.findMany({
-          where: { done: false, date: { lte: today } },
+          where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
           orderBy: { createdAt: "asc" },
         }),
         prisma.task.findMany({
-          where: { date: { gte: weekAgoStr, lt: today } },
+          where: { date: { gte: weekAgoStr, lt: today }, ...NOT_CONTAINER },
+        }),
+        // việc đã chấm cảm xúc ~14 ngày → suy độ khó
+        prisma.task.findMany({
+          where: {
+            date: { gte: twoWeeksAgoStr, lte: today },
+            emotion: { not: null },
+            ...NOT_CONTAINER,
+          },
+          select: { title: true, emotion: true },
         }),
         prisma.dailyNote.findUnique({ where: { date: today } }),
         prisma.plan.findMany({
@@ -109,6 +127,11 @@ export async function POST(): Promise<NextResponse> {
       weeklyAvg,
       note: note?.note ?? null,
       activePlans,
+      // reference class độ khó (mục 11): cap ~40 mục gần nhất cho gọn prompt
+      recentDone: ratedTasks
+        .slice(-40)
+        .map((t) => ({ title: t.title, emotion: t.emotion })),
+      difficultyHints: computeDifficultyHints(ratedTasks),
     };
 
     const result = await suggestTomorrow(ctx);

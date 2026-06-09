@@ -37,6 +37,14 @@ export interface SuggestContext {
   note: string | null;
   /** kế hoạch đang chạy (mục 10) — rỗng nếu không có */
   activePlans: ActivePlanContext[];
+  /** việc đã chấm cảm xúc ~14 ngày gần nhất — "reference class" để hiệu chỉnh độ khó (mục 11) */
+  recentDone: { title: string; emotion: string | null }[];
+  /** gợi ý chủ đề khó/dễ suy từ lịch sử cảm xúc (mục 11) */
+  difficultyHints: {
+    hardTopics: string[];
+    easyTopics: string[];
+    samples: number;
+  };
 }
 
 const SYSTEM_PROMPT = `Bạn là trợ lý lập kế hoạch cá nhân. Nhiệm vụ: từ dữ liệu thật của người dùng
@@ -63,9 +71,21 @@ Nguyên tắc bắt buộc:
    việc nhỏ hơn cho dễ bắt kịp. reason truy về tên kế hoạch + cột mốc. Không có activePlans → plan_tasks rỗng.
 9. TỔNG số việc (carry_over + suggested_tasks + plan_tasks) vẫn phải ≈ avgDonePerDay (±1) —
    kế hoạch KHÔNG phải lý do để nhồi việc.
-10. Viết toàn bộ bằng tiếng Việt.
+10. HIỆU CHỈNH ĐỘ KHÓ THEO LỊCH SỬ (reference class, chống "lạc quan kế hoạch"): dùng "recentDone"
+   và "difficultyHints" để ước lượng việc nào sẽ nặng. Nếu một việc/chủ đề thuộc "hardTopics" hoặc
+   đã trượt nhiều ngày → ĐỪNG lặp lại nguyên si; thay vào đó CHIA NHỎ thành 2–4 bước cụ thể, mỗi
+   bước làm được trong một lần ngồi, bỏ vào trường "subtasks" của item đó (title item là việc gốc/lớn).
+   Việc thuộc "easyTopics" có thể giữ nguyên, xếp nối tiếp để tận dụng đà. Chỉ chia nhỏ khi thực sự
+   cần (việc lớn/hay trượt/khó) — KHÔNG chia vụn việc đã nhỏ.
+11. GIỌNG VĂN TỬ TẾ (self-compassion): "capacity_note" nói tích cực, hướng tới trước. Nếu hôm nay
+   trượt nhiều, framing kiểu "vẫn giữ được phần lớn tiến độ, mai bắt đầu nhẹ nhàng" — KHÔNG trách
+   móc, KHÔNG đếm tội. Đề cao việc bắt đầu lại hơn là đuổi cho kịp.
+12. Viết toàn bộ bằng tiếng Việt.
 
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
+
+// các bước chia nhỏ (mục 11) — mảng tiêu đề ngắn, optional
+const SUBTASKS_SCHEMA = { type: "ARRAY", items: { type: "STRING" } } as const;
 
 const ITEM_SCHEMA = {
   type: "OBJECT",
@@ -73,6 +93,7 @@ const ITEM_SCHEMA = {
     title: { type: "STRING" },
     priority: { type: "STRING", enum: ["high", "medium", "low"] },
     reason: { type: "STRING" },
+    subtasks: SUBTASKS_SCHEMA,
   },
   required: ["title", "priority", "reason"],
 } as const;
@@ -83,6 +104,7 @@ const PLAN_ITEM_SCHEMA = {
     title: { type: "STRING" },
     priority: { type: "STRING", enum: ["high", "medium", "low"] },
     reason: { type: "STRING" },
+    subtasks: SUBTASKS_SCHEMA,
     planId: { type: "STRING" },
     milestoneId: { type: "STRING", nullable: true },
   },
@@ -119,6 +141,14 @@ function parseResult(raw: string): SuggestionResult {
   if (typeof obj?.capacity_note !== "string") {
     throw new Error("JSON thiếu trường capacity_note");
   }
+  // mảng bước chia nhỏ: chỉ giữ string không rỗng, bỏ nếu rỗng
+  const parseSubtasks = (raw: unknown): string[] | undefined => {
+    if (!Array.isArray(raw)) return undefined;
+    const steps = raw
+      .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+      .map((s) => s.trim());
+    return steps.length > 0 ? steps : undefined;
+  };
   const parseItems = (
     key: "carry_over" | "suggested_tasks",
   ): SuggestionItem[] => {
@@ -132,7 +162,12 @@ function parseResult(raw: string): SuggestionResult {
       const priority = PRIORITIES.includes(item.priority as Priority)
         ? (item.priority as Priority)
         : "medium";
-      return { title: item.title, priority, reason: item.reason };
+      return {
+        title: item.title,
+        priority,
+        reason: item.reason,
+        subtasks: parseSubtasks(item.subtasks),
+      };
     });
   };
   // plan_tasks: như item thường nhưng kèm planId (bắt buộc) + milestoneId (optional)
@@ -156,6 +191,7 @@ function parseResult(raw: string): SuggestionResult {
           title: item.title,
           priority,
           reason: item.reason,
+          subtasks: parseSubtasks(item.subtasks),
           planId: item.planId,
           milestoneId:
             typeof item.milestoneId === "string" ? item.milestoneId : null,

@@ -64,6 +64,16 @@ function SuggestionRow({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{item.title}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">{item.reason}</p>
+        {/* các bước chia nhỏ (mục 11) — thêm "Ngày mai" sẽ tạo cả nhóm */}
+        {item.subtasks && item.subtasks.length > 0 && (
+          <ul className="mt-1.5 space-y-1 border-l border-border/60 pl-3">
+            {item.subtasks.map((s, i) => (
+              <li key={i} className="text-xs text-muted-foreground">
+                · {s}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <Button
         variant="outline"
@@ -71,7 +81,12 @@ function SuggestionRow({
         disabled={added || pending}
         onClick={() =>
           startTransition(async () => {
-            await addTomorrowTask(item.title, isCarryOver, planLink);
+            await addTomorrowTask(
+              item.title,
+              isCarryOver,
+              planLink,
+              item.subtasks,
+            );
             setAdded(true);
           })
         }

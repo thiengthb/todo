@@ -34,7 +34,11 @@ export default async function PlanDetailPage({ params }: PageProps) {
     where: { id },
     include: {
       milestones: { orderBy: { order: "asc" } },
-      tasks: { select: { id: true, done: true } },
+      // bỏ task "container" (đã chia nhỏ) khỏi đếm tiến độ việc (mục 11)
+      tasks: {
+        where: { subtasks: { none: {} } },
+        select: { id: true, done: true },
+      },
     },
   });
   if (!plan) notFound();

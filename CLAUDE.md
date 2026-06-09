@@ -89,10 +89,18 @@ Model PHẢI trả về **đúng JSON này, không kèm văn bản/markdown nào
 {
   "capacity_note": "string — vì sao chọn số lượng task này, dựa trên tốc độ thực tế",
   "carry_over": [
-    { "title": "string", "priority": "high|medium|low", "reason": "string ngắn" }
+    {
+      "title": "string",
+      "priority": "high|medium|low",
+      "reason": "string ngắn"
+    }
   ],
   "suggested_tasks": [
-    { "title": "string", "priority": "high|medium|low", "reason": "string ngắn" }
+    {
+      "title": "string",
+      "priority": "high|medium|low",
+      "reason": "string ngắn"
+    }
   ]
 }
 ```
@@ -101,6 +109,7 @@ Server phải: ép định dạng JSON (dùng response_format/JSON mode nếu AP
 strip ```json fences nếu có, và trả lỗi rõ ràng nếu parse thất bại.
 
 Input gửi cho model (server tự lắp từ DB):
+
 - Task đã xong hôm nay (kèm emotion).
 - Task còn dở (kèm số ngày trì hoãn).
 - Tỉ lệ hoàn thành hôm nay + trung bình ~7 ngày gần nhất nếu có.
@@ -144,7 +153,7 @@ Kế hoạch tách 2 tầng:
 - **Roadmap (cột mốc)** — tương đối ổn định: mục tiêu + vài milestone lớn do AI sinh lúc tạo,
   người dùng chỉnh được. VD: Tuần 1 Hiragana → Tuần 2 Katakana → Tuần 3: 100 từ vựng → Tuần 4: câu đơn.
 - **Task hằng ngày** — sinh động, cuốn chiếu: AI KHÔNG đẻ sẵn 30 ngày. Mỗi ngày chỉ rót 1–2 task
-  kế tiếp dựa trên *đang ở đâu trên roadmap* + *tốc độ thật mấy hôm nay* + *cảm xúc*. Đi nhanh → đẩy
+  kế tiếp dựa trên _đang ở đâu trên roadmap_ + _tốc độ thật mấy hôm nay_ + _cảm xúc_. Đi nhanh → đẩy
   tới; chậm → co task / giãn deadline.
 
 ### 10.2 Tích hợp — HÒA vào `/api/suggest`, không tạo luồng đề xuất riêng
@@ -220,7 +229,7 @@ model Milestone {
 ### 10.8 Quy ước đã chốt (mặc định)
 
 - **Sức chứa** lấy từ `avgDonePerDay` thật; `intensity` chỉ là gợi ý mềm — KHÔNG bắt nhập "phút/ngày".
-- **Milestone done**: người dùng tự tick trên trang chi tiết; AI chỉ được *gợi ý*, KHÔNG tự tick.
+- **Milestone done**: người dùng tự tick trên trang chi tiết; AI chỉ được _gợi ý_, KHÔNG tự tick.
 - **Tạo plan xong KHÔNG tự sinh task hôm nay** — chỉ rót qua nút "Đề xuất ngày mai".
 
 ### 10.9 Màn hình
@@ -239,3 +248,37 @@ model Milestone {
 4. Trang chi tiết plan: milestone checklist, tiến độ, cảnh báo chậm.
 5. Mở rộng `/api/suggest`: `activePlans` vào context, `plan_tasks` + `plan_alerts` vào schema/prompt;
    dialog suggest thêm nhóm "Theo kế hoạch"; chip plan trên task.
+
+---
+
+## 11. Tầng hành vi học (Behavioral layer)
+
+> Nâng app từ "nhắc việc" thành hệ thống giúp **lập kế hoạch khoa học + duy trì kỷ luật bền vững**.
+> Dựa trên nghiên cứu (đã lọc, không nhồi framework). Tài liệu lộ trình đầy đủ: plan file đã duyệt.
+
+### 11.1 Nguyên tắc trung tâm — BẤT BIẾN
+
+App KHÔNG tối ưu _số task hoàn thành_, mà tối ưu **xác suất người dùng còn duy trì kế hoạch sau
+nhiều năm mà không kiệt sức**. Mọi cơ chế mới phải qua 3 cửa: (1) **ma sát thấp** — input mới phải
+tùy chọn / 1 chạm / bỏ qua được, AI degrade mượt khi thiếu; (2) **minh bạch** — reason truy về dữ
+liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
+
+### 11.2 LÀM vs KHÔNG (kết luận từ bằng chứng)
+
+- **LÀM (mạnh × rẻ):** calibrate theo actuals thật (reference-class, chống _planning fallacy_);
+  học **độ khó** từ lịch sử emotion → **chia nhỏ** việc hay trượt (Fogg-Ability); **if-then cue**
+  tùy chọn (d≈0.65); **self-compassion** khi trượt (co nhỏ + bắt đầu lại, không phạt/đỏ); streak
+  **loss-soft** (ân hạn 1 ngày, framing thành tích); **80/20 value-score** + 1 MIT; **goal-gradient**
+  ("còn N việc"); **identity-as-evidence** (phản chiếu pattern thật, không bắt role-play);
+  reward = **feedback thông tin** (vd "tuần này xong 4 việc 'khó'").
+- **KHÔNG:** XP/level/badge/điểm số gắn vào hoàn thành task, variable reward, phạt, push gây lo âu
+  (bằng chứng: phản tác dụng — _overjustification effect_ d≈−0.34); tầng weekly-planning rườm rà
+  (mục tiêu xa ít tác dụng động lực); nhử việc dở để tạo căng thẳng (_Zeigarnik_ yếu/bị bác).
+
+### 11.3 Quy ước dữ liệu
+
+- **Độ khó** và **capacity** KHÔNG lưu cột — suy ĐỘNG từ lịch sử `emotion` + completion-rate
+  (+ `DayCheckin` nếu có), giống `delay`/`streak`. Đặt ở `lib/difficulty.ts`, `lib/capacity.ts`.
+- **Task chia nhỏ** = Task con (`parentId`, self-relation, cascade). Task cha có ≥1 con là "container":
+  KHÔNG tính vào stats/streak/completion-rate (lọc `subtasks: { none: {} }` ở các query đếm); `done`
+  của cha là **suy ra** (mọi con done), không chấm emotion cho cha.

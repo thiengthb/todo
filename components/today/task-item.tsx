@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import {
   Check,
   Frown,
+  ListChecks,
   Meh,
   Smile,
   Target,
@@ -46,12 +47,28 @@ const EMOTIONS: {
   },
 ];
 
-export function TaskItem({ task }: { task: TaskDTO }) {
+function PlanChip({ title }: { title: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="flex shrink-0 items-center gap-1 rounded-md border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+          <Target className="size-3" />
+          <span className="hidden max-w-[8rem] truncate sm:inline">
+            {title}
+          </span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>Thuộc kế hoạch: {title}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Một dòng việc đơn (leaf): checkbox + tiêu đề + badge trì hoãn + cảm xúc + xoá */
+function LeafRow({ task }: { task: TaskDTO }) {
   const [, startTransition] = useTransition();
 
   return (
     <div className="group flex items-center gap-2.5 border-b border-border/70 py-3 last:border-b-0 sm:gap-3">
-      {/* Checkbox tròn */}
       <button
         type="button"
         aria-label={task.done ? "Đánh dấu chưa xong" : "Đánh dấu đã xong"}
@@ -66,7 +83,6 @@ export function TaskItem({ task }: { task: TaskDTO }) {
         {task.done && <Check className="size-3" strokeWidth={3} />}
       </button>
 
-      {/* Tiêu đề + chip plan nếu task phục vụ một kế hoạch */}
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span
           className={cn(
@@ -76,22 +92,9 @@ export function TaskItem({ task }: { task: TaskDTO }) {
         >
           {task.title}
         </span>
-        {task.planTitle && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="flex shrink-0 items-center gap-1 rounded-md border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground">
-                <Target className="size-3" />
-                <span className="hidden max-w-[8rem] truncate sm:inline">
-                  {task.planTitle}
-                </span>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Thuộc kế hoạch: {task.planTitle}</TooltipContent>
-          </Tooltip>
-        )}
+        {task.planTitle && <PlanChip title={task.planTitle} />}
       </span>
 
-      {/* Badge trì hoãn ≥ 2 ngày (chỉ task chưa xong) */}
       {!task.done && task.delay >= 2 && (
         <Badge
           variant="outline"
@@ -101,7 +104,6 @@ export function TaskItem({ task }: { task: TaskDTO }) {
         </Badge>
       )}
 
-      {/* 3 nút cảm xúc — khoá khi chưa done */}
       <div className="flex shrink-0 items-center gap-0.5">
         {EMOTIONS.map((e) => (
           <Tooltip key={e.value}>
@@ -133,7 +135,6 @@ export function TaskItem({ task }: { task: TaskDTO }) {
         ))}
       </div>
 
-      {/* Xóa — luôn hiện trên cảm ứng (không có hover), chỉ ẩn-hiện theo hover ở desktop */}
       <button
         type="button"
         aria-label="Xóa task"
@@ -144,4 +145,74 @@ export function TaskItem({ task }: { task: TaskDTO }) {
       </button>
     </div>
   );
+}
+
+/** Task đã chia nhỏ (mục 11): header nhóm + các bước con. Goal-gradient: "còn N bước". */
+function ContainerRow({ task }: { task: TaskDTO }) {
+  const [, startTransition] = useTransition();
+  const steps = task.subtasks ?? [];
+  const doneSteps = steps.filter((s) => s.done).length;
+  const remaining = steps.length - doneSteps;
+  const allDone = remaining === 0;
+
+  return (
+    <div className="border-b border-border/70 py-3 last:border-b-0">
+      {/* Header nhóm */}
+      <div className="group flex items-center gap-2.5 sm:gap-3">
+        <ListChecks
+          className={cn(
+            "size-[18px] shrink-0",
+            allDone ? "text-foreground" : "text-muted-foreground",
+          )}
+        />
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <span
+            className={cn(
+              "min-w-0 truncate text-sm font-medium",
+              allDone && "text-muted-foreground line-through",
+            )}
+          >
+            {task.title}
+          </span>
+          {task.planTitle && <PlanChip title={task.planTitle} />}
+        </span>
+
+        {/* Goal-gradient: nhấn quãng đường còn lại, framing tích cực */}
+        <Badge
+          variant="outline"
+          className={cn(
+            "shrink-0 text-[11px] font-normal",
+            allDone
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400"
+              : "text-muted-foreground",
+          )}
+        >
+          {allDone ? "Xong cả nhóm" : `còn ${remaining}/${steps.length} bước`}
+        </Badge>
+
+        <button
+          type="button"
+          aria-label="Xóa cả nhóm việc"
+          onClick={() => startTransition(() => deleteTask(task.id))}
+          className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-60 transition-opacity hover:!opacity-100 hover:text-destructive focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      </div>
+
+      {/* Các bước con — thụt vào, có vạch nối */}
+      <div className="mt-1 ml-2 border-l border-border/60 pl-3 sm:ml-2.5">
+        {steps.map((s) => (
+          <LeafRow key={s.id} task={s} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function TaskItem({ task }: { task: TaskDTO }) {
+  if (task.subtasks && task.subtasks.length > 0) {
+    return <ContainerRow task={task} />;
+  }
+  return <LeafRow task={task} />;
 }

@@ -55,11 +55,14 @@ export async function deleteTask(id: string): Promise<void> {
  * Với carry_over: tìm task dở gốc (cùng title) để giữ chuỗi carriedFrom —
  * mức trì hoãn tiếp tục tính từ ngày gốc, không reset.
  * Với plan_task: gắn planId/milestoneId để hiện chip + nối tiến độ.
+ * Với subtasks (mục 11): tạo task cha "container" + các task con (parentId);
+ * cha không tính vào stats, con là việc thật để tick từng bước.
  */
 export async function addTomorrowTask(
   title: string,
   isCarryOver: boolean,
   link?: { planId?: string | null; milestoneId?: string | null },
+  subtasks?: string[],
 ): Promise<void> {
   const t = title.trim();
   if (!t) return;
@@ -73,15 +76,27 @@ export async function addTomorrowTask(
     if (origin) carriedFrom = origin.carriedFrom ?? origin.date;
   }
 
-  await prisma.task.create({
-    data: {
-      title: t,
-      date: tomorrowStr(),
-      carriedFrom,
-      planId: link?.planId ?? null,
-      milestoneId: link?.milestoneId ?? null,
-    },
+  const date = tomorrowStr();
+  const planId = link?.planId ?? null;
+  const milestoneId = link?.milestoneId ?? null;
+  const steps = (subtasks ?? []).map((s) => s.trim()).filter(Boolean);
+
+  const parent = await prisma.task.create({
+    data: { title: t, date, carriedFrom, planId, milestoneId },
   });
+
+  // các bước con kế thừa liên kết plan để nối tiến độ; cha thành container
+  if (steps.length > 0) {
+    await prisma.task.createMany({
+      data: steps.map((s) => ({
+        title: s,
+        date,
+        planId,
+        milestoneId,
+        parentId: parent.id,
+      })),
+    });
+  }
   revalidatePath("/");
 }
 

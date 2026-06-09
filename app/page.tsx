@@ -29,23 +29,46 @@ export default async function DayPage({ searchParams }: PageProps) {
   const isPast = date < today;
 
   const [tasks, dailyNote] = await Promise.all([
+    // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
     prisma.task.findMany({
-      where: { date },
+      where: { date, parentId: null },
       orderBy: { createdAt: "asc" },
-      include: { plan: { select: { title: true } } },
+      include: {
+        plan: { select: { title: true } },
+        subtasks: {
+          orderBy: { createdAt: "asc" },
+          include: { plan: { select: { title: true } } },
+        },
+      },
     }),
     prisma.dailyNote.findUnique({ where: { date } }),
   ]);
 
-  const dtos: TaskDTO[] = tasks.map((t) => ({
-    id: t.id,
-    title: t.title,
-    done: t.done,
-    emotion: t.emotion as Emotion | null,
-    // badge trì hoãn chỉ có nghĩa khi nhìn về hiện tại/tương lai
-    delay: t.done || isPast ? 0 : delayDays(t),
-    planTitle: t.plan?.title ?? null,
-  }));
+  const dtos: TaskDTO[] = tasks.map((t) => {
+    const subtasks: TaskDTO[] = t.subtasks.map((c) => ({
+      id: c.id,
+      title: c.title,
+      done: c.done,
+      emotion: c.emotion as Emotion | null,
+      delay: c.done || isPast ? 0 : delayDays(c),
+      planTitle: c.plan?.title ?? null,
+    }));
+    const isContainer = subtasks.length > 0;
+    return {
+      id: t.id,
+      title: t.title,
+      // task cha "container": done = mọi bước con done; không chấm cảm xúc / không badge trì hoãn
+      done: isContainer ? subtasks.every((s) => s.done) : t.done,
+      emotion: isContainer ? null : (t.emotion as Emotion | null),
+      delay: isContainer || t.done || isPast ? 0 : delayDays(t),
+      planTitle: t.plan?.title ?? null,
+      subtasks: isContainer ? subtasks : undefined,
+    };
+  });
+
+  // stats đếm theo việc thật (bước con + việc đơn), bỏ qua container — mục 11
+  const leaves = dtos.flatMap((t) => t.subtasks ?? [t]);
+  const doneCount = leaves.filter((t) => t.done).length;
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
@@ -61,10 +84,7 @@ export default async function DayPage({ searchParams }: PageProps) {
         <DayNav date={date} today={today} />
       </header>
 
-      <StatsCards
-        done={dtos.filter((t) => t.done).length}
-        total={dtos.length}
-      />
+      <StatsCards done={doneCount} total={leaves.length} />
 
       <section aria-label="Danh sách việc" className="mt-8">
         {dtos.length === 0 ? (

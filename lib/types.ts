@@ -7,6 +7,11 @@ export interface SuggestionItem {
   title: string;
   priority: Priority;
   reason: string;
+  /**
+   * Khi việc quá lớn / hay trượt, AI có thể đề xuất chia thành các bước nhỏ (mục 11).
+   * Rỗng/không có = việc đơn. Thêm "Ngày mai" sẽ tạo task cha + các task con này.
+   */
+  subtasks?: string[];
 }
 
 /** Đề xuất phục vụ một kế hoạch — kèm liên kết để gắn task vào plan/milestone */
@@ -44,6 +49,8 @@ export interface TaskDTO {
   delay: number;
   /** tên plan nếu task phục vụ một kế hoạch (mục 10) — để hiện chip */
   planTitle?: string | null;
+  /** các bước con nếu task này là "container" được chia nhỏ (mục 11) */
+  subtasks?: TaskDTO[];
 }
 
 // ---- Kế hoạch (mục 10) ----

@@ -22,6 +22,11 @@ model Task {
   milestoneId String?
   plan        Plan?      @relation(fields: [planId], references: [id], onDelete: SetNull)
   milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  // chia nhỏ task (mục 11): task cha có ≥1 con là "container", không tính vào stats/streak
+  parentId    String?
+  parent      Task?      @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks    Task[]     @relation("Subtasks")
 }
 
 // Kế hoạch dài hạn (mục 10) — roadmap cuốn chiếu, AI rót task hằng ngày bám tốc độ thật
