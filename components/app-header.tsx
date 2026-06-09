@@ -23,15 +23,16 @@ interface StreakProps {
   longest: number;
 }
 
-/** Câu giải thích ngắn cho tooltip của chip lửa */
+/** Câu giải thích ngắn cho tooltip của chip lửa — giọng tử tế, không trách (mục 11) */
 function streakMessage({ current, atRisk, longest }: StreakProps): string {
   if (current === 0) {
     return longest > 0
-      ? `Chuỗi đã đứt — kỷ lục ${longest} ngày. Hoàn thành 1 việc hôm nay để bắt đầu lại.`
+      ? `Mọi chuỗi đều có lúc nghỉ — kỷ lục của bạn là ${longest} ngày. Làm 1 việc hôm nay để nhen lại.`
       : "Hoàn thành 1 việc hôm nay để nhóm lửa chuỗi đầu tiên.";
   }
   if (atRisk) {
-    return `Chuỗi ${current} ngày đang treo — hoàn thành 1 việc hôm nay để giữ lửa.`;
+    // ân hạn 1 ngày: lỡ một ngày vẫn giữ được nếu làm tiếp hôm nay
+    return `Chuỗi ${current} ngày vẫn giữ — làm 1 việc hôm nay là nối tiếp (lỡ 1 ngày không sao).`;
   }
   return longest > current
     ? `${current} ngày liên tiếp · kỷ lục ${longest} ngày.`

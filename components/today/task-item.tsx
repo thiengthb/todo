@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   Check,
+  Clock,
   Frown,
   ListChecks,
   Meh,
@@ -12,13 +13,19 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { deleteTask, setEmotion, toggleTask } from "@/app/actions";
+import { deleteTask, setCue, setEmotion, toggleTask } from "@/app/actions";
 import type { Emotion, TaskDTO } from "@/lib/types";
 
 const EMOTIONS: {
@@ -46,6 +53,66 @@ const EMOTIONS: {
     activeClass: "text-rose-600 dark:text-rose-400",
   },
 ];
+
+/** Nút đặt/sửa gợi ý "khi nào/ở đâu" (implementation intention, mục 11) */
+function CueButton({
+  id,
+  cue,
+}: {
+  id: string;
+  cue: string | null | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const [val, setVal] = useState(cue ?? "");
+  const [, startTransition] = useTransition();
+
+  function save() {
+    setOpen(false);
+    startTransition(() => setCue(id, val));
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o) setVal(cue ?? "");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Đặt khi nào/ở đâu sẽ làm"
+          className={cn(
+            "shrink-0 rounded-md p-1.5 transition-opacity hover:!opacity-100 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60",
+            cue
+              ? "text-foreground opacity-70"
+              : "text-muted-foreground opacity-60",
+          )}
+        >
+          <Clock className="size-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-2">
+        <p className="mb-1.5 text-xs text-muted-foreground">
+          Khi nào / ở đâu bạn sẽ làm việc này?
+        </p>
+        <Input
+          autoFocus
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+            if (e.key === "Escape") setOpen(false);
+          }}
+          onBlur={save}
+          placeholder="vd: sau cà phê, ở bàn làm"
+          className="h-8 text-sm"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function PlanChip({ title }: { title: string }) {
   return (
@@ -83,16 +150,25 @@ function LeafRow({ task }: { task: TaskDTO }) {
         {task.done && <Check className="size-3" strokeWidth={3} />}
       </button>
 
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        <span
-          className={cn(
-            "min-w-0 truncate text-sm",
-            task.done && "text-muted-foreground line-through",
-          )}
-        >
-          {task.title}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn(
+              "min-w-0 truncate text-sm",
+              task.done && "text-muted-foreground line-through",
+            )}
+          >
+            {task.title}
+          </span>
+          {task.planTitle && <PlanChip title={task.planTitle} />}
         </span>
-        {task.planTitle && <PlanChip title={task.planTitle} />}
+        {/* gợi ý khi nào/ở đâu (implementation intention) */}
+        {task.cue && (
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Clock className="size-3 shrink-0" />
+            {task.cue}
+          </span>
+        )}
       </span>
 
       {!task.done && task.delay >= 2 && (
@@ -103,6 +179,8 @@ function LeafRow({ task }: { task: TaskDTO }) {
           trì hoãn {task.delay}d
         </Badge>
       )}
+
+      <CueButton id={task.id} cue={task.cue} />
 
       <div className="flex shrink-0 items-center gap-0.5">
         {EMOTIONS.map((e) => (

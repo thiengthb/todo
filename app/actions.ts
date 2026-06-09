@@ -50,6 +50,13 @@ export async function deleteTask(id: string): Promise<void> {
   revalidatePath("/", "layout");
 }
 
+/** Đặt/xoá gợi ý "khi nào/ở đâu" (implementation intention, mục 11) */
+export async function setCue(id: string, cue: string): Promise<void> {
+  const c = cue.trim();
+  await prisma.task.update({ where: { id }, data: { cue: c || null } });
+  revalidatePath("/");
+}
+
 /**
  * Thêm một đề xuất của AI vào ngày mai.
  * Với carry_over: tìm task dở gốc (cùng title) để giữ chuỗi carriedFrom —
@@ -63,6 +70,7 @@ export async function addTomorrowTask(
   isCarryOver: boolean,
   link?: { planId?: string | null; milestoneId?: string | null },
   subtasks?: string[],
+  cue?: string | null,
 ): Promise<void> {
   const t = title.trim();
   if (!t) return;
@@ -82,7 +90,14 @@ export async function addTomorrowTask(
   const steps = (subtasks ?? []).map((s) => s.trim()).filter(Boolean);
 
   const parent = await prisma.task.create({
-    data: { title: t, date, carriedFrom, planId, milestoneId },
+    data: {
+      title: t,
+      date,
+      carriedFrom,
+      planId,
+      milestoneId,
+      cue: cue?.trim() || null,
+    },
   });
 
   // các bước con kế thừa liên kết plan để nối tiến độ; cha thành container

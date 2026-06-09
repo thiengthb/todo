@@ -32,12 +32,21 @@ function StatCard({
 export function StatsCards({ done, total }: { done: number; total: number }) {
   const percent = total === 0 ? 0 : Math.round((done / total) * 100);
   const remaining = total - done;
+  // goal-gradient (mục 11): khi gần xong, nhấn QUÃNG ĐƯỜNG CÒN LẠI (động lực mạnh hơn % đã đi)
+  const nearDone = total >= 3 && remaining > 0 && remaining <= 2 && done > 0;
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-      <StatCard label="Đã xong" value={`${done}/${total}`} />
-      <StatCard label="Tỉ lệ" value={`${percent}%`} bar={percent} />
-      <StatCard label="Còn dở" value={String(remaining)} />
+    <div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <StatCard label="Đã xong" value={`${done}/${total}`} />
+        <StatCard label="Tỉ lệ" value={`${percent}%`} bar={percent} />
+        <StatCard label="Còn dở" value={String(remaining)} />
+      </div>
+      {nearDone && (
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Chỉ còn {remaining} việc nữa là trọn ngày hôm nay.
+        </p>
+      )}
     </div>
   );
 }

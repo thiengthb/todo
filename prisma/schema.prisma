@@ -27,6 +27,9 @@ model Task {
   parentId    String?
   parent      Task?      @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
   subtasks    Task[]     @relation("Subtasks")
+
+  // implementation intention (mục 11): gợi ý "khi nào/ở đâu" làm việc — tùy chọn
+  cue         String?
 }
 
 // Kế hoạch dài hạn (mục 10) — roadmap cuốn chiếu, AI rót task hằng ngày bám tốc độ thật

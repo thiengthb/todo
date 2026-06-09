@@ -12,6 +12,8 @@ export interface SuggestionItem {
    * Rỗng/không có = việc đơn. Thêm "Ngày mai" sẽ tạo task cha + các task con này.
    */
   subtasks?: string[];
+  /** gợi ý "khi nào/ở đâu" làm việc (implementation intention, mục 11) — tùy chọn */
+  cue?: string;
 }
 
 /** Đề xuất phục vụ một kế hoạch — kèm liên kết để gắn task vào plan/milestone */
@@ -51,6 +53,8 @@ export interface TaskDTO {
   planTitle?: string | null;
   /** các bước con nếu task này là "container" được chia nhỏ (mục 11) */
   subtasks?: TaskDTO[];
+  /** gợi ý "khi nào/ở đâu" (implementation intention, mục 11) — tùy chọn */
+  cue?: string | null;
 }
 
 // ---- Kế hoạch (mục 10) ----

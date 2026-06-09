@@ -80,7 +80,10 @@ Nguyên tắc bắt buộc:
 11. GIỌNG VĂN TỬ TẾ (self-compassion): "capacity_note" nói tích cực, hướng tới trước. Nếu hôm nay
    trượt nhiều, framing kiểu "vẫn giữ được phần lớn tiến độ, mai bắt đầu nhẹ nhàng" — KHÔNG trách
    móc, KHÔNG đếm tội. Đề cao việc bắt đầu lại hơn là đuổi cho kịp.
-12. Viết toàn bộ bằng tiếng Việt.
+12. GỢI Ý "KHI NÀO/Ở ĐÂU" (implementation intention — đòn tâm lý mạnh): với 1–2 việc QUAN TRỌNG nhất,
+   thêm trường "cue" dạng cụ thể "khi <mốc thời gian/sự kiện>, ở <nơi chốn>" (vd "sau bữa sáng, ở bàn làm").
+   Chỉ gợi ý khi hợp lý; việc khác để "cue" trống. KHÔNG bịa nơi chốn nếu không suy được từ ngữ cảnh.
+13. Viết toàn bộ bằng tiếng Việt.
 
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
@@ -94,6 +97,7 @@ const ITEM_SCHEMA = {
     priority: { type: "STRING", enum: ["high", "medium", "low"] },
     reason: { type: "STRING" },
     subtasks: SUBTASKS_SCHEMA,
+    cue: { type: "STRING", nullable: true },
   },
   required: ["title", "priority", "reason"],
 } as const;
@@ -105,6 +109,7 @@ const PLAN_ITEM_SCHEMA = {
     priority: { type: "STRING", enum: ["high", "medium", "low"] },
     reason: { type: "STRING" },
     subtasks: SUBTASKS_SCHEMA,
+    cue: { type: "STRING", nullable: true },
     planId: { type: "STRING" },
     milestoneId: { type: "STRING", nullable: true },
   },
@@ -167,6 +172,10 @@ function parseResult(raw: string): SuggestionResult {
         priority,
         reason: item.reason,
         subtasks: parseSubtasks(item.subtasks),
+        cue:
+          typeof item.cue === "string" && item.cue.trim()
+            ? item.cue.trim()
+            : undefined,
       };
     });
   };
@@ -192,6 +201,10 @@ function parseResult(raw: string): SuggestionResult {
           priority,
           reason: item.reason,
           subtasks: parseSubtasks(item.subtasks),
+          cue:
+            typeof item.cue === "string" && item.cue.trim()
+              ? item.cue.trim()
+              : undefined,
           planId: item.planId,
           milestoneId:
             typeof item.milestoneId === "string" ? item.milestoneId : null,

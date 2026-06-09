@@ -52,6 +52,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       emotion: c.emotion as Emotion | null,
       delay: c.done || isPast ? 0 : delayDays(c),
       planTitle: c.plan?.title ?? null,
+      cue: c.cue,
     }));
     const isContainer = subtasks.length > 0;
     return {
@@ -63,6 +64,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       delay: isContainer || t.done || isPast ? 0 : delayDays(t),
       planTitle: t.plan?.title ?? null,
       subtasks: isContainer ? subtasks : undefined,
+      cue: t.cue,
     };
   });
 

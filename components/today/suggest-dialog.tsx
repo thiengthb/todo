@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import {
   AlertTriangle,
   Check,
+  Clock,
   Loader2,
   Plus,
   RefreshCw,
@@ -64,6 +65,13 @@ function SuggestionRow({
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{item.title}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">{item.reason}</p>
+        {/* gợi ý khi nào/ở đâu (implementation intention, mục 11) */}
+        {item.cue && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Clock className="size-3 shrink-0" />
+            {item.cue}
+          </p>
+        )}
         {/* các bước chia nhỏ (mục 11) — thêm "Ngày mai" sẽ tạo cả nhóm */}
         {item.subtasks && item.subtasks.length > 0 && (
           <ul className="mt-1.5 space-y-1 border-l border-border/60 pl-3">
@@ -86,6 +94,7 @@ function SuggestionRow({
               isCarryOver,
               planLink,
               item.subtasks,
+              item.cue,
             );
             setAdded(true);
           })
