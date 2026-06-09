@@ -4,6 +4,8 @@ import { computePlanProgress } from "@/lib/plan";
 import type { PlanStatus } from "@/lib/types";
 import { CreatePlanDialog } from "@/components/plans/create-plan-dialog";
 import { PlanCard } from "@/components/plans/plan-card";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 export const dynamic = "force-dynamic";
 
@@ -38,26 +40,19 @@ export default async function PlansPage() {
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
 
   return (
-    <div className="py-6 sm:py-8">
-      <header className="mb-8 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted-foreground">Mục tiêu dài hạn</p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
-            Kế hoạch
-          </h1>
-        </div>
-        <CreatePlanDialog />
-      </header>
+    <div className="py-8">
+      <PageHeader
+        eyebrow="Mục tiêu dài hạn"
+        title="Kế hoạch"
+        action={<CreatePlanDialog />}
+      />
 
       {cards.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border/70 px-6 py-16 text-center">
-          <Target className="mx-auto size-8 text-muted-foreground/40" />
-          <p className="mt-3 text-sm font-medium">Chưa có kế hoạch nào</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Tạo một mục tiêu dài hạn — AI sẽ chia thành lộ trình cột mốc và mỗi
-            ngày đề xuất việc bám theo tốc độ thật của bạn.
-          </p>
-        </div>
+        <EmptyState
+          icon={Target}
+          title="Chưa có kế hoạch nào"
+          description="Tạo một mục tiêu dài hạn — AI sẽ chia thành lộ trình cột mốc và mỗi ngày đề xuất việc bám theo tốc độ thật của bạn."
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {cards.map((c) => (

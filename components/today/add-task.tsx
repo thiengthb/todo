@@ -27,7 +27,7 @@ export function AddTask({ date, isToday }: { date: string; isToday: boolean }) {
         }}
         placeholder={isToday ? "Thêm việc cho hôm nay... (Enter)" : "Lên kế hoạch cho ngày này... (Enter)"}
         aria-label="Thêm việc mới"
-        className="border-0 border-b border-border bg-transparent pl-9 shadow-none rounded-none focus-visible:ring-0 focus-visible:border-foreground/40"
+        className="border-0 border-b border-border/70 bg-transparent pl-9 shadow-none rounded-none focus-visible:ring-0 focus-visible:border-foreground/40"
       />
     </div>
   );

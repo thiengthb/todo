@@ -42,7 +42,7 @@ export function MilestoneList({
       {milestones.map((m) => (
         <div
           key={m.id}
-          className="group flex items-center gap-3 border-b border-border/70 py-3 last:border-b-0"
+          className="group flex items-center gap-3 border-b border-border/70 py-3 transition-colors last:border-b-0 hover:bg-muted/40"
         >
           <button
             type="button"

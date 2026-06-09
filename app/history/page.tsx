@@ -2,17 +2,19 @@ import Link from "next/link";
 import {
   CalendarRange,
   ChevronRight,
+  Clock,
   Flame,
   Frown,
   Meh,
   Smile,
   type LucideIcon,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
 import { addDays, dayLabel, formatDateShort, todayStr } from "@/lib/dates";
 import { computeStreaks } from "@/lib/streak";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 export const dynamic = "force-dynamic";
 
@@ -168,45 +170,43 @@ export default async function HistoryPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl py-6 sm:py-8">
-      <header className="mb-8">
-        <p className="text-sm text-muted-foreground">Toàn cảnh các ngày</p>
-        <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
-          Lịch sử & kế hoạch
-        </h1>
-      </header>
+    <div className="py-8">
+      <PageHeader eyebrow="Toàn cảnh các ngày" title="Lịch sử & kế hoạch" />
 
-      {/* Chuỗi giữ lửa */}
-      <section aria-label="Chuỗi giữ lửa" className="mb-10">
-        <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          <Flame className="size-3.5" /> Chuỗi giữ lửa
-        </h2>
-        <div className="mb-4 grid grid-cols-2 gap-3">
-          <Card className="gap-1 rounded-lg border-border/70 p-4 shadow-none">
-            <p className="text-xs text-muted-foreground">
-              Hiện tại{streak.atRisk && " · đang treo"}
-            </p>
-            <p className="flex items-baseline gap-1.5 text-xl font-semibold tracking-tight tabular-nums">
-              {streak.current > 0 && (
-                <Flame
-                  className={cn(
-                    "size-4",
-                    streak.atRisk ? "text-muted-foreground" : "text-amber-500",
-                  )}
-                />
-              )}
-              {streak.current} ngày
-            </p>
-          </Card>
-          <Card className="gap-1 rounded-lg border-border/70 p-4 shadow-none">
-            <p className="text-xs text-muted-foreground">Kỷ lục</p>
-            <p className="text-xl font-semibold tracking-tight tabular-nums">
-              {streak.longest} ngày
-            </p>
-          </Card>
-        </div>
+      <div className="space-y-10">
+        {/* Chuỗi giữ lửa */}
+        <section aria-label="Chuỗi giữ lửa">
+          <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            <Flame className="size-3.5" /> Chuỗi giữ lửa
+          </h2>
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1 rounded-lg border border-border/70 p-4">
+              <p className="text-xs text-muted-foreground">
+                Hiện tại{streak.atRisk && " · đang treo"}
+              </p>
+              <p className="flex items-baseline gap-1.5 text-xl font-semibold tracking-tight tabular-nums">
+                {streak.current > 0 && (
+                  <Flame
+                    className={cn(
+                      "size-4 self-center",
+                      streak.atRisk
+                        ? "text-muted-foreground"
+                        : "text-amber-500",
+                    )}
+                  />
+                )}
+                {streak.current} ngày
+              </p>
+            </div>
+            <div className="flex flex-col gap-1 rounded-lg border border-border/70 p-4">
+              <p className="text-xs text-muted-foreground">Kỷ lục</p>
+              <p className="text-xl font-semibold tracking-tight tabular-nums">
+                {streak.longest} ngày
+              </p>
+            </div>
+          </div>
 
-        {streak.runs.length === 0 ? (
+          {streak.runs.length === 0 ? (
           <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
             Chưa có chuỗi nào — hoàn thành 1 việc mỗi ngày để nhóm lửa.
           </p>
@@ -218,7 +218,7 @@ export default async function HistoryPage() {
               return (
                 <li
                   key={run.start}
-                  className="flex items-center justify-between border-b border-border/70 py-2.5 text-sm last:border-b-0"
+                  className="flex items-center justify-between border-b border-border/70 py-3 text-sm last:border-b-0"
                 >
                   <span className="text-muted-foreground tabular-nums">
                     {formatDateShort(run.start)}
@@ -242,8 +242,8 @@ export default async function HistoryPage() {
         )}
       </section>
 
-      {/* Dải hoạt động 14 ngày */}
-      <section aria-label="Hoạt động 14 ngày gần nhất" className="mb-10">
+        {/* Dải hoạt động 14 ngày */}
+        <section aria-label="Hoạt động 14 ngày gần nhất">
         <p className="mb-2 text-xs text-muted-foreground">
           Tỉ lệ hoàn thành · 14 ngày gần nhất
         </p>
@@ -273,31 +273,34 @@ export default async function HistoryPage() {
         </div>
       </section>
 
-      {future.length > 0 && (
-        <section className="mb-10">
-          <h2 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            <CalendarRange className="size-3.5" /> Kế hoạch sắp tới
-          </h2>
-          {future.map((d) => (
-            <DayRow key={d.date} day={d} isFuture />
-          ))}
-        </section>
-      )}
-
-      <section>
-        <h2 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Đã qua
-        </h2>
-        {pastAndToday.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Chưa có dữ liệu — bắt đầu thêm việc cho hôm nay nhé.
-          </p>
-        ) : (
-          pastAndToday.map((d) => (
-            <DayRow key={d.date} day={d} isFuture={false} />
-          ))
+        {future.length > 0 && (
+          <section>
+            <h2 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              <CalendarRange className="size-3.5" /> Kế hoạch sắp tới
+            </h2>
+            {future.map((d) => (
+              <DayRow key={d.date} day={d} isFuture />
+            ))}
+          </section>
         )}
-      </section>
+
+        <section>
+          <h2 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Đã qua
+          </h2>
+          {pastAndToday.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="Chưa có dữ liệu"
+              description="Bắt đầu thêm việc cho hôm nay — lịch sử sẽ dần hiện ra ở đây."
+            />
+          ) : (
+            pastAndToday.map((d) => (
+              <DayRow key={d.date} day={d} isFuture={false} />
+            ))
+          )}
+        </section>
+      </div>
     </div>
   );
 }

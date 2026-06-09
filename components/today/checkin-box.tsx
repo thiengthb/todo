@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { InfoHint } from "@/components/info-hint";
 import { upsertCheckin } from "@/app/actions";
@@ -35,7 +34,7 @@ function Scale({
             type="button"
             onClick={() => onPick(n)}
             className={cn(
-              "size-7 rounded-md border text-xs tabular-nums transition-colors",
+              "size-9 rounded-md border text-sm tabular-nums transition-colors sm:size-7 sm:text-xs",
               value === n
                 ? "border-foreground bg-foreground text-background"
                 : "border-border text-muted-foreground hover:border-foreground",
@@ -68,7 +67,7 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
   const SLEEP = [5, 6, 7, 8];
 
   return (
-    <Card className="gap-3 rounded-lg border-border/70 p-4 shadow-none">
+    <div className="flex flex-col gap-3 rounded-lg border border-border/70 p-4">
       <p className="flex items-center gap-1.5 text-sm font-medium">
         Trạng thái hôm nay
         <InfoHint label="Trạng thái hôm nay để làm gì?">
@@ -104,7 +103,7 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
                 update({ sleepHours: v.sleepHours === h ? null : h })
               }
               className={cn(
-                "size-7 rounded-md border text-xs tabular-nums transition-colors",
+                "size-9 rounded-md border text-sm tabular-nums transition-colors sm:size-7 sm:text-xs",
                 v.sleepHours === h
                   ? "border-foreground bg-foreground text-background"
                   : "border-border text-muted-foreground hover:border-foreground",
@@ -115,6 +114,6 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
           ))}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

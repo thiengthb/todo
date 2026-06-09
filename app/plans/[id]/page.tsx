@@ -1,6 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { computePlanProgress } from "@/lib/plan";
 import { formatDateShort } from "@/lib/dates";
@@ -8,6 +6,7 @@ import type { Intensity, PlanStatus } from "@/lib/types";
 import { BehindAlert } from "@/components/plans/behind-alert";
 import { MilestoneList } from "@/components/plans/milestone-list";
 import { PlanActions } from "@/components/plans/plan-actions";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -49,27 +48,15 @@ export default async function PlanDetailPage({ params }: PageProps) {
   const behind = status === "active" && progress.behindDays >= 1;
 
   return (
-    <div className="mx-auto max-w-3xl py-6 sm:py-8">
-      <Link
-        href="/plans"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" /> Kế hoạch
-      </Link>
-
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {plan.title}
-            </h1>
-          </div>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {plan.goal}
-          </p>
-        </div>
-        <PlanActions id={plan.id} status={status} />
-      </header>
+    <div className="py-8">
+      <PageHeader
+        backHref="/plans"
+        backLabel="Kế hoạch"
+        title={plan.title}
+        description={plan.goal}
+        action={<PlanActions id={plan.id} status={status} />}
+        className="mb-0"
+      />
 
       {/* Dải thông tin tiến độ */}
       <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

@@ -41,7 +41,7 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
         onBlur={persist}
         placeholder="VD: chiều nay hơi đuối vì họp nhiều, nhưng xong được việc khó nhất..."
         rows={3}
-        className="resize-none shadow-none"
+        className="resize-none border-border/70 shadow-none"
       />
       <p className="mt-1.5 h-4 text-xs text-muted-foreground">
         {pending

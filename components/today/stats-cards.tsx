@@ -1,5 +1,3 @@
-import { Card } from "@/components/ui/card";
-
 function StatCard({
   label,
   value,
@@ -11,7 +9,7 @@ function StatCard({
   bar?: number;
 }) {
   return (
-    <Card className="gap-1 rounded-lg border-border/70 p-3 shadow-none sm:p-4">
+    <div className="flex flex-col gap-1 rounded-lg border border-border/70 p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-lg font-semibold tracking-tight tabular-nums sm:text-xl">
         {value}
@@ -24,7 +22,7 @@ function StatCard({
           />
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -37,7 +35,7 @@ export function StatsCards({ done, total }: { done: number; total: number }) {
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <StatCard label="Đã xong" value={`${done}/${total}`} />
         <StatCard label="Tỉ lệ" value={`${percent}%`} bar={percent} />
         <StatCard label="Còn dở" value={String(remaining)} />

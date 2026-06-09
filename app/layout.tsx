@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
@@ -27,6 +27,13 @@ export const metadata: Metadata = {
   title: "Smart Todo",
   description:
     "Todo list cá nhân thông minh — AI đề xuất ngày mai từ dữ liệu thật",
+};
+
+// viewport-fit=cover để dùng được env(safe-area-inset-*) trên iPhone (notch + home-indicator)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({

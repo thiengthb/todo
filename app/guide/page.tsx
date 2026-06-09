@@ -15,7 +15,6 @@ import {
   Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Reveal } from "@/components/reveal";
 
 export const metadata = {
@@ -111,9 +110,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 export default function GuidePage() {
   return (
-    <div className="mx-auto max-w-2xl py-10 sm:py-16">
+    <div className="py-8">
       {/* Hero */}
-      <section className="text-center">
+      <section className="mx-auto max-w-2xl text-center">
         <Reveal>
           <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-foreground text-background">
             <Sparkles className="size-6" />
@@ -151,7 +150,7 @@ export default function GuidePage() {
       </section>
 
       {/* Một ngày với Smart Todo */}
-      <section className="mt-16">
+      <section className="mt-12">
         <Reveal>
           <SectionTitle>Một ngày với Smart Todo</SectionTitle>
         </Reveal>
@@ -161,10 +160,10 @@ export default function GuidePage() {
             để AI lo.
           </p>
         </Reveal>
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {STEPS.map((s, i) => (
-            <Reveal key={s.title} delay={i * 80}>
-              <div className="flex items-start gap-4 rounded-lg border border-border/70 p-4">
+            <Reveal key={s.title} delay={i * 80} className="h-full">
+              <div className="flex h-full items-start gap-4 rounded-lg border border-border/70 p-4">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
                   <s.icon className="size-5 text-foreground" />
                 </div>
@@ -186,7 +185,7 @@ export default function GuidePage() {
       </section>
 
       {/* Những trợ thủ */}
-      <section className="mt-16">
+      <section className="mt-12">
         <Reveal>
           <SectionTitle>Những trợ thủ trong app</SectionTitle>
         </Reveal>
@@ -197,19 +196,19 @@ export default function GuidePage() {
         </Reveal>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {FEATURES.map((f, i) => (
-            <Reveal key={f.title} delay={(i % 2) * 80}>
-              <Card className="h-full gap-2 rounded-lg border-border/70 p-4 shadow-none transition-colors hover:bg-muted/40">
+            <Reveal key={f.title} delay={(i % 2) * 80} className="h-full">
+              <div className="flex h-full flex-col gap-2 rounded-lg border border-border/70 p-4 transition-colors hover:bg-muted/40">
                 <f.icon className="size-5 text-foreground" />
                 <p className="text-sm font-medium">{f.title}</p>
                 <p className="text-sm text-muted-foreground">{f.desc}</p>
-              </Card>
+              </div>
             </Reveal>
           ))}
         </div>
       </section>
 
       {/* Vì sao app làm vậy */}
-      <section className="mt-16">
+      <section className="mt-12">
         <Reveal>
           <SectionTitle>
             <Brain className="size-5" /> Vì sao app làm như vậy
@@ -221,10 +220,10 @@ export default function GuidePage() {
             bỏ điều phản tác dụng.
           </p>
         </Reveal>
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {SCIENCE.map((s, i) => (
-            <Reveal key={s.title} delay={i * 70}>
-              <div className="rounded-lg border-l-2 border-foreground/30 bg-muted/30 py-3 pr-3 pl-4">
+            <Reveal key={s.title} delay={(i % 2) * 70} className="h-full">
+              <div className="flex h-full flex-col rounded-lg border border-border/70 p-4">
                 <p className="text-sm font-medium">{s.title}</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{s.desc}</p>
               </div>
@@ -234,9 +233,9 @@ export default function GuidePage() {
       </section>
 
       {/* Kết */}
-      <section className="mt-16">
+      <section className="mt-12">
         <Reveal>
-          <div className="rounded-xl border border-border/70 bg-muted/30 p-6 text-center">
+          <div className="mx-auto max-w-2xl rounded-lg border border-border/70 bg-muted/30 p-6 text-center">
             <p className="text-sm leading-relaxed text-muted-foreground">
               Không cần hoàn hảo. Chỉ cần{" "}
               <strong className="font-medium text-foreground">

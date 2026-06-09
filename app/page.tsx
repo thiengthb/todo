@@ -107,7 +107,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     : null;
 
   return (
-    <div className="py-6 sm:py-8">
+    <div className="py-8">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground capitalize">
@@ -125,7 +125,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       </header>
 
       {/* Dashboard 2 cột: việc (trái) · thống kê/check-in/đề xuất (phải) */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label="Danh sách việc" className="min-w-0">
           {dtos.length === 0 ? (
             <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
@@ -148,9 +148,25 @@ export default async function DayPage({ searchParams }: PageProps) {
               <AddTask date={date} isToday={isToday} />
             </div>
           )}
+
+          {/* Ghi chú nằm CUỐI cột việc → thẳng hàng đúng bằng các thanh todo phía trên */}
+          {isToday && (
+            <div className="mt-6">
+              <NoteBox initialNote={dailyNote?.note ?? ""} />
+            </div>
+          )}
+
+          {isPast && dailyNote?.note && (
+            <div className="mt-6">
+              <p className="mb-2 text-sm font-medium">Ghi chú của ngày này</p>
+              <blockquote className="rounded-lg border border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground italic">
+                “{dailyNote.note}”
+              </blockquote>
+            </div>
+          )}
         </section>
 
-        <aside className="flex flex-col gap-4 lg:gap-5">
+        <aside className="flex flex-col gap-4">
           <StatsCards done={doneCount} total={leaves.length} />
           {isToday && (
             <CheckinBox
@@ -165,22 +181,6 @@ export default async function DayPage({ searchParams }: PageProps) {
           {isToday && <SuggestSheet />}
         </aside>
       </div>
-
-      {/* Ghi chú — full-width bên dưới, giới hạn bề rộng cho dễ đọc/gõ */}
-      {isToday && (
-        <section className="mt-8 max-w-2xl">
-          <NoteBox initialNote={dailyNote?.note ?? ""} />
-        </section>
-      )}
-
-      {isPast && dailyNote?.note && (
-        <section className="mt-8 max-w-2xl">
-          <p className="mb-2 text-sm font-medium">Ghi chú của ngày này</p>
-          <blockquote className="rounded-md border border-border/70 bg-muted/40 p-3 text-sm text-muted-foreground italic">
-            “{dailyNote.note}”
-          </blockquote>
-        </section>
-      )}
     </div>
   );
 }

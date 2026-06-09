@@ -294,11 +294,20 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
   trái** thu gọn được (nav + chip streak + theme ở footer). Mobile <`lg`: **top-bar mỏng** (brand +
   streak + theme) + **bottom tab bar** (4 mục, luôn hiện — KHÔNG hamburger). Chip streak tách ở
   `components/streak-chip.tsx`.
-- **Bề rộng:** shell tự căn giữa `max-w-7xl` + px. **Trang KHÔNG tự đặt `<main>`/`max-w`/`px` riêng** —
-  chỉ render `<div>` nội dung. Trang Hôm nay dùng full bề rộng (dashboard); trang đọc/cột (Plans detail,
-  History, Guide) bọc `mx-auto max-w-3xl`/`max-w-2xl` cho dễ đọc.
-- **Hôm nay = dashboard 2 cột** (`lg:grid-cols-[minmax(0,1fr)_340px]`): việc bên trái, thống kê/
-  check-in/đề xuất bên phải; mobile xếp dọc. Mục tiêu: thấy hết, đỡ cuộn.
+- **Bề rộng (ĐỒNG NHẤT, chốt 2026-06):** shell tự căn giữa **`max-w-5xl`** (≈1024px) + px cho **MỌI
+  trang**. **Trang KHÔNG tự đặt `<main>`/`max-w`/`mx-auto`/`px` riêng** — chỉ render `<div className="py-8">`
+  nội dung (shell sở hữu width + px). Khối CHỮ dài (hero/CTA trang Guide) tự bọc `mx-auto max-w-2xl` BÊN
+  TRONG cho dễ đọc, nhưng khung trang vẫn cùng bề rộng.
+- **Hôm nay = dashboard 2 cột** (`lg:grid-cols-[minmax(0,1fr)_300px]`): việc bên trái, thống kê/
+  check-in/đề xuất bên phải; mobile xếp dọc. **Ghi chú "Hôm nay của bạn…" nằm CUỐI cột việc** (không tách
+  `max-w` riêng) để thẳng hàng đúng bằng các thanh todo. Mục tiêu: thấy hết, đỡ cuộn.
+- **Header trang dùng chung `components/page-header.tsx`** (eyebrow + h1 `text-xl sm:text-2xl` + mô tả +
+  action phải + back-link "‹ …"). **Trạng thái rỗng dùng `components/empty-state.tsx`.** Không tự chế
+  header/empty rời rạc mỗi trang.
+- **Bộ card chuẩn (BẮT BUỘC, hết "lệch"):** khối nổi = `rounded-lg border border-border/70 p-4`
+  (KHÔNG `<Card>` ring, KHÔNG `rounded-xl`/`p-6` rải rác, KHÔNG `border-input`). Hàng danh sách =
+  `flex items-center gap-3 border-b border-border/70 py-3 last:border-b-0` + `hover:bg-muted/40
+  transition-colors` nếu bấm/tương tác được. Section cách nhau `space-y-10`; trang mở đầu `py-8`.
 - **Mô tả dài → `components/info-hint.tsx`** (icon ⓘ mở Popover khi chạm — KHÔNG tooltip-hover, để hợp
   cảm ứng + a11y). Giữ nhãn thao tác hiển thị; chỉ giấu phần _giải thích khái niệm_.
 - **Luồng tham chiếu (không-chặn) dùng Sheet**, không modal cuộn dài: "Đề xuất ngày mai" =
@@ -312,4 +321,9 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
   `components/reveal.tsx`. LUÔN tôn trọng `prefers-reduced-motion` (đã có guard global).
 - **Màu:** trung tính thuần; chỉ dùng màu **ngữ nghĩa** (amber quá hạn, emerald xong/phục hồi, rose mệt).
   Hành động chính = nút `default` (đen/trắng). KHÔNG thêm accent thương hiệu, KHÔNG gradient.
+- **iPhone / mobile (chốt 2026-06):** `layout.tsx` export `viewport` với `viewportFit: "cover"`. Bottom
+  tab bar `pb-[env(safe-area-inset-bottom)]`, top-bar `pt-[env(safe-area-inset-top)]`, main mobile
+  `pb-[calc(env(safe-area-inset-bottom)+5rem)]` — KHÔNG để bar đè home-indicator. Tap target ≥ ~44px
+  (tab bar `min-h-12`; nút cảm ứng nhỏ nới `size-9 sm:size-7`). Giữ look trung tính (không large-title,
+  không inset-grouped).
 - **shadcn:** đã thêm `sheet`, `scroll-area` (unified `radix-ui`, style radix-nova `data-open/closed`).

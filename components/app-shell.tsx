@@ -139,8 +139,8 @@ export function AppShell({
 
       {/* ───────── Cột nội dung ───────── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top-bar (mobile) */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border/70 bg-background/80 px-4 backdrop-blur-md lg:hidden">
+        {/* Top-bar (mobile) — chừa safe-area trên cùng (notch khi xoay ngang / PWA) */}
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border/70 bg-background/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:hidden">
           <Link
             href="/"
             className="flex items-center gap-2 font-semibold tracking-tight"
@@ -156,14 +156,14 @@ export function AppShell({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 sm:px-6 lg:px-8 lg:pb-10">
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+5rem)] sm:px-6 lg:px-8 lg:pb-10">
           {children}
         </main>
 
-        {/* Bottom tab bar (mobile) */}
+        {/* Bottom tab bar (mobile) — chừa safe-area home-indicator của iPhone */}
         <nav
           aria-label="Điều hướng chính"
-          className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border/70 bg-background/90 backdrop-blur-md lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border/70 bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
         >
           {NAV.map((item) => {
             const active = isActive(item.href);
@@ -173,7 +173,7 @@ export function AppShell({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] transition-colors",
+                  "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] transition-colors",
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
