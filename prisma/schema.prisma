@@ -69,6 +69,35 @@ model DailyNote {
   note String // ghi chú cuối ngày của người dùng
 }
 
+// Lịch trình (mục 14): lịch CỨNG lặp theo tuần (học, làm). KHÔNG phải Task —
+// là BỐI CẢNH nuôi bộ máy đề xuất (quỹ giờ rảnh thật), không tính vào streak/stats.
+model Commitment {
+  id        String   @id @default(cuid())
+  title     String
+  dayOfWeek Int // 0=CN .. 6=T7 (khớp Date.getDay)
+  startTime String // "HH:MM" giờ địa phương
+  endTime   String
+  kind      String   @default("khac") // "hoc" | "lam" | "khac"
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([dayOfWeek])
+}
+
+// Sự kiện ĐỘT XUẤT một lần theo ngày cụ thể; hoặc cancels=true = "nghỉ cả ngày"
+// (bỏ qua mọi lịch cứng hôm đó). startTime null = sự kiện cả ngày.
+model ScheduleEvent {
+  id        String  @id @default(cuid())
+  title     String
+  date      String // "YYYY-MM-DD"
+  startTime String?
+  endTime   String?
+  kind      String  @default("khac")
+  cancels   Boolean @default(false)
+
+  @@index([date])
+}
+
 // Thông báo Discord (mục 13): cấu hình 1 hàng (app một người dùng) — webhook + cường độ +
 // bật/tắt + giờ từng loại + giờ yên + nội dung AI. Mọi field optional/độ ma sát thấp (mục 11.1).
 model NotificationSettings {
