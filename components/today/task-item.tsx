@@ -2,8 +2,12 @@
 
 import { useState, useTransition } from "react";
 import {
+  Brain,
   Check,
+  ChevronsDown,
+  ChevronsUp,
   Clock,
+  Equal,
   Flag,
   Frown,
   HelpCircle,
@@ -12,6 +16,7 @@ import {
   Smile,
   Star,
   Target,
+  Timer,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -30,11 +35,15 @@ import {
 import { cn } from "@/lib/utils";
 import {
   deleteTask,
+  setActualBucket,
   setCue,
+  setDeepWork,
   setEmotion,
+  setEstimate,
   setImpact,
   setSlipReason,
   toggleTask,
+  type ActualBucket,
   type SlipReason,
 } from "@/app/actions";
 import type { Emotion, Priority, TaskDTO } from "@/lib/types";
@@ -247,6 +256,157 @@ function CueButton({
   );
 }
 
+/** Nút ước lượng thời lượng 1-chạm (mục 14) — chip "30′" khi đã đặt, ngược lại icon mờ */
+const ESTIMATES = [15, 30, 60, 90];
+function EstimateButton({
+  id,
+  minutes,
+}: {
+  id: string;
+  minutes: number | null | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const [, startTransition] = useTransition();
+
+  function pick(m: number | null) {
+    setOpen(false);
+    startTransition(() => setEstimate(id, m));
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="Ước lượng thời lượng"
+          className={cn(
+            "flex shrink-0 items-center gap-0.5 rounded-md p-1.5 text-[11px] tabular-nums transition-opacity hover:!opacity-100 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60",
+            minutes
+              ? "text-foreground opacity-70"
+              : "text-muted-foreground opacity-60",
+          )}
+        >
+          <Timer className="size-3.5" />
+          {minutes ? `${minutes}′` : ""}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-auto p-1.5">
+        <p className="mb-1.5 px-1 text-xs text-muted-foreground">
+          Việc này mất bao lâu?
+        </p>
+        <div className="flex gap-1">
+          {ESTIMATES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => pick(m)}
+              className={cn(
+                "rounded-md border px-2 py-1 text-xs tabular-nums transition-colors",
+                minutes === m
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border text-muted-foreground hover:border-foreground",
+              )}
+            >
+              {m}′
+            </button>
+          ))}
+          {minutes && (
+            <button
+              type="button"
+              onClick={() => pick(null)}
+              className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              bỏ
+            </button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Toggle "việc cần tập trung sâu" (mục 14) — AI ưu tiên khe sáng */
+function DeepWorkButton({
+  id,
+  deepWork,
+}: {
+  id: string;
+  deepWork: boolean | undefined;
+}) {
+  const [, startTransition] = useTransition();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="Việc cần tập trung sâu"
+          onClick={() => startTransition(() => setDeepWork(id, !deepWork))}
+          className={cn(
+            "shrink-0 rounded-md p-1.5 transition-opacity hover:!opacity-100 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60",
+            deepWork
+              ? "text-foreground opacity-70"
+              : "text-muted-foreground opacity-60",
+          )}
+        >
+          <Brain className={cn("size-3.5", deepWork && "fill-current")} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {deepWork
+          ? "Việc tập trung sâu (ưu tiên buổi sáng)"
+          : "Đánh dấu cần tập trung sâu"}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// phản hồi thời lượng khi xong (mục 14) — chỉ hiện khi đã done & có ước lượng
+const BUCKETS: { value: ActualBucket; icon: LucideIcon; label: string }[] = [
+  { value: "slower", icon: ChevronsUp, label: "Lâu hơn dự kiến" },
+  { value: "asExpected", icon: Equal, label: "Đúng như dự kiến" },
+  { value: "faster", icon: ChevronsDown, label: "Nhanh hơn dự kiến" },
+];
+function DurationLearn({
+  id,
+  actualBucket,
+}: {
+  id: string;
+  actualBucket: string | null | undefined;
+}) {
+  const [, startTransition] = useTransition();
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      {BUCKETS.map((b) => (
+        <Tooltip key={b.value}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={b.label}
+              onClick={() =>
+                startTransition(() =>
+                  setActualBucket(
+                    id,
+                    actualBucket === b.value ? null : b.value,
+                  ),
+                )
+              }
+              className={cn(
+                "rounded-md p-1.5 leading-none transition-colors hover:bg-muted",
+                actualBucket === b.value
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground/50 hover:text-foreground",
+              )}
+            >
+              <b.icon className="size-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{b.label}</TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
+
 function PlanChip({ title }: { title: string }) {
   return (
     <Tooltip>
@@ -326,8 +486,15 @@ function LeafRow({ task, isMit }: { task: TaskDTO; isMit?: boolean }) {
       {!task.done && task.delay >= 1 && (
         <SlipButton id={task.id} slipReason={task.slipReason} />
       )}
+      <EstimateButton id={task.id} minutes={task.estimatedMinutes} />
+      <DeepWorkButton id={task.id} deepWork={task.deepWork} />
       <ImpactButton id={task.id} impact={task.impact} />
       <CueButton id={task.id} cue={task.cue} />
+
+      {/* phản hồi thời lượng — chỉ khi đã xong & có ước lượng (hiệu chỉnh, không phán xét) */}
+      {task.done && task.estimatedMinutes != null && (
+        <DurationLearn id={task.id} actualBucket={task.actualBucket} />
+      )}
 
       <div className="flex shrink-0 items-center gap-0.5">
         {EMOTIONS.map((e) => (

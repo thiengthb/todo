@@ -36,6 +36,11 @@ model Task {
   // lý do trượt (mục 11): "tired" | "too_hard" | "no_time" | "unclear" | "deprioritized"
   slipReason  String?
 
+  // học thời lượng/năng lượng (mục 14): việc cần tập trung sâu → AI ưu tiên khe sáng
+  deepWork     Boolean @default(false)
+  // 1-chạm khi xong: "faster" | "asExpected" | "slower" — AI hiệu chỉnh ước lượng, không phán xét
+  actualBucket String?
+
   // ── Field lập kế hoạch generic cho MCP (mục 15) — TẤT CẢ optional, đồng bộ với field cũ ở
   //    lib/mcp/repository. KHÔNG đổi/xoá field cũ; app hiện tại chạy nguyên vẹn.
   description      String? // mô tả dài (MCP) — app hiện chỉ dùng title; optional

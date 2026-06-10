@@ -61,6 +61,12 @@ export interface TaskDTO {
   impact?: Priority | null;
   /** lý do trượt nếu đã ghi (mục 11) */
   slipReason?: string | null;
+  /** ước lượng thời lượng (phút) — mục 14 */
+  estimatedMinutes?: number | null;
+  /** việc cần tập trung sâu (mục 14) */
+  deepWork?: boolean;
+  /** phản hồi thời lượng 1-chạm khi xong: "faster" | "asExpected" | "slower" */
+  actualBucket?: string | null;
 }
 
 // ---- Kế hoạch (mục 10) ----

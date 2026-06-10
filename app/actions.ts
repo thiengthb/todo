@@ -82,6 +82,34 @@ export async function setSlipReason(
   revalidatePath("/");
 }
 
+/** Ước lượng thời lượng (phút) — null = bỏ. AI dùng để khớp khe giờ + tính quá tải (mục 14). */
+export async function setEstimate(
+  id: string,
+  minutes: number | null,
+): Promise<void> {
+  const m =
+    minutes != null && minutes > 0 ? Math.min(600, Math.round(minutes)) : null;
+  await prisma.task.update({ where: { id }, data: { estimatedMinutes: m } });
+  revalidatePath("/");
+}
+
+/** Cờ "việc cần tập trung sâu" → AI ưu tiên khe sáng (mục 14). */
+export async function setDeepWork(id: string, value: boolean): Promise<void> {
+  await prisma.task.update({ where: { id }, data: { deepWork: value } });
+  revalidatePath("/");
+}
+
+export type ActualBucket = "faster" | "asExpected" | "slower";
+
+/** Phản hồi thời lượng 1-chạm khi xong (mục 14) — AI hiệu chỉnh ước lượng. null = bỏ. */
+export async function setActualBucket(
+  id: string,
+  bucket: ActualBucket | null,
+): Promise<void> {
+  await prisma.task.update({ where: { id }, data: { actualBucket: bucket } });
+  revalidatePath("/");
+}
+
 /**
  * Thêm một đề xuất của AI vào ngày mai.
  * Với carry_over: tìm task dở gốc (cùng title) để giữ chuỗi carriedFrom —

@@ -181,6 +181,9 @@ export default async function DayPage({ searchParams }: PageProps) {
       cue: c.cue,
       impact: c.impact as Priority | null,
       slipReason: c.slipReason,
+      estimatedMinutes: c.estimatedMinutes,
+      deepWork: c.deepWork,
+      actualBucket: c.actualBucket,
     }));
     const isContainer = subtasks.length > 0;
     return {
@@ -195,6 +198,9 @@ export default async function DayPage({ searchParams }: PageProps) {
       cue: t.cue,
       impact: t.impact as Priority | null,
       slipReason: t.slipReason,
+      estimatedMinutes: t.estimatedMinutes,
+      deepWork: t.deepWork,
+      actualBucket: t.actualBucket,
     };
   });
 
