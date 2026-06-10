@@ -402,3 +402,47 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
   Vào app qua link phụ (footer/top-bar) như Thông báo — **KHÔNG thêm tab thứ 5** (giữ 4 tab §12).
 - Trang Hôm nay: dải `ScheduleStrip` (chỉ-đọc) trên danh sách việc, hiện lịch + quỹ giờ rảnh ngày đang xem.
 - Màu: trung tính + viền trái nhạt theo `kind` (không accent chói, §12).
+
+---
+
+## 15. MCP Server (Claude đọc/ghi dữ liệu thật)
+
+> Cho Claude (Claude.ai / Desktop / Cursor / VS Code) lập kế hoạch trực tiếp trên dữ liệu app qua
+> **Model Context Protocol**. BẤT BIẾN: **logic AI ở phía Claude, không ở server** — server chỉ CRUD
+> + cung cấp ngữ cảnh (lịch, workload, deadline). Single-user, không auth user.
+
+### 15.1 Kiến trúc — chạy TRONG app Next
+- Route **`app/api/[transport]/route.ts`** dùng `mcp-handler` (`createMcpHandler`, `basePath:"/api"`,
+  `disableSse:true` → Streamable HTTP **stateless**, không cần Redis). Endpoint: `…/api/mcp`.
+- **Cùng tiến trình** với app → chung `lib/db` Prisma + mọi `lib/*` helper; **1 process ghi SQLite**;
+  deploy kèm container hiện có (không cần service/Traefik mới). `serverExternalPackages` thêm
+  `mcp-handler`, `@modelcontextprotocol/sdk`.
+- **Auth bắt buộc**: bearer `MCP_AUTH_TOKEN` (`lib/mcp/auth.ts`, đúng pattern `NOTIFY_SECRET`; chưa đặt
+  token = endpoint tắt 403).
+
+### 15.2 Data layer — `lib/mcp/repository.ts` (zod-validate, tái dùng `lib/*`)
+CRUD task/project + `listTasks`, `getScheduleRange`, `getWorkloadSummary` (tái dùng
+`lib/schedule.blocksForDate/busyMinutes/freeMinutes`, `lib/streak`). **Quy tắc đồng bộ BẮT BUỘC** (vì
+app lọc theo `done`/`date`, KHÔNG theo `status`):
+- set `scheduledFor` ⇒ set `date` = ngày địa phương (`lib/mcp/tz`, `DEFAULT_TIMEZONE`).
+- `status=DONE`/`completeTask` ⇒ `done=true`+`completedAt`; status khác ⇒ `done=false`.
+- `priority` (LOW/MEDIUM/HIGH/URGENT) ⇒ map `impact` (logic 80/20 của app).
+- `delete_task` = **HARD delete** (không soft-delete: task CANCELLED sẽ lọt UI vì app không lọc status).
+- Timezone: DB lưu UTC, MCP I/O ISO 8601, quy ngày theo `DEFAULT_TIMEZONE`.
+
+### 15.3 Schema thêm (additive, nullable — mục 15, không phá dữ liệu)
+Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`, `estimatedMinutes?`,
+`projectId?`, `tags Tag[]`. Model mới **`Project`** (generic, RIÊNG với `Plan` roadmap-AI) + **`Tag`**.
+
+### 15.4 Tools / Resources / Prompts (`lib/mcp/server.ts`)
+- Tools: `ping`, `create_task`, `update_task`, `complete_task`, `delete_task`, `get_task`,
+  `list_tasks`, `get_schedule`, `get_workload_summary`, `bulk_create_tasks`, `create_project`,
+  `get_project`, `list_projects`. Description nhấn: `scheduledFor`≠`dueDate`; gọi `get_schedule`/
+  `get_workload_summary` TRƯỚC khi xếp việc.
+- Resources: `today_overview`, `active_projects`. Prompts: `plan_my_day`, `plan_week`, `plan_project`,
+  `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt** → mới ghi.
+
+### 15.5 Triển khai
+Đặt env `MCP_AUTH_TOKEN` (+ tùy chọn `DEFAULT_TIMEZONE`) trong compose phía server
+`/opt/apps/todo/docker-compose.yml`. Connector Claude trỏ `https://<domain>/api/mcp` + bearer; nếu
+Claude.ai yêu cầu OAuth thì cân nhắc `mcp-handler` `withMcpAuth` (nợ kỹ thuật, đánh giá khi cần).

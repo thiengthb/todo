@@ -13,6 +13,9 @@ services:
       TZ: ${TZ:-Asia/Ho_Chi_Minh}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-gemini-2.5-flash}
+      # MCP server (mục 15) — bearer bảo vệ /api/mcp; trống = endpoint tắt
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
+      DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-Asia/Ho_Chi_Minh}
     volumes:
       - todo_data:/data
 
