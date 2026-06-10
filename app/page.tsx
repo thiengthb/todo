@@ -14,6 +14,7 @@ import { computeStreaks } from "@/lib/streak";
 import { computeVelocity } from "@/lib/velocity";
 import { computeDifficultyHints } from "@/lib/difficulty";
 import { computePlanProgress } from "@/lib/plan";
+import { habitDueOn } from "@/lib/habits";
 import type {
   CommitmentDTO,
   Emotion,
@@ -31,6 +32,7 @@ import { TaskItem } from "@/components/today/task-item";
 import { ScheduleStrip } from "@/components/today/schedule-strip";
 import { StreakBanner } from "@/components/today/streak-banner";
 import { PlanMomentum } from "@/components/today/plan-momentum";
+import { HabitStrip } from "@/components/today/habit-strip";
 import { EmptyState } from "@/components/empty-state";
 import { ListTodo } from "lucide-react";
 import { blocksForDate, freeMinutes } from "@/lib/schedule";
@@ -60,6 +62,8 @@ export default async function DayPage({ searchParams }: PageProps) {
     weekTaskRows,
     ratedRows,
     activePlanRows,
+    habitRows,
+    habitCheckRows,
   ] = await Promise.all([
     // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
     prisma.task.findMany({
@@ -127,6 +131,16 @@ export default async function DayPage({ searchParams }: PageProps) {
       ? prisma.plan.findMany({
           where: { status: "active" },
           include: { milestones: { orderBy: { order: "asc" } } },
+        })
+      : Promise.resolve([]),
+    // thói quen đang bật + lần tick hôm nay (mục 11) — chỉ cho hôm nay
+    isToday
+      ? prisma.habit.findMany({ where: { active: true } })
+      : Promise.resolve([]),
+    isToday
+      ? prisma.habitCheck.findMany({
+          where: { date },
+          select: { habitId: true },
         })
       : Promise.resolve([]),
   ]);
@@ -225,6 +239,18 @@ export default async function DayPage({ searchParams }: PageProps) {
   // banner nhắc giữ lửa: chỉ khi chuỗi sắp đứt VÀ hôm nay chưa xong việc nào
   const showStreakBanner = isToday && !!streak?.atRisk && doneCount === 0;
 
+  // thói quen đến hạn hôm nay (mục 11) — 1 chạm, không điểm
+  const checkedHabitIds = new Set(habitCheckRows.map((r) => r.habitId));
+  const todayHabits = isToday
+    ? habitRows
+        .filter((h) => habitDueOn(h, today))
+        .map((h) => ({
+          id: h.id,
+          title: h.title,
+          doneToday: checkedHabitIds.has(h.id),
+        }))
+    : [];
+
   return (
     <div className="py-8">
       <header className="flex items-start justify-between gap-3">
@@ -250,6 +276,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label="Danh sách việc" className="min-w-0">
           <ScheduleStrip blocks={scheduleBlocks} freeMin={scheduleFree} />
+          {isToday && <HabitStrip habits={todayHabits} />}
           {dtos.length === 0 ? (
             <EmptyState
               icon={ListTodo}

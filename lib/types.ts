@@ -112,6 +112,21 @@ export interface SoftBlockDTO {
   weekParity: string | null; // null | "odd" | "even"
 }
 
+/** Thói quen (mục 11) — daysOfWeek CSV "1,2,3" hoặc null = hằng ngày */
+export interface HabitDTO {
+  id: string;
+  title: string;
+  daysOfWeek: string | null;
+  active: boolean;
+}
+
+/** Trạng thái động của thói quen trong một ngày (lib/habits.ts) */
+export interface HabitStatus {
+  dueToday: boolean;
+  doneToday: boolean;
+  streak: number; // số ngày-đến-hạn liên tiếp đã tick (thông tin, không điểm)
+}
+
 /** Sự kiện đột xuất một lần (khớp model ScheduleEvent) */
 export interface ScheduleEventDTO {
   id: string;

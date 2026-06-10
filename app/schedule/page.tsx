@@ -13,9 +13,14 @@ import {
   softBlocksForDate,
 } from "@/lib/schedule";
 import { getScheduleSettings } from "@/lib/schedule-settings";
+import { computeHabitStatus } from "@/lib/habits";
 import { PageHeader } from "@/components/page-header";
 import { WeekView, type DayColumn } from "@/components/schedule/week-view";
 import { ScheduleSettingsForm } from "@/components/schedule/schedule-settings-form";
+import {
+  HabitManager,
+  type HabitRow,
+} from "@/components/schedule/habit-manager";
 import type {
   CommitmentDTO,
   ScheduleBlock,
@@ -50,7 +55,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const dates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekEnd = dates[6];
 
-  const [commitmentRows, softBlockRows, eventRows, settings] =
+  const [commitmentRows, softBlockRows, eventRows, settings, habitRows] =
     await Promise.all([
       prisma.commitment.findMany({
         orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
@@ -63,6 +68,10 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         orderBy: { date: "asc" },
       }),
       getScheduleSettings(),
+      prisma.habit.findMany({
+        orderBy: { createdAt: "asc" },
+        include: { checks: { select: { date: true } } },
+      }),
     ]);
 
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
@@ -99,6 +108,18 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     cancels: e.cancels,
   }));
 
+  const habits: HabitRow[] = habitRows.map((h) => ({
+    id: h.id,
+    title: h.title,
+    daysOfWeek: h.daysOfWeek,
+    active: h.active,
+    streak: computeHabitStatus(
+      h,
+      h.checks.map((c) => c.date),
+      today,
+    ).streak,
+  }));
+
   const days: DayColumn[] = dates.map((date) => ({
     date,
     dow: new Date(`${date}T00:00:00`).getDay(),
@@ -131,6 +152,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           softBlocks={softBlocks}
           events={events}
         />
+        <HabitManager habits={habits} />
         <ScheduleSettingsForm initial={settings} />
       </div>
     </div>

@@ -206,6 +206,28 @@ model NotificationLog {
   @@index([sentAt])
 }
 
+// Thói quen (mục 11): hành vi lặp 1-chạm. KHÔNG điểm/streak-cứng — streak suy ĐỘNG từ HabitCheck.
+// Cô lập khỏi Task: không tính vào stats/streak/completion của task.
+model Habit {
+  id         String       @id @default(cuid())
+  title      String
+  daysOfWeek String? // CSV "1,2,3,4,5" (0=CN..6=T7); null = hằng ngày
+  active     Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  checks     HabitCheck[]
+}
+
+// Một lần tick thói quen trong ngày — idempotent theo (habitId, date)
+model HabitCheck {
+  id      String @id @default(cuid())
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date    String // "YYYY-MM-DD"
+
+  @@unique([habitId, date])
+  @@index([date])
+}
+
 // Personal OS (mục 11): check-in cấu trúc trong ngày — TẤT CẢ optional, bỏ qua được.
 // Dùng để suy "capacity" (sức/ngày) động; AI giảm tải / đề xuất ngày phục hồi khi sức thấp.
 model DayCheckin {
