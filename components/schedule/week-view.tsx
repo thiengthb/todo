@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   Loader2,
+  Move,
   Pencil,
   Plus,
   Trash2,
@@ -24,21 +25,27 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/empty-state";
+import { InfoHint } from "@/components/info-hint";
 import { formatDateVN, weekdayShortVN } from "@/lib/dates";
 import { SCHEDULE_KINDS, formatMinutes } from "@/lib/schedule";
 import {
   addCommitment,
   addScheduleEvent,
+  addSoftBlock,
   deleteCommitment,
   deleteScheduleEvent,
+  deleteSoftBlock,
   setCommitmentActive,
+  setSoftBlockActive,
   updateCommitment,
+  updateSoftBlock,
 } from "@/app/schedule/actions";
 import type {
   CommitmentDTO,
   ScheduleBlock,
   ScheduleEventDTO,
   ScheduleKind,
+  SoftBlockDTO,
 } from "@/lib/types";
 
 export interface DayColumn {
@@ -70,8 +77,10 @@ const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 type Editing =
   | { kind: "new" }
   | { kind: "new-commitment"; dayOfWeek: number }
+  | { kind: "new-soft"; dayOfWeek: number }
   | { kind: "new-event"; date: string }
   | { kind: "edit-commitment"; data: CommitmentDTO }
+  | { kind: "edit-soft"; data: SoftBlockDTO }
   | { kind: "edit-event"; data: ScheduleEventDTO };
 
 function blockTimeLabel(b: ScheduleBlock): string {
@@ -86,6 +95,7 @@ export function WeekView({
   thisStart,
   days,
   commitments,
+  softBlocks,
   events,
 }: {
   weekStart: string;
@@ -94,6 +104,7 @@ export function WeekView({
   thisStart: string;
   days: DayColumn[];
   commitments: CommitmentDTO[];
+  softBlocks: SoftBlockDTO[];
   events: ScheduleEventDTO[];
 }) {
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -103,6 +114,9 @@ export function WeekView({
     if (b.source === "commitment") {
       const c = commitments.find((x) => x.id === b.id);
       if (c) setEditing({ kind: "edit-commitment", data: c });
+    } else if (b.source === "soft") {
+      const s = softBlocks.find((x) => x.id === b.id);
+      if (s) setEditing({ kind: "edit-soft", data: s });
     } else {
       const e = events.find((x) => x.id === b.id);
       if (e) setEditing({ kind: "edit-event", data: e });
@@ -185,12 +199,18 @@ export function WeekView({
                   type="button"
                   onClick={() => openBlock(b)}
                   className={cn(
-                    "rounded-md border border-l-2 border-border/60 bg-muted/40 px-2 py-1.5 text-left transition-colors hover:bg-muted",
+                    "rounded-md border border-l-2 px-2 py-1.5 text-left transition-colors hover:bg-muted",
+                    b.source === "soft"
+                      ? "border-dashed border-border/60 bg-transparent"
+                      : "border-border/60 bg-muted/40",
                     KIND_BORDER[b.kind],
                   )}
                 >
-                  <span className="block truncate text-xs font-medium">
-                    {b.title}
+                  <span className="flex items-center gap-1 truncate text-xs font-medium">
+                    {b.source === "soft" && (
+                      <Move className="size-2.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="truncate">{b.title}</span>
                   </span>
                   <span className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Clock className="size-2.5 shrink-0" />
@@ -199,6 +219,9 @@ export function WeekView({
                       <span className="text-muted-foreground/70">
                         · đột xuất
                       </span>
+                    )}
+                    {b.source === "soft" && (
+                      <span className="text-muted-foreground/70">· khung</span>
                     )}
                   </span>
                 </button>
@@ -228,6 +251,13 @@ export function WeekView({
       <CommitmentManager
         commitments={commitments}
         onEdit={(c) => setEditing({ kind: "edit-commitment", data: c })}
+      />
+
+      {/* Quản lý khung giờ mềm (time-blocking) */}
+      <SoftBlockManager
+        softBlocks={softBlocks}
+        onEdit={(s) => setEditing({ kind: "edit-soft", data: s })}
+        onAdd={() => setEditing({ kind: "new-soft", dayOfWeek: 1 })}
       />
 
       <Dialog
@@ -352,9 +382,133 @@ function CommitmentManager({
   );
 }
 
+/* ───────── Quản lý khung giờ mềm (time-blocking) ───────── */
+
+function SoftBlockManager({
+  softBlocks,
+  onEdit,
+  onAdd,
+}: {
+  softBlocks: SoftBlockDTO[];
+  onEdit: (s: SoftBlockDTO) => void;
+  onAdd: () => void;
+}) {
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const header = (
+    <div className="flex items-center justify-between gap-2">
+      <h2 className="flex items-center gap-1.5 text-sm font-medium">
+        <Move className="size-4 text-muted-foreground" />
+        Khung giờ tập trung{" "}
+        {softBlocks.length > 0 && (
+          <span className="font-normal text-muted-foreground">
+            ({softBlocks.length})
+          </span>
+        )}
+        <InfoHint label="Khung giờ tập trung là gì?">
+          Khung giờ lặp theo tuần bạn{" "}
+          <strong className="font-medium text-foreground">muốn</strong> dành cho
+          một việc (vd 20–22h học). Khác lịch cứng: nó{" "}
+          <strong className="font-medium text-foreground">dời được</strong> và
+          không bị trừ khỏi quỹ giờ rảnh — chỉ gợi ý cho AI biết bạn ưu tiên
+          khung nào.
+        </InfoHint>
+      </h2>
+      <Button variant="outline" size="sm" onClick={onAdd}>
+        <Plus /> Thêm khung
+      </Button>
+    </div>
+  );
+
+  if (softBlocks.length === 0) {
+    return (
+      <section className="space-y-3">
+        {header}
+        <EmptyState
+          icon={Move}
+          title="Chưa có khung giờ tập trung nào"
+          description="Khai báo các khung giờ lặp bạn muốn dành cho việc quan trọng — AI sẽ ưu tiên xếp việc vào đó."
+          className="py-10"
+        />
+      </section>
+    );
+  }
+
+  const byDow = [...softBlocks].sort(
+    (a, b) =>
+      WEEK_ORDER.indexOf(a.dayOfWeek) - WEEK_ORDER.indexOf(b.dayOfWeek) ||
+      a.startTime.localeCompare(b.startTime),
+  );
+
+  return (
+    <section className="space-y-3">
+      {header}
+      <div className="rounded-lg border border-border/70">
+        {byDow.map((s, i) => (
+          <div
+            key={s.id}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
+              i < byDow.length - 1 && "border-b border-border/70",
+              !s.active && "opacity-50",
+            )}
+          >
+            <span className="w-8 shrink-0 text-xs font-medium text-muted-foreground">
+              {weekdayShortVN(s.dayOfWeek)}
+            </span>
+            <span className="w-24 shrink-0 text-xs text-muted-foreground tabular-nums">
+              {s.startTime}–{s.endTime}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm">{s.title}</span>
+            <span className="shrink-0 text-[11px] text-muted-foreground">
+              {KIND_LABEL[s.kind]}
+            </span>
+            <Switch
+              checked={s.active}
+              aria-label="Bật/tắt khung"
+              onCheckedChange={(v) => {
+                setPendingId(s.id);
+                startTransition(async () => {
+                  await setSoftBlockActive(s.id, v);
+                  setPendingId(null);
+                });
+              }}
+            />
+            <button
+              type="button"
+              aria-label="Sửa"
+              onClick={() => onEdit(s)}
+              className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Xoá"
+              disabled={pendingId === s.id}
+              onClick={() => {
+                setPendingId(s.id);
+                startTransition(async () => {
+                  await deleteSoftBlock(s.id);
+                  toast.success("Đã xoá khung giờ");
+                  setPendingId(null);
+                });
+              }}
+              className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ───────── Form thêm/sửa ───────── */
 
-type FormType = "commitment" | "event";
+type FormType = "commitment" | "soft" | "event";
 type EventMode = "timed" | "allday" | "off";
 
 function ScheduleForm({
@@ -368,30 +522,42 @@ function ScheduleForm({
 }) {
   const editingCommitment =
     editing.kind === "edit-commitment" ? editing.data : null;
+  const editingSoft = editing.kind === "edit-soft" ? editing.data : null;
   const editingEvent = editing.kind === "edit-event" ? editing.data : null;
 
   // loại form: cố định khi sửa; khi thêm thì chọn được (mặc định theo ngữ cảnh)
   const initialType: FormType =
     editing.kind === "edit-event" || editing.kind === "new-event"
       ? "event"
-      : "commitment";
+      : editing.kind === "edit-soft" || editing.kind === "new-soft"
+        ? "soft"
+        : "commitment";
   const [type, setType] = useState<FormType>(initialType);
   const isEdit =
-    editing.kind === "edit-commitment" || editing.kind === "edit-event";
+    editing.kind === "edit-commitment" ||
+    editing.kind === "edit-soft" ||
+    editing.kind === "edit-event";
 
   const [title, setTitle] = useState(
-    editingCommitment?.title ?? editingEvent?.title ?? "",
+    editingCommitment?.title ?? editingSoft?.title ?? editingEvent?.title ?? "",
   );
   const [kind, setKind] = useState<ScheduleKind>(
-    editingCommitment?.kind ?? editingEvent?.kind ?? "hoc",
+    editingCommitment?.kind ?? editingSoft?.kind ?? editingEvent?.kind ?? "hoc",
   );
-  // commitment
+  // commitment + soft (dùng chung các field thứ/giờ)
   const [dayOfWeek, setDayOfWeek] = useState<number>(
     editingCommitment?.dayOfWeek ??
-      (editing.kind === "new-commitment" ? editing.dayOfWeek : 1),
+      editingSoft?.dayOfWeek ??
+      (editing.kind === "new-commitment" || editing.kind === "new-soft"
+        ? editing.dayOfWeek
+        : 1),
   );
-  const [start, setStart] = useState(editingCommitment?.startTime ?? "08:00");
-  const [end, setEnd] = useState(editingCommitment?.endTime ?? "10:00");
+  const [start, setStart] = useState(
+    editingCommitment?.startTime ?? editingSoft?.startTime ?? "08:00",
+  );
+  const [end, setEnd] = useState(
+    editingCommitment?.endTime ?? editingSoft?.endTime ?? "10:00",
+  );
   // event
   const [date, setDate] = useState(
     editingEvent?.date ??
@@ -425,6 +591,17 @@ function ScheduleForm({
         res = editingCommitment
           ? await updateCommitment(editingCommitment.id, payload)
           : await addCommitment(payload);
+      } else if (type === "soft") {
+        const payload = {
+          title,
+          dayOfWeek,
+          startTime: start,
+          endTime: end,
+          kind,
+        };
+        res = editingSoft
+          ? await updateSoftBlock(editingSoft.id, payload)
+          : await addSoftBlock(payload);
       } else {
         const timed = eventMode === "timed";
         res = await addScheduleEvent({
@@ -457,9 +634,11 @@ function ScheduleForm({
   const title_ =
     editing.kind === "edit-commitment"
       ? "Sửa lịch cứng"
-      : editing.kind === "edit-event"
-        ? "Sửa sự kiện"
-        : "Thêm vào lịch";
+      : editing.kind === "edit-soft"
+        ? "Sửa khung giờ"
+        : editing.kind === "edit-event"
+          ? "Sửa sự kiện"
+          : "Thêm vào lịch";
 
   return (
     <>
@@ -470,36 +649,49 @@ function ScheduleForm({
       <div className="space-y-4">
         {/* chọn loại — chỉ khi thêm mới */}
         {!isEdit && (
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             <SegBtn
               active={type === "commitment"}
               onClick={() => setType("commitment")}
             >
-              Lặp theo tuần
+              Lịch cứng
+            </SegBtn>
+            <SegBtn active={type === "soft"} onClick={() => setType("soft")}>
+              <Move className="size-3.5" /> Khung tập trung
             </SegBtn>
             <SegBtn active={type === "event"} onClick={() => setType("event")}>
-              Đột xuất / một lần
+              Đột xuất
             </SegBtn>
           </div>
         )}
 
         {/* tên — ẩn khi là "nghỉ cả ngày" (không cần) */}
         {!(type === "event" && eventMode === "off") && (
-          <Field label={type === "commitment" ? "Tên lịch" : "Tên sự kiện"}>
+          <Field
+            label={
+              type === "commitment"
+                ? "Tên lịch"
+                : type === "soft"
+                  ? "Tên khung giờ"
+                  : "Tên sự kiện"
+            }
+          >
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={
                 type === "commitment"
                   ? "VD: Toán cao cấp / Ca làm sáng"
-                  : "VD: Họp nhóm, khám răng…"
+                  : type === "soft"
+                    ? "VD: Học Spring Boot / Đọc sách"
+                    : "VD: Họp nhóm, khám răng…"
               }
               autoFocus
             />
           </Field>
         )}
 
-        {type === "commitment" ? (
+        {type === "commitment" || type === "soft" ? (
           <>
             <Field label="Thứ trong tuần">
               <div className="flex flex-wrap gap-1">

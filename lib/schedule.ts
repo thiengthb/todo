@@ -6,6 +6,7 @@ import type {
   ScheduleBlock,
   ScheduleEventDTO,
   ScheduleKind,
+  SoftBlockDTO,
 } from "@/lib/types";
 
 /**
@@ -184,6 +185,56 @@ export function freeMinutes(
   events: ScheduleEventDTO[],
 ): number {
   return computeFreeSlots(dateStr, commitments, events).capacityMin;
+}
+
+/**
+ * "Phẳng hoá" khung giờ MỀM của một ngày (mục 14): soft block khớp thứ (active).
+ * Nghỉ cả ngày (event cancels) → bỏ hết soft hôm đó cho nhất quán với lịch cứng.
+ * KHÔNG trừ vào quỹ rảnh cứng — chỉ dùng để hiển thị + tính softLoad.
+ */
+export function softBlocksForDate(
+  dateStr: string,
+  softBlocks: SoftBlockDTO[],
+  events: ScheduleEventDTO[] = [],
+): ScheduleBlock[] {
+  const dow = dayOfWeekOf(dateStr);
+  const dayOff = events.some((e) => e.date === dateStr && e.cancels);
+  if (dayOff) return [];
+  return softBlocks
+    .filter((s) => s.active && s.dayOfWeek === dow)
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      kind: toKind(s.kind),
+      source: "soft" as const,
+    }))
+    .sort(byStart);
+}
+
+/**
+ * Tổng phút khung mềm GIAO với khe rảnh (mục 14) — "softLoad". Đại diện thời gian người
+ * dùng đã chủ ý dành cho khung tập trung → giảm "quỹ gợi ý" của AI (không đụng quỹ cứng).
+ */
+export function softLoadMinutes(
+  slots: FreeSlot[],
+  softBlocks: ScheduleBlock[],
+): number {
+  const soft = softBlocks
+    .filter((b) => b.startTime && b.endTime)
+    .map((b) => [hmToMinutes(b.startTime!), hmToMinutes(b.endTime!)] as const);
+  let total = 0;
+  for (const s of slots) {
+    const ss = hmToMinutes(s.start);
+    const se = hmToMinutes(s.end);
+    for (const [bs, be] of soft) {
+      const lo = Math.max(ss, bs);
+      const hi = Math.min(se, be);
+      if (hi > lo) total += hi - lo;
+    }
+  }
+  return total;
 }
 
 /** "3h30" / "45 phút" cho hiển thị gọn */

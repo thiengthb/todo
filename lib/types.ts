@@ -95,6 +95,20 @@ export interface CommitmentDTO {
   active: boolean;
 }
 
+/** Khung giờ mềm lặp theo tuần — time-blocking, dời được (khớp model SoftBlock) */
+export interface SoftBlockDTO {
+  id: string;
+  title: string;
+  dayOfWeek: number; // 0=CN .. 6=T7
+  startTime: string; // "HH:MM"
+  endTime: string;
+  kind: ScheduleKind;
+  active: boolean;
+  validFrom: string | null;
+  validUntil: string | null;
+  weekParity: string | null; // null | "odd" | "even"
+}
+
 /** Sự kiện đột xuất một lần (khớp model ScheduleEvent) */
 export interface ScheduleEventDTO {
   id: string;

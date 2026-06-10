@@ -128,6 +128,24 @@ model ScheduleSettings {
   updatedAt        DateTime @updatedAt
 }
 
+// Khung giờ MỀM lặp theo tuần (time-blocking, mục 14): "20–22h học", DỜI ĐƯỢC — khác lịch cứng.
+// KHÔNG bị trừ khỏi quỹ giờ rảnh CỨNG; chỉ giảm "quỹ gợi ý" mà AI dùng (softLoad). Không completion.
+model SoftBlock {
+  id         String   @id @default(cuid())
+  title      String
+  dayOfWeek  Int // 0=CN .. 6=T7
+  startTime  String // "HH:MM"
+  endTime    String
+  kind       String   @default("focus") // focus | hoc | lam | khac
+  active     Boolean  @default(true)
+  validFrom  String? // khoảng hiệu lực kỳ học (mục 14, Pha 3) — tùy chọn
+  validUntil String?
+  weekParity String? // null = mọi tuần | "odd" | "even"
+  createdAt  DateTime @default(now())
+
+  @@index([dayOfWeek])
+}
+
 // Sự kiện ĐỘT XUẤT một lần theo ngày cụ thể; hoặc cancels=true = "nghỉ cả ngày"
 // (bỏ qua mọi lịch cứng hôm đó). startTime null = sự kiện cả ngày.
 model ScheduleEvent {

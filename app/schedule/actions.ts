@@ -92,6 +92,75 @@ export async function deleteCommitment(id: string): Promise<void> {
   revalidate();
 }
 
+/* ───────── Soft block (khung giờ mềm, mục 14) ───────── */
+
+export interface SoftBlockInput {
+  title: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  kind: string;
+}
+
+export async function addSoftBlock(
+  input: SoftBlockInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Cần tên khung giờ" };
+  if (input.dayOfWeek < 0 || input.dayOfWeek > 6)
+    return { ok: false, error: "Thứ không hợp lệ" };
+  if (!validTimes(input.startTime, input.endTime))
+    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+
+  await prisma.softBlock.create({
+    data: {
+      title,
+      dayOfWeek: input.dayOfWeek,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      kind: toKind(input.kind),
+    },
+  });
+  revalidate();
+  return { ok: true };
+}
+
+export async function updateSoftBlock(
+  id: string,
+  input: SoftBlockInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Cần tên khung giờ" };
+  if (!validTimes(input.startTime, input.endTime))
+    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+
+  await prisma.softBlock.update({
+    where: { id },
+    data: {
+      title,
+      dayOfWeek: input.dayOfWeek,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      kind: toKind(input.kind),
+    },
+  });
+  revalidate();
+  return { ok: true };
+}
+
+export async function setSoftBlockActive(
+  id: string,
+  active: boolean,
+): Promise<void> {
+  await prisma.softBlock.update({ where: { id }, data: { active } });
+  revalidate();
+}
+
+export async function deleteSoftBlock(id: string): Promise<void> {
+  await prisma.softBlock.delete({ where: { id } });
+  revalidate();
+}
+
 export interface ScheduleEventInput {
   title: string;
   date: string;
