@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Build ra .next/standalone để Docker image gọn (chỉ chứa dependency thật sự dùng)
   output: "standalone",
-  // node-cron chạy ở server (instrumentation, mục 13) — để ngoài bundle cho an toàn
-  serverExternalPackages: ["node-cron"],
+  // server-only packages — để ngoài bundle cho an toàn (node-cron mục 13, MCP mục 15)
+  serverExternalPackages: ["node-cron", "mcp-handler", "@modelcontextprotocol/sdk"],
 };
 
 export default nextConfig;
