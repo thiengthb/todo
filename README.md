@@ -77,8 +77,13 @@ Workflow: `.github/workflows/deploy-todo.yml`.
 - Secrets cần đặt trong GitHub (Settings → Secrets and variables → Actions):
   - Secret `AI_API_KEY` — key Gemini
   - Variable `AI_MODEL` (tuỳ chọn, mặc định `gemini-2.5-flash`)
-  - Secret `DISCORD_WEBHOOK_URL` (tuỳ chọn — fallback nếu chưa dán webhook ở `/notifications`)
-  - Secret `NOTIFY_SECRET` (tuỳ chọn — bật endpoint `/api/notify/run` cho scheduler ngoài)
+- **Thông báo Discord**: cách gọn nhất là dán Webhook URL ngay trong app tại
+  `/notifications` (lưu vào DB trên volume `todo_data`, sống qua mọi redeploy) —
+  KHÔNG cần đụng tới hạ tầng. Nếu muốn dùng biến môi trường thay thế, thêm
+  `DISCORD_WEBHOOK_URL` (và `NOTIFY_SECRET` để bật endpoint ngoài) vào khối
+  `environment:` của compose phía server `/opt/apps/todo/docker-compose.yml`.
+  Lưu ý: workflow CI hiện chỉ build & push image — KHÔNG bơm secret runtime vào
+  container, nên đặt secret trong GitHub Actions sẽ không tới được app.
 - Deploy tay không qua git: `AI_API_KEY=... docker compose up -d --build`
 - Backup: `docker run --rm -v todo_todo_data:/data -v $(pwd):/backup alpine cp /data/todo.db /backup/`
 
