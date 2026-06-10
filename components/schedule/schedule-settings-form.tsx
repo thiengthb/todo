@@ -5,6 +5,9 @@ import { Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TimePicker } from "@/components/ui/time-picker";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Field } from "@/components/field";
 import { InfoHint } from "@/components/info-hint";
 import { updateScheduleSettings } from "@/app/schedule/actions";
 import type { ScheduleSettingsDTO } from "@/lib/types";
@@ -40,19 +43,17 @@ export function ScheduleSettingsForm({
       </h2>
       <div className="grid gap-3 rounded-lg border border-border/70 p-4 sm:grid-cols-2">
         <Field label="Giờ thức dậy">
-          <Input
-            type="time"
+          <TimePicker
             value={v.wakeTime}
-            onChange={(e) => setV({ ...v, wakeTime: e.target.value })}
-            className="w-32"
+            onChange={(t) => setV({ ...v, wakeTime: t })}
+            ariaLabel="Giờ thức dậy"
           />
         </Field>
         <Field label="Giờ đi ngủ">
-          <Input
-            type="time"
+          <TimePicker
             value={v.sleepTime}
-            onChange={(e) => setV({ ...v, sleepTime: e.target.value })}
-            className="w-32"
+            onChange={(t) => setV({ ...v, sleepTime: t })}
+            ariaLabel="Giờ đi ngủ"
           />
         </Field>
         <Field
@@ -67,7 +68,6 @@ export function ScheduleSettingsForm({
             onChange={(e) =>
               setV({ ...v, bufferMin: Number(e.target.value) || 0 })
             }
-            className="w-24"
           />
         </Field>
         <Field
@@ -82,20 +82,18 @@ export function ScheduleSettingsForm({
             onChange={(e) =>
               setV({ ...v, minSlotMin: Number(e.target.value) || 0 })
             }
-            className="w-24"
           />
         </Field>
         <Field
           label="Mốc tuần lẻ (kỳ học)"
           hint="Thứ Hai của tuần 1 trong kỳ — dùng để xác định tuần chẵn/lẻ. Bỏ trống nếu không dùng."
+          className="sm:col-span-2"
         >
-          <Input
-            type="date"
-            value={v.termAnchorMonday ?? ""}
-            onChange={(e) =>
-              setV({ ...v, termAnchorMonday: e.target.value || null })
-            }
-            className="w-40"
+          <DatePicker
+            value={v.termAnchorMonday}
+            onChange={(d) => setV({ ...v, termAnchorMonday: d })}
+            placeholder="Không dùng tuần chẵn/lẻ"
+            clearable
           />
         </Field>
       </div>
@@ -106,25 +104,5 @@ export function ScheduleSettingsForm({
         </Button>
       </div>
     </section>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      {children}
-      {hint && (
-        <span className="text-[11px] text-muted-foreground/80">{hint}</span>
-      )}
-    </label>
   );
 }
