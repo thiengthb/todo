@@ -1,8 +1,9 @@
 import { createMcpHandler } from "mcp-handler";
-import { z } from "zod";
+import { z, ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { computeStreaks } from "@/lib/streak";
-import { todayLocal } from "@/lib/mcp/tz";
+import { defaultTz, todayLocal } from "@/lib/mcp/tz";
 import {
   bulkCreateTasks,
   completeTask,
@@ -25,6 +26,19 @@ import {
   taskUpdateSchema,
   updateTask,
 } from "@/lib/mcp/repository";
+import {
+  addMilestones,
+  addMilestonesSchema,
+  checkMilestone,
+  createPlan,
+  getPlan,
+  listPlans,
+  milestoneCheckSchema,
+  planCreateSchema,
+  planListSchema,
+  planUpdateSchema,
+  updatePlan,
+} from "@/lib/mcp/plan-repository";
 
 /**
  * MCP server (mục 15) — chạy trong app Next, dùng chung Prisma + lib helper.
@@ -36,14 +50,65 @@ function ok(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
 }
 
+/** Lỗi MCP "mềm" — trả về client dưới dạng isError, KHÔNG ném (tránh -32603 thô). */
+function mcpError(message: string) {
+  return {
+    content: [{ type: "text" as const, text: message }],
+    isError: true as const,
+  };
+}
+
+/**
+ * Bọc MỌI handler tool: log thời lượng/stderr + dịch lỗi thường gặp thành thông báo
+ * dễ hiểu cho Claude (P2025 record-not-found, ZodError tham số sai) thay vì stack thô.
+ */
+function guard<Args extends unknown[], R>(
+  name: string,
+  fn: (...args: Args) => Promise<R>,
+) {
+  return async (...args: Args) => {
+    const start = Date.now();
+    try {
+      const res = await fn(...args);
+      console.error(`[mcp] tool=${name} ms=${Date.now() - start}`);
+      return res;
+    } catch (e) {
+      console.error(`[mcp] tool=${name} error`, e);
+      if (e instanceof ZodError) {
+        const lines = e.issues
+          .map((i) => `- ${i.path.join(".") || "(gốc)"}: ${i.message}`)
+          .join("\n");
+        return mcpError(`Tham số không hợp lệ:\n${lines}`);
+      }
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2025"
+      ) {
+        return mcpError(
+          "Không tìm thấy bản ghi với id đã cho — kiểm tra lại bằng list_tasks / list_plans / list_projects.",
+        );
+      }
+      return mcpError(e instanceof Error ? e.message : String(e));
+    }
+  };
+}
+
 export const mcpHandler = createMcpHandler(
   (server) => {
     // ---------------- health ----------------
     server.tool(
       "ping",
-      "Kiểm tra kết nối MCP server còn sống. Trả về { ok, time }.",
+      "Kiểm tra kết nối MCP còn sống + build đang chạy. Trả { ok, time, tz, version } — `version` " +
+        "= git-SHA của image (so khớp khi nghi ngờ vừa deploy giữa chừng).",
       {},
-      async () => ok({ ok: true, time: new Date().toISOString() }),
+      guard("ping", async () =>
+        ok({
+          ok: true,
+          time: new Date().toISOString(),
+          tz: defaultTz(),
+          version: process.env.BUILD_SHA ?? "dev",
+        }),
+      ),
     );
 
     // ---------------- CRUD ----------------
@@ -54,7 +119,7 @@ export const mcpHandler = createMcpHandler(
         "cho việc cần tập trung sâu (app ưu tiên xếp khe sáng). `priority` (LOW/MEDIUM/HIGH/URGENT). " +
         "Nếu tạo nhiều việc cùng lúc, hãy dùng `bulk_create_tasks`.",
       taskCreateSchema.shape,
-      async (args) => ok(await createTask(args)),
+      guard("create_task", async (args) => ok(await createTask(args))),
     );
 
     server.tool(
@@ -62,28 +127,33 @@ export const mcpHandler = createMcpHandler(
       "Sửa một việc theo `id` (partial — chỉ gửi field cần đổi). Dùng để DỜI LỊCH " +
         "(đổi `scheduledFor`/`date`), đổi ưu tiên, gắn project, v.v.",
       { id: z.string(), ...taskUpdateSchema.shape },
-      async ({ id, ...patch }) => ok(await updateTask(id, patch)),
+      guard("update_task", async ({ id, ...patch }) =>
+        ok(await updateTask(id, patch)),
+      ),
     );
 
     server.tool(
       "complete_task",
       "Đánh dấu một việc đã XONG (done + status=DONE).",
       { id: z.string() },
-      async ({ id }) => ok(await completeTask(id)),
+      guard("complete_task", async ({ id }) => ok(await completeTask(id))),
     );
 
     server.tool(
       "delete_task",
       "Xoá hẳn một việc theo `id` (hard delete). Dùng khi việc không còn cần.",
       { id: z.string() },
-      async ({ id }) => ok(await deleteTask(id)),
+      guard("delete_task", async ({ id }) => ok(await deleteTask(id))),
     );
 
     server.tool(
       "get_task",
       "Lấy chi tiết một việc theo `id` (kèm tags, project, delayDays).",
       { id: z.string() },
-      async ({ id }) => ok(await getTask(id)),
+      guard("get_task", async ({ id }) => {
+        const t = await getTask(id);
+        return t ? ok(t) : mcpError(`Không tìm thấy việc id=${id}.`);
+      }),
     );
 
     // ---------------- truy vấn ngữ cảnh ----------------
@@ -92,7 +162,7 @@ export const mcpHandler = createMcpHandler(
       "Liệt kê việc theo bộ lọc: status, priority, projectId, tag, khoảng ngày (`from`/`to` " +
         "dạng YYYY-MM-DD, lọc theo `date`), search (trong title), includeDone. Mặc định 100 việc.",
       listFilterSchema.shape,
-      async (args) => ok(await listTasks(args)),
+      guard("list_tasks", async (args) => ok(await listTasks(args))),
     );
 
     server.tool(
@@ -102,7 +172,7 @@ export const mcpHandler = createMcpHandler(
         "dời được — KHÔNG chiếm quỹ rảnh cứng nhưng nên tôn trọng), và `tasks`. GỌI TOOL NÀY " +
         "TRƯỚC khi xếp việc mới để tránh chồng lịch cứng.",
       rangeSchema.shape,
-      async (args) => ok(await getScheduleRange(args)),
+      guard("get_schedule", async (args) => ok(await getScheduleRange(args))),
     );
 
     server.tool(
@@ -114,7 +184,9 @@ export const mcpHandler = createMcpHandler(
         "durationMin} để gắn scheduledFor). GỌI TRƯỚC `bulk_create_tasks` để dàn đều, đừng vượt " +
         "suggestedFreeMinutes của ngày đó.",
       rangeSchema.shape,
-      async (args) => ok(await getWorkloadSummary(args)),
+      guard("get_workload_summary", async (args) =>
+        ok(await getWorkloadSummary(args)),
+      ),
     );
 
     // ---------------- lập kế hoạch hàng loạt ----------------
@@ -123,7 +195,9 @@ export const mcpHandler = createMcpHandler(
       "Tạo NHIỀU việc trong MỘT transaction (cho cả tuần/giai đoạn). Trước khi gọi, nên gọi " +
         "`get_workload_summary` để dàn đều tải. Mỗi việc cùng schema với `create_task`. Tối đa 100.",
       { tasks: z.array(taskCreateSchema) },
-      async ({ tasks }) => ok(await bulkCreateTasks(tasks)),
+      guard("bulk_create_tasks", async ({ tasks }) =>
+        ok(await bulkCreateTasks(tasks)),
+      ),
     );
 
     server.tool(
@@ -131,21 +205,24 @@ export const mcpHandler = createMcpHandler(
       "Tạo một 'kế hoạch giai đoạn' (Project) với mốc thời gian. Sau đó tạo các task gắn " +
         "`projectId` này (qua create_task/bulk_create_tasks) để gom nhóm theo dự án.",
       projectCreateSchema.shape,
-      async (args) => ok(await createProject(args)),
+      guard("create_project", async (args) => ok(await createProject(args))),
     );
 
     server.tool(
       "get_project",
       "Lấy một project kèm TOÀN BỘ task con + tiến độ (progressPct). Dùng để review giai đoạn.",
       { id: z.string() },
-      async ({ id }) => ok(await getProject(id)),
+      guard("get_project", async ({ id }) => {
+        const p = await getProject(id);
+        return p ? ok(p) : mcpError(`Không tìm thấy project id=${id}.`);
+      }),
     );
 
     server.tool(
       "list_projects",
       "Liệt kê project (lọc `status`: active|done|archived) kèm tiến độ gọn.",
       { status: z.enum(["active", "done", "archived"]).optional() },
-      async (args) => ok(await listProjects(args)),
+      guard("list_projects", async (args) => ok(await listProjects(args))),
     );
 
     // ---------------- Habits (mục 11 — KHÔNG điểm, streak chỉ là thông tin) ----------------
@@ -155,7 +232,7 @@ export const mcpHandler = createMcpHandler(
         "doneToday (đã tick chưa?), streak (số ngày-đến-hạn liên tiếp — THÔNG TIN, không phải " +
         "điểm). Habit TÁCH BIỆT khỏi task: không tính vào streak/thống kê việc.",
       {},
-      async () => ok(await listHabits()),
+      guard("list_habits", async () => ok(await listHabits())),
     );
 
     server.tool(
@@ -163,7 +240,65 @@ export const mcpHandler = createMcpHandler(
       "Đánh dấu (hoặc bỏ đánh dấu) một thói quen cho một ngày. `id` bắt buộc; `date` mặc định " +
         "hôm nay (YYYY-MM-DD); `checked` mặc định true. Idempotent — gọi lại không tạo trùng.",
       habitCheckSchema.shape,
-      async (args) => ok(await setHabitCheck(args)),
+      guard("check_habit", async (args) => ok(await setHabitCheck(args))),
+    );
+
+    // ---------------- Plan + Milestone (mục 10 — roadmap dài hạn cuốn chiếu) ----------------
+    server.tool(
+      "create_plan",
+      "Tạo một KẾ HOẠCH dài hạn (Plan) — mục tiêu + roadmap cột mốc, hiện trong trang /plans và " +
+        "được app 'Đề xuất ngày mai' rót task. KHÁC `create_project` (gom nhóm generic): dùng Plan " +
+        "cho mục tiêu có tiến trình (vd 'Luyện thi N2 trong 6 tháng'). `goal` = định nghĩa 'xong' + " +
+        "bối cảnh. `startDate`/`endDate` = YYYY-MM-DD. Kèm `milestones` (kết quả KIỂM CHỨNG được, vd " +
+        "'Thuộc bảng Hiragana' — KHÔNG mơ hồ) để tạo roadmap luôn. `intensity` (nhẹ|vừa|dồn) là gợi ý mềm.",
+      planCreateSchema.shape,
+      guard("create_plan", async (args) => ok(await createPlan(args))),
+    );
+
+    server.tool(
+      "add_milestones",
+      "Thêm cột mốc vào một plan đã có (`planId`). `order` tự nối tiếp nếu bỏ trống. Mỗi milestone " +
+        "nên là kết quả kiểm chứng được, có `targetDate` (YYYY-MM-DD) nếu hợp lý.",
+      addMilestonesSchema.shape,
+      guard("add_milestones", async (args) => ok(await addMilestones(args))),
+    );
+
+    server.tool(
+      "update_plan",
+      "Sửa một plan theo `id` (partial): đổi `title`/`goal`/`startDate`/`endDate`/`intensity` hoặc " +
+        "`status` (active|paused|done|archived). Dùng khi GIÃN DEADLINE hay tạm dừng — nhưng chỉ khi " +
+        "người dùng đồng ý (minh bạch, không tự co giãn ngầm).",
+      { id: z.string(), ...planUpdateSchema.shape },
+      guard("update_plan", async ({ id, ...patch }) =>
+        ok(await updatePlan(id, patch)),
+      ),
+    );
+
+    server.tool(
+      "list_plans",
+      "Liệt kê plan (lọc `status`) kèm tiến độ ĐỘNG: progressPct, behindDays (>0 = đang chậm), " +
+        "currentMilestone, daysLeft, và danh sách milestones.",
+      planListSchema.shape,
+      guard("list_plans", async (args) => ok(await listPlans(args))),
+    );
+
+    server.tool(
+      "get_plan",
+      "Lấy một plan theo `id`: roadmap milestones + tiến độ động + TẤT CẢ task gắn plan. Dùng để " +
+        "review trước khi rót task ngày mai (gắn `planId`/`milestoneId` khi create_task).",
+      { id: z.string() },
+      guard("get_plan", async ({ id }) => {
+        const p = await getPlan(id);
+        return p ? ok(p) : mcpError(`Không tìm thấy plan id=${id}.`);
+      }),
+    );
+
+    server.tool(
+      "check_milestone",
+      "Đánh dấu (hoặc bỏ) một milestone là đã đạt. `id` bắt buộc, `done` mặc định true. LƯU Ý: chỉ " +
+        "gọi khi NGƯỜI DÙNG xác nhận đã đạt mốc — AI KHÔNG tự tick (mục 10.8).",
+      milestoneCheckSchema.shape,
+      guard("check_milestone", async (args) => ok(await checkMilestone(args))),
     );
 
     // ---------------- Resources ----------------
@@ -231,6 +366,25 @@ export const mcpHandler = createMcpHandler(
       }),
     );
 
+    server.resource(
+      "active_plans",
+      "todo://active-plans",
+      {
+        description:
+          "Kế hoạch dài hạn đang chạy + tiến độ động (behindDays, currentMilestone).",
+        mimeType: "application/json",
+      },
+      async (uri) => ({
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: "application/json",
+            text: JSON.stringify(await listPlans({ status: "active" })),
+          },
+        ],
+      }),
+    );
+
     // ---------------- Prompts (ép quy trình an toàn) ----------------
     const SAFE =
       `QUY TRÌNH BẮT BUỘC: (1) đọc ngữ cảnh thật trước (get_schedule + get_workload_summary, ` +
@@ -278,7 +432,7 @@ export const mcpHandler = createMcpHandler(
 
     server.prompt(
       "plan_project",
-      "Nhận mục tiêu lớn + deadline → tạo project và phân rã thành task trải theo tuần.",
+      "Nhận mục tiêu lớn + deadline → tạo kế hoạch (Plan) với roadmap milestone, rồi rót task.",
       async () => ({
         messages: [
           {
@@ -287,8 +441,11 @@ export const mcpHandler = createMcpHandler(
               type: "text",
               text:
                 `Tôi có một mục tiêu lớn cần hoàn thành trước một deadline. ${SAFE}\n` +
-                `Hỏi tôi mục tiêu + deadline, tạo create_project, rồi phân rã thành các task có ` +
-                `scheduledFor/dueDate trải hợp lý theo các tuần (xem get_workload_summary để dàn tải).`,
+                `Hỏi tôi mục tiêu + deadline + cường độ, rồi tạo create_plan KÈM milestones (mỗi mốc là ` +
+                `kết quả KIỂM CHỨNG được, không mơ hồ) — đây là roadmap để app theo dõi tiến độ. CHỜ tôi ` +
+                `duyệt roadmap. Sau đó rót vài task kế tiếp gắn planId/milestoneId vào các ngày sắp tới ` +
+                `(xem get_workload_summary để dàn tải; ĐỪNG đẻ sẵn cả 30 ngày — rót cuốn chiếu). ` +
+                `KHÔNG tự tick milestone — chỉ tôi xác nhận.`,
             },
           },
         ],
