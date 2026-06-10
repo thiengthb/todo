@@ -290,10 +290,13 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
 > Đại tu 2026-06: app dùng **app-shell** thay nav ngang. Giữ trung tính kiểu Notion nhưng tận dụng
 > desktop, ít ngợp. Dựa trên nghiên cứu (NN/g, Refactoring UI). Mọi trang/feature mới phải bám.
 
-- **Khung:** `components/app-shell.tsx` bọc toàn app (render ở `layout.tsx`). Desktop ≥`lg`: **sidebar
-  trái** thu gọn được (nav + chip streak + theme ở footer). Mobile <`lg`: **top-bar mỏng** (brand +
-  streak + theme) + **bottom tab bar** (4 mục, luôn hiện — KHÔNG hamburger). Chip streak tách ở
-  `components/streak-chip.tsx`.
+- **Khung (đại tu 2026-06):** `components/app-shell.tsx` bọc toàn app (render ở `layout.tsx`).
+  Desktop ≥`lg`: **sidebar trái 7 mục** thu gọn được, nhóm 3 cụm (Hằng ngày: Hôm nay/Lịch tuần/Kế
+  hoạch/Nhịp sống · Nhìn lại: Lịch sử · Hệ thống: Thông báo/Hướng dẫn) + footer chip streak + theme.
+  Mobile <`lg`: **top-bar mỏng** (brand + streak + icon Thông báo/Hướng dẫn + theme) + **bottom tab
+  bar 5 mục** (Hôm nay · Lịch · Kế hoạch · Nhịp sống · Lịch sử — luôn hiện, KHÔNG hamburger). Chip
+  streak tách ở `components/streak-chip.tsx`. (Trước 2026-06 là 4 tab; đã nâng lên 5 + đưa lịch/thông
+  báo lên sidebar.)
 - **Bề rộng (ĐỒNG NHẤT, chốt 2026-06):** shell tự căn giữa **`max-w-5xl`** (≈1024px) + px cho **MỌI
   trang**. **Trang KHÔNG tự đặt `<main>`/`max-w`/`mx-auto`/`px` riêng** — chỉ render `<div className="py-8">`
   nội dung (shell sở hữu width + px). Khối CHỮ dài (hero/CTA trang Guide) tự bọc `mx-auto max-w-2xl` BÊN
@@ -326,7 +329,22 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
   `pb-[calc(env(safe-area-inset-bottom)+5rem)]` — KHÔNG để bar đè home-indicator. Tap target ≥ ~44px
   (tab bar `min-h-12`; nút cảm ứng nhỏ nới `size-9 sm:size-7`). Giữ look trung tính (không large-title,
   không inset-grouped).
-- **shadcn:** đã thêm `sheet`, `scroll-area`, `switch` (unified `radix-ui`, style radix-nova `data-open/closed`).
+- **shadcn:** `sheet`, `scroll-area`, `switch`, `tabs`, `calendar`, `popover` (unified `radix-ui`, style
+  radix-nova `data-open/closed`).
+- **Primitive dùng chung (BẮT BUỘC tái dùng, đại tu 2026-06):**
+  - **`components/ui/date-picker.tsx`** (Popover + Calendar, value `"YYYY-MM-DD"` địa phương) +
+    **`components/ui/time-picker.tsx`** (gõ tay + dropdown mốc 15′, value `"HH:MM"`). **MỌI** chỗ nhập
+    ngày/giờ dùng 2 cái này — KHÔNG `<input type="date"/"time">` thô.
+  - **`components/field.tsx`** (`Field`: nhãn + control `w-full` + hint/info) cho mọi form trong
+    `grid gap-3 sm:grid-cols-2` → ô bằng nhau, fill grid.
+  - **`components/icon-tooltip.tsx`** (`IconTooltip`) cho gợi ý read-only của nút-icon — KHÔNG `title=`.
+    Giải thích khái niệm dài vẫn dùng `InfoHint` (Popover, click).
+  - **`PageHeader` prop `info`** → InfoHint cạnh tiêu đề (bỏ description dài, giữ tiêu đề sạch).
+  - **`components/skeletons.tsx`** + mỗi route có **`loading.tsx`** → chuyển trang không khựng.
+- **Tabs cho trang nhiều mục:** `/notifications` (Cài đặt | Lịch sử), `/guide` (Dùng app | Dùng với AI/MCP).
+- **`/schedule` = lưới giờ kéo-thả** (`components/schedule/week-grid.tsx` + `lib/schedule-grid.ts`):
+  kéo-tạo + kéo-dời/resize bằng Pointer Events thuần (KHÔNG drag-lib), snap 15′, chạm + chuột. Move/resize
+  gửi lại đầy đủ field (giữ parity/validity). Thói quen + Giờ thức/quỹ giờ tách sang **`/routines`** (Nhịp sống).
 
 ---
 
@@ -366,9 +384,10 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
 
 ### 13.4 UI
 
-- KHÔNG thêm tab thứ 5 (giữ quy ước 4 mục bottom bar §12). "Thông báo" = link icon ⓘ Bell ở **footer sidebar**
-  + **top-bar mobile**. Trang `/notifications` (PageHeader + form + lịch sử) theo bộ card chuẩn §12; toggle dùng
-  `components/ui/switch`. "Gửi thử" tự lưu cấu hình hiện tại trước khi bắn.
+- "Thông báo" là **mục sidebar (cụm Hệ thống)** trên desktop + **icon Bell top-bar** trên mobile (đại tu
+  2026-06; trước đây ở footer sidebar). Trang `/notifications` chia **2 tab** (Cài đặt | Lịch sử) theo bộ
+  card chuẩn §12; toggle dùng `components/ui/switch`; giờ dùng `TimePicker`. "Gửi thử" tự lưu cấu hình
+  hiện tại trước khi bắn.
 
 ---
 
@@ -412,13 +431,15 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
 
 ### 14.4 UI
 
-- **Trang Hôm nay** = trung tâm: toggle **Danh sách ⇄ Dòng giờ** (giữ qua `?view`; quá khứ ép List).
-  `DayTimeline` (thanh giờ wake→sleep: lịch cứng khóa + khung mềm nét đứt + khe rảnh + việc đã xếp +
-  đường now) + `CapacityBanner` (rảnh ~Xh, N khe, cảnh báo quá tải) + `SlotPicker` (xếp/đổi giờ, không
-  drag-drop) + `HabitStrip` (1-chạm). Chế độ List giữ `ScheduleStrip` cũ.
-- **Trang `/schedule`**: lưới tuần (lịch cứng + khung mềm nét đứt) + quản lý Lịch cứng / Khung tập trung /
-  Thói quen + form "Giờ thức & quỹ thời gian". Dialog thêm/sửa chung 3 loại (commitment/soft/event) + khối
-  "Kỳ học" gập lại. Vào qua link phụ — **KHÔNG thêm tab thứ 5** (giữ 4 tab §12).
+- **Trang Hôm nay** = trung tâm: thanh tiêu điểm `FocusBar` (gộp quỹ-giờ + toggle **Danh sách ⇄ Dòng giờ**,
+  giữ qua `?view`; quá khứ ép List). `DayTimeline` (thanh giờ wake→sleep: lịch cứng khóa + khung mềm nét
+  đứt + khe rảnh + việc đã xếp + đường now) + `SlotPicker` (xếp/đổi giờ, không drag-drop) + `HabitStrip`
+  (1-chạm). Chế độ List giữ `ScheduleStrip`. (Đại tu 2026-06: `CapacityBanner`+`ViewToggle` gộp vào
+  `FocusBar`; cột phải gom `StatsCards` vòng-%, `CheckinBox` disclosure, `NoteBox` thu gọn.)
+- **Trang `/schedule`** (đại tu 2026-06): **lưới giờ kéo-thả** `WeekGrid` (kéo-tạo + kéo-dời/resize) +
+  quản lý Lịch cứng / Khung tập trung. Dialog thêm/sửa chung 3 loại (commitment/soft/event, dùng
+  `DatePicker`/`TimePicker`) + khối "Kỳ học" gập lại. **Thói quen + "Giờ thức & quỹ thời gian" đã CHUYỂN
+  sang `/routines`** (mục sidebar "Nhịp sống"). `/schedule` là mục sidebar chính (không còn link phụ).
 - Màu: trung tính + viền trái nhạt theo `kind`; khung mềm = nét đứt + glyph Move; không accent chói (§12).
 
 ---
