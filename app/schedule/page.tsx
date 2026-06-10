@@ -13,16 +13,11 @@ import {
   softBlocksForDate,
 } from "@/lib/schedule";
 import { getScheduleSettings } from "@/lib/schedule-settings";
-import { computeHabitStatus } from "@/lib/habits";
 import { PageHeader } from "@/components/page-header";
 import { WeekView, type DayColumn } from "@/components/schedule/week-view";
-import { ScheduleSettingsForm } from "@/components/schedule/schedule-settings-form";
-import {
-  HabitManager,
-  type HabitRow,
-} from "@/components/schedule/habit-manager";
 import type {
   CommitmentDTO,
+  FreeSlot,
   ScheduleBlock,
   ScheduleEventDTO,
   ScheduleKind,
@@ -55,7 +50,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const dates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekEnd = dates[6];
 
-  const [commitmentRows, softBlockRows, eventRows, settings, habitRows] =
+  const [commitmentRows, softBlockRows, eventRows, settings] =
     await Promise.all([
       prisma.commitment.findMany({
         orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
@@ -68,10 +63,6 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         orderBy: { date: "asc" },
       }),
       getScheduleSettings(),
-      prisma.habit.findMany({
-        orderBy: { createdAt: "asc" },
-        include: { checks: { select: { date: true } } },
-      }),
     ]);
 
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
@@ -108,38 +99,36 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     cancels: e.cancels,
   }));
 
-  const habits: HabitRow[] = habitRows.map((h) => ({
-    id: h.id,
-    title: h.title,
-    daysOfWeek: h.daysOfWeek,
-    active: h.active,
-    streak: computeHabitStatus(
-      h,
-      h.checks.map((c) => c.date),
-      today,
-    ).streak,
-  }));
-
-  const days: DayColumn[] = dates.map((date) => ({
-    date,
-    dow: new Date(`${date}T00:00:00`).getDay(),
-    label: weekdayShortVN(new Date(`${date}T00:00:00`).getDay()),
-    dateShort: formatDateShort(date),
-    isToday: date === today,
-    // lưới hiển thị cả lịch cứng + khung mềm (soft); quỹ rảnh chỉ tính lịch cứng
-    blocks: [
-      ...blocksForDate(date, commitments, events, settings.termAnchorMonday),
-      ...softBlocksForDate(date, softBlocks, events, settings.termAnchorMonday),
-    ].sort(byStart),
-    freeMin: computeFreeSlots(date, commitments, events, settings).capacityMin,
-  }));
+  const freeSlotsByDate: Record<string, FreeSlot[]> = {};
+  const days: DayColumn[] = dates.map((date) => {
+    const cap = computeFreeSlots(date, commitments, events, settings);
+    freeSlotsByDate[date] = cap.slots;
+    return {
+      date,
+      dow: new Date(`${date}T00:00:00`).getDay(),
+      label: weekdayShortVN(new Date(`${date}T00:00:00`).getDay()),
+      dateShort: formatDateShort(date),
+      isToday: date === today,
+      // lưới hiển thị cả lịch cứng + khung mềm (soft); quỹ rảnh chỉ tính lịch cứng
+      blocks: [
+        ...blocksForDate(date, commitments, events, settings.termAnchorMonday),
+        ...softBlocksForDate(
+          date,
+          softBlocks,
+          events,
+          settings.termAnchorMonday,
+        ),
+      ].sort(byStart),
+      freeMin: cap.capacityMin,
+    };
+  });
 
   return (
     <div className="py-8">
       <PageHeader
         eyebrow="Lịch trình"
         title="Lịch tuần"
-        description="Lịch cứng (học, làm) và việc đột xuất. Đây là bối cảnh để AI biết quỹ giờ rảnh thật của bạn và đề xuất việc vừa sức — lịch không phải việc cần làm nên không tính vào chuỗi hay thống kê."
+        info="Lịch cứng (học, làm), khung tập trung và việc đột xuất. Đây là bối cảnh để AI biết quỹ giờ rảnh thật của bạn và đề xuất việc vừa sức — lịch không phải việc cần làm nên không tính vào chuỗi hay thống kê."
       />
       <div className="space-y-10">
         <WeekView
@@ -151,9 +140,10 @@ export default async function SchedulePage({ searchParams }: PageProps) {
           commitments={commitments}
           softBlocks={softBlocks}
           events={events}
+          wake={settings.wakeTime}
+          sleep={settings.sleepTime}
+          freeSlotsByDate={freeSlotsByDate}
         />
-        <HabitManager habits={habits} />
-        <ScheduleSettingsForm initial={settings} />
       </div>
     </div>
   );

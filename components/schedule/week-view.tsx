@@ -6,7 +6,6 @@ import {
   CalendarOff,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Loader2,
   Move,
   Pencil,
@@ -17,6 +16,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { TimePicker } from "@/components/ui/time-picker";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +28,8 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/empty-state";
 import { InfoHint } from "@/components/info-hint";
 import { formatDateVN, weekdayShortVN } from "@/lib/dates";
-import { SCHEDULE_KINDS, formatMinutes } from "@/lib/schedule";
+import { SCHEDULE_KINDS } from "@/lib/schedule";
+import { WeekGrid, type GridChange } from "@/components/schedule/week-grid";
 import {
   addCommitment,
   addScheduleEvent,
@@ -38,10 +40,12 @@ import {
   setCommitmentActive,
   setSoftBlockActive,
   updateCommitment,
+  updateScheduleEvent,
   updateSoftBlock,
 } from "@/app/schedule/actions";
 import type {
   CommitmentDTO,
+  FreeSlot,
   ScheduleBlock,
   ScheduleEventDTO,
   ScheduleKind,
@@ -64,13 +68,6 @@ const KIND_LABEL: Record<ScheduleKind, string> = {
   khac: "Khác",
 };
 
-// nền trung tính + viền trái nhạt theo loại (giữ tinh thần §12: không accent chói)
-const KIND_BORDER: Record<ScheduleKind, string> = {
-  hoc: "border-l-sky-400/70",
-  lam: "border-l-violet-400/70",
-  khac: "border-l-border",
-};
-
 // thứ tự T2..CN cho lưới (getDay: 1..6,0)
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -79,14 +76,16 @@ type Editing =
   | { kind: "new-commitment"; dayOfWeek: number }
   | { kind: "new-soft"; dayOfWeek: number }
   | { kind: "new-event"; date: string }
+  | {
+      kind: "new-from-grid";
+      date: string;
+      dayOfWeek: number;
+      start: string;
+      end: string;
+    }
   | { kind: "edit-commitment"; data: CommitmentDTO }
   | { kind: "edit-soft"; data: SoftBlockDTO }
   | { kind: "edit-event"; data: ScheduleEventDTO };
-
-function blockTimeLabel(b: ScheduleBlock): string {
-  if (!b.startTime || !b.endTime) return "Cả ngày";
-  return `${b.startTime}–${b.endTime}`;
-}
 
 export function WeekView({
   weekStart,
@@ -97,6 +96,9 @@ export function WeekView({
   commitments,
   softBlocks,
   events,
+  wake,
+  sleep,
+  freeSlotsByDate,
 }: {
   weekStart: string;
   prevStart: string;
@@ -106,8 +108,12 @@ export function WeekView({
   commitments: CommitmentDTO[];
   softBlocks: SoftBlockDTO[];
   events: ScheduleEventDTO[];
+  wake: string;
+  sleep: string;
+  freeSlotsByDate: Record<string, FreeSlot[]>;
 }) {
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [, startGridTransition] = useTransition();
 
   // tra ngược object gốc khi bấm vào một khối trong lưới
   function openBlock(b: ScheduleBlock) {
@@ -121,6 +127,52 @@ export function WeekView({
       const e = events.find((x) => x.id === b.id);
       if (e) setEditing({ kind: "edit-event", data: e });
     }
+  }
+
+  // kéo-thả lịch trên lưới → gửi lại ĐẦY ĐỦ field (giữ parity/validity), chỉ đổi hình học
+  function handleMoveResize(block: ScheduleBlock, change: GridChange) {
+    startGridTransition(async () => {
+      let res: { ok: boolean; error?: string };
+      if (block.source === "commitment") {
+        const c = commitments.find((x) => x.id === block.id);
+        if (!c) return;
+        res = await updateCommitment(c.id, {
+          title: c.title,
+          kind: c.kind,
+          dayOfWeek: change.dayOfWeek,
+          startTime: change.start,
+          endTime: change.end,
+          validFrom: c.validFrom,
+          validUntil: c.validUntil,
+          weekParity: c.weekParity,
+        });
+      } else if (block.source === "soft") {
+        const s = softBlocks.find((x) => x.id === block.id);
+        if (!s) return;
+        res = await updateSoftBlock(s.id, {
+          title: s.title,
+          kind: s.kind,
+          dayOfWeek: change.dayOfWeek,
+          startTime: change.start,
+          endTime: change.end,
+          validFrom: s.validFrom,
+          validUntil: s.validUntil,
+          weekParity: s.weekParity,
+        });
+      } else {
+        const ev = events.find((x) => x.id === block.id);
+        if (!ev) return;
+        res = await updateScheduleEvent(ev.id, {
+          title: ev.title,
+          kind: ev.kind,
+          cancels: ev.cancels,
+          date: change.date,
+          startTime: change.start,
+          endTime: change.end,
+        });
+      }
+      if (!res.ok) toast.error(res.error ?? "Không lưu được");
+    });
   }
 
   return (
@@ -163,89 +215,24 @@ export function WeekView({
         </Button>
       </div>
 
-      {/* Lưới 7 cột (desktop) / xếp dọc (mobile) */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
-        {days.map((d) => (
-          <div
-            key={d.date}
-            className={cn(
-              "flex min-h-40 flex-col rounded-lg border border-border/70 p-2",
-              d.isToday && "border-foreground/40 bg-muted/30",
-            )}
-          >
-            <div className="mb-2 flex items-baseline justify-between px-1">
-              <span
-                className={cn(
-                  "text-sm font-medium",
-                  d.isToday && "text-foreground",
-                )}
-              >
-                {d.label}
-              </span>
-              <span className="text-[11px] text-muted-foreground tabular-nums">
-                {d.dateShort}
-              </span>
-            </div>
-
-            <div className="flex flex-1 flex-col gap-1.5">
-              {d.blocks.length === 0 && (
-                <p className="px-1 py-2 text-[11px] text-muted-foreground/60">
-                  Trống
-                </p>
-              )}
-              {d.blocks.map((b) => (
-                <button
-                  key={`${b.source}-${b.id}`}
-                  type="button"
-                  onClick={() => openBlock(b)}
-                  className={cn(
-                    "rounded-md border border-l-2 px-2 py-1.5 text-left transition-colors hover:bg-muted",
-                    b.source === "soft"
-                      ? "border-dashed border-border/60 bg-transparent"
-                      : "border-border/60 bg-muted/40",
-                    KIND_BORDER[b.kind],
-                  )}
-                >
-                  <span className="flex items-center gap-1 truncate text-xs font-medium">
-                    {b.source === "soft" && (
-                      <Move className="size-2.5 shrink-0 text-muted-foreground" />
-                    )}
-                    <span className="truncate">{b.title}</span>
-                  </span>
-                  <span className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <Clock className="size-2.5 shrink-0" />
-                    {blockTimeLabel(b)}
-                    {b.source === "event" && (
-                      <span className="text-muted-foreground/70">
-                        · đột xuất
-                      </span>
-                    )}
-                    {b.source === "soft" && (
-                      <span className="text-muted-foreground/70">· khung</span>
-                    )}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-2 flex items-center justify-between border-t border-border/60 px-1 pt-1.5">
-              <span className="text-[10px] text-muted-foreground">
-                rảnh ~{formatMinutes(d.freeMin)}
-              </span>
-              <button
-                type="button"
-                aria-label={`Thêm vào ${d.label}`}
-                onClick={() =>
-                  setEditing({ kind: "new-commitment", dayOfWeek: d.dow })
-                }
-                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <Plus className="size-3.5" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Lưới giờ kiểu Google Calendar — kéo-tạo + kéo-dời/resize */}
+      <WeekGrid
+        days={days}
+        wake={wake}
+        sleep={sleep}
+        freeSlotsByDate={freeSlotsByDate}
+        onOpen={openBlock}
+        onMoveResize={handleMoveResize}
+        onCreate={(draft) =>
+          setEditing({
+            kind: "new-from-grid",
+            date: draft.date,
+            dayOfWeek: draft.dayOfWeek,
+            start: draft.start,
+            end: draft.end,
+          })
+        }
+      />
 
       {/* Quản lý lịch cứng (gồm cả lịch đang tắt) */}
       <CommitmentManager
@@ -548,15 +535,21 @@ function ScheduleForm({
   const [dayOfWeek, setDayOfWeek] = useState<number>(
     editingCommitment?.dayOfWeek ??
       editingSoft?.dayOfWeek ??
-      (editing.kind === "new-commitment" || editing.kind === "new-soft"
+      (editing.kind === "new-commitment" ||
+      editing.kind === "new-soft" ||
+      editing.kind === "new-from-grid"
         ? editing.dayOfWeek
         : 1),
   );
   const [start, setStart] = useState(
-    editingCommitment?.startTime ?? editingSoft?.startTime ?? "08:00",
+    editingCommitment?.startTime ??
+      editingSoft?.startTime ??
+      (editing.kind === "new-from-grid" ? editing.start : "08:00"),
   );
   const [end, setEnd] = useState(
-    editingCommitment?.endTime ?? editingSoft?.endTime ?? "10:00",
+    editingCommitment?.endTime ??
+      editingSoft?.endTime ??
+      (editing.kind === "new-from-grid" ? editing.end : "10:00"),
   );
   // kỳ học (mục 14) — tùy chọn, dùng chung cho commitment & soft
   const [validFrom, setValidFrom] = useState(
@@ -574,7 +567,9 @@ function ScheduleForm({
   // event
   const [date, setDate] = useState(
     editingEvent?.date ??
-      (editing.kind === "new-event" ? editing.date : weekStart),
+      (editing.kind === "new-event" || editing.kind === "new-from-grid"
+        ? editing.date
+        : weekStart),
   );
   const [eventMode, setEventMode] = useState<EventMode>(
     editingEvent
@@ -585,8 +580,14 @@ function ScheduleForm({
           : "allday"
       : "timed",
   );
-  const [evStart, setEvStart] = useState(editingEvent?.startTime ?? "09:00");
-  const [evEnd, setEvEnd] = useState(editingEvent?.endTime ?? "11:00");
+  const [evStart, setEvStart] = useState(
+    editingEvent?.startTime ??
+      (editing.kind === "new-from-grid" ? editing.start : "09:00"),
+  );
+  const [evEnd, setEvEnd] = useState(
+    editingEvent?.endTime ??
+      (editing.kind === "new-from-grid" ? editing.end : "11:00"),
+  );
 
   const [saving, startSave] = useTransition();
 
@@ -752,21 +753,21 @@ function ScheduleForm({
                     Bỏ
                   </button>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Input
-                    type="date"
-                    value={validFrom}
-                    onChange={(e) => setValidFrom(e.target.value)}
-                    className="w-40"
-                    aria-label="Từ ngày"
+                <div className="flex items-center gap-2">
+                  <DatePicker
+                    value={validFrom || null}
+                    onChange={(d) => setValidFrom(d ?? "")}
+                    placeholder="Từ ngày"
+                    clearable
+                    className="flex-1"
                   />
                   <span className="text-muted-foreground">→</span>
-                  <Input
-                    type="date"
-                    value={validUntil}
-                    onChange={(e) => setValidUntil(e.target.value)}
-                    className="w-40"
-                    aria-label="Đến ngày"
+                  <DatePicker
+                    value={validUntil || null}
+                    onChange={(d) => setValidUntil(d ?? "")}
+                    placeholder="Đến ngày"
+                    clearable
+                    className="flex-1"
                   />
                 </div>
                 <div className="flex items-center gap-1">
@@ -803,12 +804,7 @@ function ScheduleForm({
         ) : (
           <>
             <Field label="Ngày">
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-auto"
-              />
+              <DatePicker value={date} onChange={(d) => setDate(d ?? date)} />
             </Field>
             <Field label="Kiểu">
               <div className="flex gap-1">
@@ -946,18 +942,18 @@ function TimeRange({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <Input
-        type="time"
+      <TimePicker
         value={start}
-        onChange={(e) => onStart(e.target.value)}
-        className="w-28"
+        onChange={onStart}
+        className="flex-1"
+        ariaLabel="Giờ bắt đầu"
       />
       <span className="text-muted-foreground">→</span>
-      <Input
-        type="time"
+      <TimePicker
         value={end}
-        onChange={(e) => onEnd(e.target.value)}
-        className="w-28"
+        onChange={onEnd}
+        className="flex-1"
+        ariaLabel="Giờ kết thúc"
       />
     </div>
   );

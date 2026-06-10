@@ -41,9 +41,7 @@ function validTimes(start: string, end: string): boolean {
 }
 
 /** Chuẩn hoá + kiểm tra field kỳ học. Trả data đã sạch hoặc lỗi. */
-function normalizeSemester(
-  i: SemesterInput,
-):
+function normalizeSemester(i: SemesterInput):
   | {
       ok: true;
       data: {
@@ -229,6 +227,34 @@ export async function addScheduleEvent(
     return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
 
   await prisma.scheduleEvent.create({
+    data: {
+      title,
+      date: input.date,
+      startTime: hasTime ? input.startTime : null,
+      endTime: hasTime ? input.endTime : null,
+      kind: toKind(input.kind),
+      cancels: !!input.cancels,
+    },
+  });
+  revalidate();
+  return { ok: true };
+}
+
+export async function updateScheduleEvent(
+  id: string,
+  input: ScheduleEventInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Cần tên sự kiện" };
+  if (!isValidDateStr(input.date))
+    return { ok: false, error: "Ngày không hợp lệ" };
+
+  const hasTime = !!input.startTime && !!input.endTime;
+  if (hasTime && !validTimes(input.startTime!, input.endTime!))
+    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+
+  await prisma.scheduleEvent.update({
+    where: { id },
     data: {
       title,
       date: input.date,
