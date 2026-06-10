@@ -2,19 +2,24 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
+  Bot,
   Brain,
   CalendarCheck,
-  Clock,
-  Flag,
+  CalendarClock,
   Flame,
+  FolderKanban,
   HeartPulse,
   ListChecks,
   ListTodo,
+  MessageSquareText,
+  Plug,
+  Repeat,
   Smile,
   Sparkles,
   Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Reveal } from "@/components/reveal";
 
 export const metadata = {
@@ -60,9 +65,9 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
     desc: "Việc lớn hay hay bị trượt được AI bẻ thành các bước nhỏ, tick từng bước cho dễ tạo đà.",
   },
   {
-    icon: Clock,
-    title: "Khi nào / ở đâu",
-    desc: 'Gắn ý định thực hiện cho việc quan trọng ("sau cà phê, ở bàn làm") — mẹo nhỏ, hiệu quả lớn.',
+    icon: CalendarClock,
+    title: "Lịch tuần kéo-thả",
+    desc: "Khai báo lịch học/làm + khung tập trung trên lưới giờ — kéo để tạo, dời, đổi giờ. App tính quỹ rảnh thật.",
   },
   {
     icon: CalendarCheck,
@@ -70,14 +75,14 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
     desc: "Mục tiêu lớn được chia thành cột mốc; mỗi ngày AI rót việc kế tiếp theo tốc độ thật.",
   },
   {
+    icon: Repeat,
+    title: "Nhịp sống & thói quen",
+    desc: "Thói quen tick 1 chạm + giờ thức/ngủ nuôi capacity. Không điểm số — chỉ phản chiếu đà.",
+  },
+  {
     icon: Flame,
     title: "Chuỗi giữ lửa",
     desc: "Đếm ngày bạn giữ nhịp. Lỡ một ngày vẫn không đứt — nhẹ nhàng, không trừng phạt.",
-  },
-  {
-    icon: Flag,
-    title: "Mức tác động",
-    desc: "Đánh dấu việc tác động cao bằng một chạm; AI ưu tiên đúng thứ đáng làm.",
   },
 ];
 
@@ -100,6 +105,84 @@ const SCIENCE: { title: string; desc: string }[] = [
   },
 ];
 
+// ---- Nội dung tab MCP (dùng Claude lập kế hoạch trên dữ liệu thật, mục 15) ----
+
+const MCP_STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
+  {
+    icon: Plug,
+    title: "Thêm connector",
+    desc: "Trong Claude (Desktop / Cursor / VS Code): Settings → Connectors (MCP) → Add. URL: https://<tên-miền>/api/mcp",
+  },
+  {
+    icon: Bot,
+    title: "Xác thực",
+    desc: "Desktop/CLI: dán Bearer token (MCP_AUTH_TOKEN). Claude.ai web: bấm Connect → tự chạy OAuth, xác nhận bằng chính token đó.",
+  },
+  {
+    icon: MessageSquareText,
+    title: "Bảo Claude lập kế hoạch",
+    desc: "Hỏi tự nhiên. Claude đọc lịch + quỹ giờ thật, trình bày kế hoạch, CHỜ bạn duyệt rồi mới ghi vào app.",
+  },
+];
+
+const MCP_TOOL_GROUPS: { icon: LucideIcon; label: string; tools: string[] }[] =
+  [
+    {
+      icon: ListTodo,
+      label: "Việc",
+      tools: [
+        "create_task",
+        "bulk_create_tasks",
+        "update_task",
+        "complete_task",
+        "delete_task",
+        "list_tasks",
+        "get_task",
+      ],
+    },
+    {
+      icon: CalendarClock,
+      label: "Lịch & tải",
+      tools: ["get_schedule", "get_workload_summary"],
+    },
+    {
+      icon: FolderKanban,
+      label: "Dự án",
+      tools: ["create_project", "get_project", "list_projects"],
+    },
+    {
+      icon: Repeat,
+      label: "Thói quen",
+      tools: ["list_habits", "check_habit"],
+    },
+  ];
+
+const MCP_PROMPTS: { name: string; desc: string }[] = [
+  {
+    name: "plan_my_day",
+    desc: "Lập kế hoạch hôm nay theo giờ, dựa trên lịch & quỹ rảnh thật.",
+  },
+  {
+    name: "plan_week",
+    desc: "Dàn việc 7 ngày tới, tránh dồn một ngày quá tải.",
+  },
+  {
+    name: "plan_project",
+    desc: "Mục tiêu lớn + deadline → tạo project và chia việc theo tuần.",
+  },
+  {
+    name: "review_and_reschedule",
+    desc: "Rà việc quá hạn/chưa xong → đề xuất dời lịch hợp lý.",
+  },
+];
+
+const MCP_PHRASES: string[] = [
+  "Lên kế hoạch hôm nay cho tôi dựa trên lịch và quỹ giờ rảnh.",
+  "Tuần này tôi có mấy việc lớn, dàn giúp tôi tránh quá tải.",
+  "Tôi muốn học tiếng Nhật trong 30 ngày — tạo dự án và chia nhỏ.",
+  "Xem việc nào đang trễ và đề xuất dời lịch giúp tôi.",
+];
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight sm:text-xl">
@@ -111,7 +194,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function GuidePage() {
   return (
     <div className="py-8">
-      {/* Hero */}
+      {/* Hero (chung cho cả 2 tab) */}
       <section className="mx-auto max-w-2xl text-center">
         <Reveal>
           <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-foreground text-background">
@@ -135,122 +218,242 @@ export default function GuidePage() {
             — bằng cách học từ dữ liệu thật của chính bạn.
           </p>
         </Reveal>
-        <Reveal delay={240}>
-          <div className="mt-6 flex items-center justify-center gap-2">
-            <Button asChild className="gap-2">
-              <Link href="/">
-                Bắt đầu hôm nay <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/plans">Tạo kế hoạch</Link>
-            </Button>
+      </section>
+
+      <div className="mt-10">
+        <Tabs defaultValue="app">
+          <div className="flex justify-center">
+            <TabsList>
+              <TabsTrigger value="app">Dùng app</TabsTrigger>
+              <TabsTrigger value="mcp">
+                <Bot /> Dùng với AI (MCP)
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </Reveal>
-      </section>
 
-      {/* Một ngày với Smart Todo */}
-      <section className="mt-12">
-        <Reveal>
-          <SectionTitle>Một ngày với Smart Todo</SectionTitle>
-        </Reveal>
-        <Reveal delay={60}>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Một nhịp đơn giản, lặp lại mỗi ngày — phần &ldquo;mai làm gì&rdquo;
-            để AI lo.
-          </p>
-        </Reveal>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {STEPS.map((s, i) => (
-            <Reveal key={s.title} delay={i * 80} className="h-full">
-              <div className="flex h-full items-start gap-4 rounded-lg border border-border/70 p-4">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <s.icon className="size-5 text-foreground" />
-                </div>
-                <div className="min-w-0">
-                  <p className="flex items-center gap-2 text-sm font-medium">
-                    <span className="text-muted-foreground tabular-nums">
-                      {i + 1}.
-                    </span>
-                    {s.title}
+          {/* ───────── Tab 1: Dùng app ───────── */}
+          <TabsContent value="app" className="mt-8 space-y-12">
+            <section>
+              <Reveal>
+                <SectionTitle>Một ngày với Smart Todo</SectionTitle>
+              </Reveal>
+              <Reveal delay={60}>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Một nhịp đơn giản, lặp lại mỗi ngày — phần &ldquo;mai làm
+                  gì&rdquo; để AI lo.
+                </p>
+              </Reveal>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {STEPS.map((s, i) => (
+                  <Reveal key={s.title} delay={i * 80} className="h-full">
+                    <div className="flex h-full items-start gap-4 rounded-lg border border-border/70 p-4">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <s.icon className="size-5 text-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 text-sm font-medium">
+                          <span className="text-muted-foreground tabular-nums">
+                            {i + 1}.
+                          </span>
+                          {s.title}
+                        </p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          {s.desc}
+                        </p>
+                      </div>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <Reveal>
+                <SectionTitle>Những trợ thủ trong app</SectionTitle>
+              </Reveal>
+              <Reveal delay={60}>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tất cả đều tùy chọn và nhẹ — dùng được tới đâu hay tới đó.
+                </p>
+              </Reveal>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {FEATURES.map((f, i) => (
+                  <Reveal key={f.title} delay={(i % 2) * 80} className="h-full">
+                    <div className="flex h-full flex-col gap-2 rounded-lg border border-border/70 p-4 transition-colors hover:bg-muted/40">
+                      <f.icon className="size-5 text-foreground" />
+                      <p className="text-sm font-medium">{f.title}</p>
+                      <p className="text-sm text-muted-foreground">{f.desc}</p>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <Reveal>
+                <SectionTitle>
+                  <Brain className="size-5" /> Vì sao app làm như vậy
+                </SectionTitle>
+              </Reveal>
+              <Reveal delay={60}>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Mỗi lựa chọn thiết kế dựa trên nghiên cứu hành vi — giữ điều
+                  có ích, bỏ điều phản tác dụng.
+                </p>
+              </Reveal>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {SCIENCE.map((s, i) => (
+                  <Reveal key={s.title} delay={(i % 2) * 70} className="h-full">
+                    <div className="flex h-full flex-col rounded-lg border border-border/70 p-4">
+                      <p className="text-sm font-medium">{s.title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {s.desc}
+                      </p>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <Reveal>
+                <div className="mx-auto max-w-2xl rounded-lg border border-border/70 bg-muted/30 p-6 text-center">
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Không cần hoàn hảo. Chỉ cần{" "}
+                    <strong className="font-medium text-foreground">
+                      đều đặn và tử tế với chính mình
+                    </strong>
+                    . Nghỉ ngơi khi cần cũng là một phần của kỷ luật.
                   </p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {s.desc}
-                  </p>
+                  <Button asChild className="mt-4 gap-2">
+                    <Link href="/">
+                      Mở trang Hôm nay <ArrowRight className="size-4" />
+                    </Link>
+                  </Button>
                 </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+              </Reveal>
+            </section>
+          </TabsContent>
 
-      {/* Những trợ thủ */}
-      <section className="mt-12">
-        <Reveal>
-          <SectionTitle>Những trợ thủ trong app</SectionTitle>
-        </Reveal>
-        <Reveal delay={60}>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Tất cả đều tùy chọn và nhẹ — dùng được tới đâu hay tới đó.
-          </p>
-        </Reveal>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {FEATURES.map((f, i) => (
-            <Reveal key={f.title} delay={(i % 2) * 80} className="h-full">
-              <div className="flex h-full flex-col gap-2 rounded-lg border border-border/70 p-4 transition-colors hover:bg-muted/40">
-                <f.icon className="size-5 text-foreground" />
-                <p className="text-sm font-medium">{f.title}</p>
-                <p className="text-sm text-muted-foreground">{f.desc}</p>
+          {/* ───────── Tab 2: Dùng với AI (MCP) ───────── */}
+          <TabsContent value="mcp" className="mt-8 space-y-12">
+            <section>
+              <Reveal>
+                <SectionTitle>
+                  <Bot className="size-5" /> Để Claude lập kế hoạch trên dữ liệu
+                  thật
+                </SectionTitle>
+              </Reveal>
+              <Reveal delay={60}>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  Kết nối Claude (Desktop / Cursor / VS Code / claude.ai) với
+                  app qua{" "}
+                  <strong className="font-medium text-foreground">
+                    Model Context Protocol
+                  </strong>
+                  . Mọi suy luận nằm ở phía Claude; app chỉ cung cấp dữ liệu
+                  thật + ghi việc khi bạn đồng ý.
+                </p>
+              </Reveal>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {MCP_STEPS.map((s, i) => (
+                  <Reveal key={s.title} delay={i * 80} className="h-full">
+                    <div className="flex h-full flex-col gap-2 rounded-lg border border-border/70 p-4">
+                      <div className="flex size-9 items-center justify-center rounded-full bg-muted">
+                        <s.icon className="size-5 text-foreground" />
+                      </div>
+                      <p className="text-sm font-medium">
+                        <span className="text-muted-foreground tabular-nums">
+                          {i + 1}.
+                        </span>{" "}
+                        {s.title}
+                      </p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {s.desc}
+                      </p>
+                    </div>
+                  </Reveal>
+                ))}
               </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+            </section>
 
-      {/* Vì sao app làm vậy */}
-      <section className="mt-12">
-        <Reveal>
-          <SectionTitle>
-            <Brain className="size-5" /> Vì sao app làm như vậy
-          </SectionTitle>
-        </Reveal>
-        <Reveal delay={60}>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Mỗi lựa chọn thiết kế dựa trên nghiên cứu hành vi — giữ điều có ích,
-            bỏ điều phản tác dụng.
-          </p>
-        </Reveal>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {SCIENCE.map((s, i) => (
-            <Reveal key={s.title} delay={(i % 2) * 70} className="h-full">
-              <div className="flex h-full flex-col rounded-lg border border-border/70 p-4">
-                <p className="text-sm font-medium">{s.title}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{s.desc}</p>
+            <section>
+              <Reveal>
+                <SectionTitle>Việc Claude làm được</SectionTitle>
+              </Reveal>
+              <Reveal delay={60}>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Các công cụ Claude có thể gọi — luôn đọc ngữ cảnh trước, ghi
+                  sau khi bạn duyệt.
+                </p>
+              </Reveal>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {MCP_TOOL_GROUPS.map((g, i) => (
+                  <Reveal key={g.label} delay={(i % 2) * 70} className="h-full">
+                    <div className="flex h-full flex-col gap-2 rounded-lg border border-border/70 p-4">
+                      <p className="flex items-center gap-2 text-sm font-medium">
+                        <g.icon className="size-4 text-muted-foreground" />
+                        {g.label}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {g.tools.map((t) => (
+                          <code
+                            key={t}
+                            className="rounded border border-border/70 bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+                          >
+                            {t}
+                          </code>
+                        ))}
+                      </div>
+                    </div>
+                  </Reveal>
+                ))}
               </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+            </section>
 
-      {/* Kết */}
-      <section className="mt-12">
-        <Reveal>
-          <div className="mx-auto max-w-2xl rounded-lg border border-border/70 bg-muted/30 p-6 text-center">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Không cần hoàn hảo. Chỉ cần{" "}
-              <strong className="font-medium text-foreground">
-                đều đặn và tử tế với chính mình
-              </strong>
-              . Nghỉ ngơi khi cần cũng là một phần của kỷ luật.
-            </p>
-            <Button asChild className="mt-4 gap-2">
-              <Link href="/">
-                Mở trang Hôm nay <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-          </div>
-        </Reveal>
-      </section>
+            <section>
+              <Reveal>
+                <SectionTitle>Prompt sẵn & câu nói gợi ý</SectionTitle>
+              </Reveal>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Reveal className="h-full">
+                  <div className="flex h-full flex-col gap-2 rounded-lg border border-border/70 p-4">
+                    <p className="text-sm font-medium">Prompt sẵn (slash)</p>
+                    <ul className="space-y-2">
+                      {MCP_PROMPTS.map((p) => (
+                        <li key={p.name}>
+                          <code className="font-mono text-[11px] text-foreground">
+                            /{p.name}
+                          </code>
+                          <span className="ml-1.5 text-xs text-muted-foreground">
+                            — {p.desc}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Reveal>
+                <Reveal delay={70} className="h-full">
+                  <div className="flex h-full flex-col gap-2 rounded-lg border border-border/70 p-4">
+                    <p className="text-sm font-medium">Hoặc cứ nói tự nhiên</p>
+                    <ul className="space-y-1.5">
+                      {MCP_PHRASES.map((p) => (
+                        <li
+                          key={p}
+                          className="flex items-start gap-1.5 text-sm text-muted-foreground"
+                        >
+                          <MessageSquareText className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/70" />
+                          “{p}”
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </Reveal>
+              </div>
+            </section>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

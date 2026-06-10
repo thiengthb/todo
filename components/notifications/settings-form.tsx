@@ -6,7 +6,9 @@ import { Send, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { TimePicker } from "@/components/ui/time-picker";
 import { InfoHint } from "@/components/info-hint";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/lib/utils";
 import {
   saveNotificationSettings,
@@ -48,12 +50,27 @@ const INTENSITY_PRESETS: Record<
   },
 };
 
-const INTENSITY_META: { key: NotificationIntensity; label: string; hint: string }[] =
-  [
-    { key: "minimal", label: "Tối thiểu", hint: "Gần như im lặng — chỉ nhắc giữ chuỗi khi thật sự nguy hiểm." },
-    { key: "balanced", label: "Vừa phải", hint: "Bản tin sáng + nhắc streak + 1 cú hích/ngày. Khuyên dùng." },
-    { key: "active", label: "Năng động", hint: "Thêm đúc kết tối. Vẫn có giờ yên + trần tần suất để không spam." },
-  ];
+const INTENSITY_META: {
+  key: NotificationIntensity;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    key: "minimal",
+    label: "Tối thiểu",
+    hint: "Gần như im lặng — chỉ nhắc giữ chuỗi khi thật sự nguy hiểm.",
+  },
+  {
+    key: "balanced",
+    label: "Vừa phải",
+    hint: "Bản tin sáng + nhắc streak + 1 cú hích/ngày. Khuyên dùng.",
+  },
+  {
+    key: "active",
+    label: "Năng động",
+    hint: "Thêm đúc kết tối. Vẫn có giờ yên + trần tần suất để không spam.",
+  },
+];
 
 export function NotificationSettingsForm({
   initial,
@@ -123,8 +140,8 @@ export function NotificationSettingsForm({
               Webhook URL
             </label>
             <InfoHint label="Lấy webhook ở đâu?">
-              Trong Discord: chọn kênh → ⚙ Chỉnh sửa kênh → Tích hợp →
-              Webhook → Webhook mới → Sao chép URL. Dán vào đây.
+              Trong Discord: chọn kênh → ⚙ Chỉnh sửa kênh → Tích hợp → Webhook →
+              Webhook mới → Sao chép URL. Dán vào đây.
             </InfoHint>
           </div>
           <div className="flex gap-2">
@@ -162,7 +179,7 @@ export function NotificationSettingsForm({
             sau khi chọn.
           </InfoHint>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {INTENSITY_META.map((it) => (
             <button
               key={it.key}
@@ -269,8 +286,8 @@ export function NotificationSettingsForm({
           <h2 className="text-sm font-medium">Nội dung do AI viết</h2>
           <InfoHint label="AI viết gì?">
             Số liệu (streak, số việc, việc chính) luôn do hệ thống tính thật. AI
-            chỉ thêm phần giọng văn: động lực, câu nói hay, mẹo. Tắt phần nào thì
-            bỏ phần đó.
+            chỉ thêm phần giọng văn: động lực, câu nói hay, mẹo. Tắt phần nào
+            thì bỏ phần đó.
           </InfoHint>
         </div>
         <div className="rounded-lg border border-border/70">
@@ -295,7 +312,12 @@ export function NotificationSettingsForm({
 
       {/* ───── Lưu ───── */}
       <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-10 -mx-1 flex justify-end lg:bottom-4">
-        <Button onClick={save} disabled={saving} size="lg" className="shadow-sm">
+        <Button
+          onClick={save}
+          disabled={saving}
+          size="lg"
+          className="shadow-sm"
+        >
           {saving && <Loader2 className="animate-spin" />}
           Lưu cấu hình
         </Button>
@@ -318,11 +340,11 @@ function TimeField({
   return (
     <label className="flex items-center gap-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <Input
-        type="time"
+      <TimePicker
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         className="w-28"
+        ariaLabel={label}
       />
     </label>
   );
@@ -376,43 +398,44 @@ function KindRow({
 
       <div className="flex items-center gap-2">
         {time !== undefined && onTime && (
-          <Input
-            type="time"
+          <TimePicker
             value={time}
-            onChange={(e) => onTime(e.target.value)}
+            onChange={onTime}
             className="w-28"
             disabled={!enabled}
+            ariaLabel="Giờ gửi"
           />
         )}
         {window && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Input
-              type="time"
+            <TimePicker
               value={window.start}
-              onChange={(e) => window.onStart(e.target.value)}
+              onChange={window.onStart}
               className="w-24"
               disabled={!enabled}
+              ariaLabel="Từ giờ"
             />
             <span>→</span>
-            <Input
-              type="time"
+            <TimePicker
               value={window.end}
-              onChange={(e) => window.onEnd(e.target.value)}
+              onChange={window.onEnd}
               className="w-24"
               disabled={!enabled}
+              ariaLabel="Đến giờ"
             />
           </div>
         )}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onTest}
-          disabled={disabledTest}
-          aria-label="Gửi thử loại này"
-          title="Gửi thử"
-        >
-          {testing ? <Loader2 className="animate-spin" /> : <Send />}
-        </Button>
+        <IconTooltip label="Gửi thử">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onTest}
+            disabled={disabledTest}
+            aria-label="Gửi thử loại này"
+          >
+            {testing ? <Loader2 className="animate-spin" /> : <Send />}
+          </Button>
+        </IconTooltip>
         <Switch checked={enabled} onCheckedChange={onToggle} />
       </div>
     </div>

@@ -214,35 +214,42 @@ export default async function HistoryPage() {
               className="py-10"
             />
           ) : (
-            <ul>
-              {streak.runs.map((run, i) => {
-                // run mới nhất (i===0) đang chạy khi current>0
-                const isLive = i === 0 && streak.current > 0;
-                return (
-                  <li
-                    key={run.start}
-                    className="flex items-center justify-between border-b border-border/70 py-3 text-sm last:border-b-0"
-                  >
-                    <span className="text-muted-foreground tabular-nums">
-                      {formatDateShort(run.start)}
-                      {run.end !== run.start &&
-                        ` – ${formatDateShort(run.end)}`}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      {isLive && (
-                        <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                          <Flame className="size-3" />
-                          {streak.atRisk ? "đang treo" : "đang chạy"}
-                        </span>
-                      )}
-                      <span className="font-medium tabular-nums">
-                        {run.length} ngày
+            // Các đợt giữ lửa gập lại — tránh lặp streak quá nhiều (mục giao diện)
+            <details className="group">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
+                Xem {streak.runs.length} đợt giữ lửa
+              </summary>
+              <ul className="mt-1">
+                {streak.runs.map((run, i) => {
+                  // run mới nhất (i===0) đang chạy khi current>0
+                  const isLive = i === 0 && streak.current > 0;
+                  return (
+                    <li
+                      key={run.start}
+                      className="flex items-center justify-between border-b border-border/70 py-3 text-sm last:border-b-0"
+                    >
+                      <span className="text-muted-foreground tabular-nums">
+                        {formatDateShort(run.start)}
+                        {run.end !== run.start &&
+                          ` – ${formatDateShort(run.end)}`}
                       </span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+                      <span className="flex items-center gap-2">
+                        {isLive && (
+                          <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                            <Flame className="size-3" />
+                            {streak.atRisk ? "đang treo" : "đang chạy"}
+                          </span>
+                        )}
+                        <span className="font-medium tabular-nums">
+                          {run.length} ngày
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
           )}
         </section>
 
