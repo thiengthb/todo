@@ -442,7 +442,22 @@ Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`,
 - Resources: `today_overview`, `active_projects`. Prompts: `plan_my_day`, `plan_week`, `plan_project`,
   `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt** → mới ghi.
 
-### 15.5 Triển khai
-Đặt env `MCP_AUTH_TOKEN` (+ tùy chọn `DEFAULT_TIMEZONE`) trong compose phía server
-`/opt/apps/todo/docker-compose.yml`. Connector Claude trỏ `https://<domain>/api/mcp` + bearer; nếu
-Claude.ai yêu cầu OAuth thì cân nhắc `mcp-handler` `withMcpAuth` (nợ kỹ thuật, đánh giá khi cần).
+### 15.5 Auth — bearer (Desktop/CLI) + OAuth 2.1 (Claude.ai web)
+`checkMcpAuth` (`lib/mcp/auth.ts`) chấp nhận **cả hai**: static bearer `MCP_AUTH_TOKEN` (Claude
+Desktop/Cursor/VS Code) **và** OAuth access JWT. 401 kèm `WWW-Authenticate: …resource_metadata=…`
+để Claude.ai tự khởi động OAuth discovery.
+
+**OAuth shim STATELESS** (`lib/mcp/oauth.ts` + `app/api/oauth/*`) — Claude.ai web chỉ hỗ trợ OAuth,
+không cho nhập bearer:
+- code/access/refresh đều là **JWT ký HMAC** (`jose`, khoá `MCP_OAUTH_SECRET` ?? `MCP_AUTH_TOKEN`) →
+  KHÔNG cần bảng DB. PKCE **S256 bắt buộc**. Client công khai (DCR `/register` cấp `client_id`, không secret).
+- **Consent gate** ở `/api/oauth/authorize`: chủ nhân nhập `MCP_AUTH_TOKEN` để xác nhận → cấp code.
+- Discovery `/.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource` qua
+  `next.config` rewrites (Next bỏ qua thư mục dấu chấm). Metadata/token/register có CORS + OPTIONS.
+- ⚠️ **Bug Anthropic (6/2026)**: claude.ai web có lúc hoàn tất OAuth nhưng không đính Bearer vào request
+  MCP (401 loop). Server đã đúng chuẩn; nếu trúng bug thì chờ Anthropic sửa hoặc dùng Desktop/Cursor.
+
+### 15.6 Triển khai
+Đặt env trong compose phía server `/opt/apps/todo/docker-compose.yml`: `MCP_AUTH_TOKEN` (bắt buộc),
+`MCP_OAUTH_SECRET` (nên đặt riêng), `DEFAULT_TIMEZONE`. Connector: `https://<domain>/api/mcp`
+(Desktop/CLI kèm bearer; Claude.ai web tự chạy OAuth).
