@@ -50,6 +50,17 @@ việc chính) do hệ thống tính thật; AI chỉ thêm động lực / câu
 - Fallback gọi ngoài: `POST /api/notify/run?kind=morning&secret=$NOTIFY_SECRET` (đặt `NOTIFY_SECRET`
   để bật; thêm `&force=1` để gửi ngay, bỏ qua điều kiện). Không có `AI_API_KEY` → vẫn chạy với nội dung tĩnh.
 
+## Lịch trình (mục 14)
+
+Khai báo **lịch cứng** (học, làm) lặp theo tuần + **việc đột xuất** tại **`/schedule`**. Đây không
+phải lịch để "làm cho xong" mà là **bối cảnh**: app biết quỹ giờ rảnh thật mỗi ngày nên đề xuất việc
+vừa sức hơn và gắn `cue` vào khe trống. Lịch cứng không tính vào chuỗi/thống kê.
+
+- Lưới tuần (T2–CN) + quản lý lịch cứng (bật/tắt, sửa, xoá). Buổi đột xuất có thể "có giờ", "cả ngày",
+  hoặc "nghỉ" (bỏ qua lịch cứng hôm đó).
+- Trang **Hôm nay** hiện dải lịch của ngày + quỹ giờ rảnh; **bản tin sáng** (Discord) nhắc khéo lịch.
+- AI **chỉ gợi ý** nhét việc vào khe trống — không tự xếp lịch (giữ minh bạch).
+
 ## Cấu trúc chính
 
 ```

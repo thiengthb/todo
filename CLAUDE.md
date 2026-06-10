@@ -369,3 +369,36 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
 - KHÔNG thêm tab thứ 5 (giữ quy ước 4 mục bottom bar §12). "Thông báo" = link icon ⓘ Bell ở **footer sidebar**
   + **top-bar mobile**. Trang `/notifications` (PageHeader + form + lịch sử) theo bộ card chuẩn §12; toggle dùng
   `components/ui/switch`. "Gửi thử" tự lưu cấu hình hiện tại trước khi bắn.
+
+---
+
+## 14. Lịch trình (lịch cứng nuôi đề xuất)
+
+> KHÔNG phải Google Calendar. Là **tầng bối cảnh**: cho bộ máy đề xuất biết **quỹ giờ rảnh thật**
+> mỗi ngày → "khả thi" chính xác hơn. Lịch cứng KHÔNG phải Task: **không** tính vào streak/stats/
+> completion. AI **chỉ gợi ý** nhét việc vào khe trống (không tự xếp — minh bạch, §11).
+
+### 14.1 Mô hình & đo động
+
+- `Commitment` (lịch CỨNG lặp theo tuần: `dayOfWeek` 0=CN..6=T7, `startTime`/`endTime`, `kind`
+  hoc|lam|khac, `active`) + `ScheduleEvent` (đột xuất theo `date`; `startTime` null = cả ngày;
+  `cancels=true` = nghỉ cả ngày → bỏ qua lịch cứng hôm đó). Lặp chỉ theo TUẦN (không RRULE đầy đủ).
+- ĐO ĐỘNG ở `lib/schedule.ts` (giống delay/streak/progress, KHÔNG cột DB): `blocksForDate` (phẳng hoá
+  commitment khớp thứ + event), `busyMinutes` (gộp khoảng chồng), `freeMinutes` = giờ thức (07–23h,
+  960′) − bận. Helper ngày: `mondayOf`, `weekdayShortVN` ở `lib/dates.ts`.
+
+### 14.2 Tích hợp đề xuất (giá trị cốt lõi)
+
+- `/api/suggest`: `SuggestContext` thêm `tomorrowSchedule` + `freeMinutesTomorrow`. Prompt (quy tắc 14):
+  TỔNG khối lượng phải VỪA quỹ giờ rảnh (không chỉ `avgDonePerDay`); free thấp → giảm tải; đặt `cue`
+  vào khe trống quanh lịch cứng; KHÔNG gán việc vào giờ đã có lịch.
+- Thông báo (mục 13): `NotificationFacts` thêm `todaySchedule` + `freeMinutesToday`; bản tin sáng nhắc
+  khéo "hôm nay học 8–11h, còn ~3h rảnh".
+
+### 14.3 UI
+
+- Trang `/schedule`: lưới 7 cột (T2–CN, agenda theo ngày + badge "rảnh ~Xh") + "Quản lý lịch cứng"
+  (Switch bật/tắt, sửa, xoá — gồm cả lịch đang tắt). Dialog thêm/sửa chung cho commitment & event.
+  Vào app qua link phụ (footer/top-bar) như Thông báo — **KHÔNG thêm tab thứ 5** (giữ 4 tab §12).
+- Trang Hôm nay: dải `ScheduleStrip` (chỉ-đọc) trên danh sách việc, hiện lịch + quỹ giờ rảnh ngày đang xem.
+- Màu: trung tính + viền trái nhạt theo `kind` (không accent chói, §12).
