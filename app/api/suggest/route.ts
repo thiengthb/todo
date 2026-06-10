@@ -15,7 +15,13 @@ import {
 import { computePlanProgress } from "@/lib/plan";
 import { computeDifficultyHints } from "@/lib/difficulty";
 import { computeCapacity } from "@/lib/capacity";
-import type { PlanAlert } from "@/lib/types";
+import { blocksForDate, freeMinutes } from "@/lib/schedule";
+import type {
+  CommitmentDTO,
+  PlanAlert,
+  ScheduleEventDTO,
+  ScheduleKind,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +42,8 @@ export async function POST(): Promise<NextResponse> {
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
     const twoWeeksAgoStr = toDateStr(twoWeeksAgo);
 
+    const tomorrow = tomorrowStr();
+
     const [
       todayTasks,
       undoneTasks,
@@ -44,6 +52,8 @@ export async function POST(): Promise<NextResponse> {
       note,
       plans,
       checkin,
+      commitmentRows,
+      tomorrowEventRows,
     ] = await Promise.all([
       prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
       // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
@@ -69,7 +79,30 @@ export async function POST(): Promise<NextResponse> {
         include: { milestones: { orderBy: { order: "asc" } } },
       }),
       prisma.dayCheckin.findUnique({ where: { date: today } }),
+      prisma.commitment.findMany({ where: { active: true } }),
+      prisma.scheduleEvent.findMany({ where: { date: tomorrow } }),
     ]);
+
+    // Lịch cứng ngày mai → quỹ giờ rảnh thật (mục 14)
+    const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
+      id: c.id,
+      title: c.title,
+      dayOfWeek: c.dayOfWeek,
+      startTime: c.startTime,
+      endTime: c.endTime,
+      kind: c.kind as ScheduleKind,
+      active: c.active,
+    }));
+    const tomorrowEvents: ScheduleEventDTO[] = tomorrowEventRows.map((e) => ({
+      id: e.id,
+      title: e.title,
+      date: e.date,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      kind: e.kind as ScheduleKind,
+      cancels: e.cancels,
+    }));
+    const tomorrowBlocks = blocksForDate(tomorrow, commitments, tomorrowEvents);
 
     // Trung bình ~7 ngày: chỉ tính những ngày thực sự có task
     const byDate = new Map<string, { done: number; total: number }>();
@@ -126,7 +159,7 @@ export async function POST(): Promise<NextResponse> {
 
     const ctx: SuggestContext = {
       today,
-      tomorrow: tomorrowStr(),
+      tomorrow,
       doneToday,
       undone: undoneTasks.map((t) => ({
         title: t.title,
@@ -161,6 +194,14 @@ export async function POST(): Promise<NextResponse> {
             }
           : null,
       ),
+      // lịch cứng ngày mai (mục 14) → AI hiệu chỉnh khối lượng theo quỹ giờ rảnh
+      tomorrowSchedule: tomorrowBlocks.map((b) => ({
+        title: b.title,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        kind: b.kind,
+      })),
+      freeMinutesTomorrow: freeMinutes(tomorrow, commitments, tomorrowEvents),
     };
 
     const result = await suggestTomorrow(ctx);

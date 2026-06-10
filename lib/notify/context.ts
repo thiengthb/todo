@@ -2,8 +2,14 @@ import { prisma } from "@/lib/db";
 import { computeStreaks } from "@/lib/streak";
 import { computePlanProgress } from "@/lib/plan";
 import { todayStr } from "@/lib/dates";
+import { blocksForDate, freeMinutes } from "@/lib/schedule";
 import type { NotificationFacts } from "@/lib/ai";
-import type { NotificationKind } from "@/lib/types";
+import type {
+  CommitmentDTO,
+  NotificationKind,
+  ScheduleEventDTO,
+  ScheduleKind,
+} from "@/lib/types";
 
 // task "container" (có ≥1 con) là nhóm, không tính vào stats/streak (mục 11)
 const NOT_CONTAINER = { subtasks: { none: {} } };
@@ -19,7 +25,14 @@ export async function buildNotificationFacts(
 ): Promise<NotificationFacts> {
   const today = todayStr();
 
-  const [todayLeaves, undoneLeaves, activeDayRows, plans] = await Promise.all([
+  const [
+    todayLeaves,
+    undoneLeaves,
+    activeDayRows,
+    plans,
+    commitmentRows,
+    eventRows,
+  ] = await Promise.all([
     // việc lá hôm nay (bỏ container)
     prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
     // việc còn dở đến hôm nay (bỏ container) — để cú hích bám vào
@@ -37,7 +50,36 @@ export async function buildNotificationFacts(
       where: { status: "active" },
       include: { milestones: { orderBy: { order: "asc" } } },
     }),
+    prisma.commitment.findMany({ where: { active: true } }),
+    prisma.scheduleEvent.findMany({ where: { date: today } }),
   ]);
+
+  // lịch cứng hôm nay → quỹ giờ rảnh + tóm tắt cho giọng văn (mục 14)
+  const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
+    id: c.id,
+    title: c.title,
+    dayOfWeek: c.dayOfWeek,
+    startTime: c.startTime,
+    endTime: c.endTime,
+    kind: c.kind as ScheduleKind,
+    active: c.active,
+  }));
+  const scheduleEvents: ScheduleEventDTO[] = eventRows.map((e) => ({
+    id: e.id,
+    title: e.title,
+    date: e.date,
+    startTime: e.startTime,
+    endTime: e.endTime,
+    kind: e.kind as ScheduleKind,
+    cancels: e.cancels,
+  }));
+  const todayBlocks = blocksForDate(today, commitments, scheduleEvents);
+  const todaySchedule = todayBlocks.map((b) =>
+    b.startTime && b.endTime
+      ? `${b.startTime}–${b.endTime} ${b.title}`
+      : `Cả ngày ${b.title}`,
+  );
+  const freeMinutesToday = freeMinutes(today, commitments, scheduleEvents);
 
   const streak = computeStreaks(
     activeDayRows.map((r) => r.date),
@@ -83,5 +125,7 @@ export async function buildNotificationFacts(
     sampleUndone: undoneLeaves.slice(0, 3).map((t) => t.title),
     behindPlans,
     capacityScore,
+    todaySchedule,
+    freeMinutesToday,
   };
 }

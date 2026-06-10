@@ -54,6 +54,15 @@ export interface SuggestContext {
   } | null;
   /** sức/ngày suy động 0..100 (mục 11) — null nếu không có check-in */
   capacityScore: number | null;
+  /** lịch cứng ngày mai (mục 14) — để hiệu chỉnh khối lượng theo quỹ giờ thật */
+  tomorrowSchedule: {
+    title: string;
+    startTime: string | null;
+    endTime: string | null;
+    kind: string;
+  }[];
+  /** phút RẢNH ngày mai = giờ thức − lịch cứng (mục 14) */
+  freeMinutesTomorrow: number;
 }
 
 const SYSTEM_PROMPT = `Bạn là trợ lý lập kế hoạch cá nhân. Nhiệm vụ: từ dữ liệu thật của người dùng
@@ -103,7 +112,13 @@ Nguyên tắc bắt buộc:
    2–3 việc rất nhẹ, phục hồi (nghỉ ngơi, dọn dẹp nhẹ, đi bộ), giọng chăm sóc bản thân. capacityScore
    cao (> 75) → có thể thêm một việc. Không có dữ liệu capacity → dựa vào tốc độ thật như cũ,
    "recovery_day": false.
-14. Viết toàn bộ bằng tiếng Việt.
+14. LỊCH TRÌNH (mục 14, RẤT QUAN TRỌNG cho tính khả thi): dùng "tomorrowSchedule" (lịch cứng ngày mai:
+   học/làm) và "freeMinutesTomorrow" (số phút RẢNH thật sau khi trừ lịch cứng). TỔNG khối lượng việc
+   phải VỪA quỹ giờ rảnh này, KHÔNG chỉ dựa vào avgDonePerDay. Nếu freeMinutesTomorrow thấp (< 120 phút)
+   → giảm mạnh số việc và độ khó, chỉ giữ 1 việc chính; rất thấp (< 60) → chỉ 1 việc nhỏ hoặc ngày nghỉ.
+   Khi đặt "cue", nhắm vào KHE TRỐNG quanh lịch cứng (vd lịch làm 8–17h → cue "buổi tối, sau 18h").
+   KHÔNG gán việc vào khung giờ đã có lịch cứng. Không có lịch (mảng rỗng) → bỏ qua, dựa tốc độ thật như cũ.
+15. Viết toàn bộ bằng tiếng Việt.
 
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
@@ -334,6 +349,10 @@ export interface NotificationFacts {
   behindPlans: string[];
   /** sức/ngày 0..100 nếu có check-in, null nếu không */
   capacityScore: number | null;
+  /** lịch cứng hôm nay dạng "08:00–11:00 Toán" (mục 14) — rỗng nếu không có */
+  todaySchedule: string[];
+  /** phút rảnh hôm nay sau lịch cứng (mục 14) */
+  freeMinutesToday: number;
 }
 
 export interface ComposeNotificationInput {
@@ -365,6 +384,8 @@ Quy tắc nội dung:
 1. CHỈ dùng số liệu trong dữ kiện được cho. KHÔNG bịa số, KHÔNG bịa tên việc/kế hoạch không có trong input.
 2. Theo "kind":
    - "morning": chào ngày mới, nêu nhẹ tình hình (việc hôm nay / việc chính nếu có), khích lệ bắt đầu.
+     Nếu "todaySchedule" có lịch cứng, nhắc khéo (vd "hôm nay có lịch học 8–11h, còn ~3h tối rảnh")
+     để người dùng hình dung khung ngày — KHÔNG liệt kê dài dòng.
    - "streak_guard": nhắc DỊU DÀNG rằng làm 1 việc nhỏ là giữ được chuỗi N ngày. Khung tích cực ("giữ thành quả"),
      KHÔNG doạ ("sắp mất hết!"). Nếu streakCurrent nhỏ/0 thì khích lệ bắt đầu chuỗi mới.
    - "random_nudge": một cú hích NHẸ, thân thiện, gợi ý thử bắt tay vào một việc đang dở (dùng sampleUndone/mitTitle).

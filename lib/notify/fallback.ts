@@ -42,11 +42,18 @@ export function fallbackVoice(
   const seed = seedFrom(seedKey + f.kind);
   let message: string;
   switch (f.kind) {
-    case "morning":
-      message = f.mitTitle
-        ? `Chào ngày mới ☀️ Hôm nay nếu chỉ làm một việc, hãy thử bắt đầu với “${f.mitTitle}”.`
-        : "Chào ngày mới ☀️ Cứ chọn một việc nhỏ để khởi động nhẹ nhàng nhé.";
+    case "morning": {
+      const sched =
+        f.todaySchedule.length > 0
+          ? ` Hôm nay có ${f.todaySchedule.length} lịch cứng, còn ~${Math.round(f.freeMinutesToday / 60)}h rảnh.`
+          : "";
+      message =
+        (f.mitTitle
+          ? `Chào ngày mới ☀️ Nếu chỉ làm một việc, hãy thử bắt đầu với “${f.mitTitle}”.`
+          : "Chào ngày mới ☀️ Cứ chọn một việc nhỏ để khởi động nhẹ nhàng nhé.") +
+        sched;
       break;
+    }
     case "streak_guard":
       message =
         f.streakCurrent > 0
