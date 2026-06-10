@@ -10,13 +10,22 @@ import {
 import { DayNav } from "@/components/day-nav";
 import { pickMitId } from "@/lib/priority";
 import { buildReflection } from "@/lib/reflection";
-import type { Emotion, Priority, TaskDTO } from "@/lib/types";
+import type {
+  CommitmentDTO,
+  Emotion,
+  Priority,
+  ScheduleEventDTO,
+  ScheduleKind,
+  TaskDTO,
+} from "@/lib/types";
 import { AddTask } from "@/components/today/add-task";
 import { CheckinBox } from "@/components/today/checkin-box";
 import { NoteBox } from "@/components/today/note-box";
 import { StatsCards } from "@/components/today/stats-cards";
 import { SuggestSheet } from "@/components/today/suggest-sheet";
 import { TaskItem } from "@/components/today/task-item";
+import { ScheduleStrip } from "@/components/today/schedule-strip";
+import { blocksForDate, freeMinutes } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +41,8 @@ export default async function DayPage({ searchParams }: PageProps) {
   const isToday = date === today;
   const isPast = date < today;
 
-  const [tasks, dailyNote, checkin, recentDone7] = await Promise.all([
+  const [tasks, dailyNote, checkin, recentDone7, commitmentRows, eventRows] =
+    await Promise.all([
     // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
     prisma.task.findMany({
       where: { date, parentId: null },
@@ -61,7 +71,32 @@ export default async function DayPage({ searchParams }: PageProps) {
           select: { date: true, emotion: true },
         })
       : Promise.resolve([]),
+    // lịch trình (mục 14): commitment đang bật + event của ngày đang xem
+    prisma.commitment.findMany({ where: { active: true } }),
+    prisma.scheduleEvent.findMany({ where: { date } }),
   ]);
+
+  // dải lịch cứng của ngày đang xem (read-only) + quỹ giờ rảnh động
+  const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
+    id: c.id,
+    title: c.title,
+    dayOfWeek: c.dayOfWeek,
+    startTime: c.startTime,
+    endTime: c.endTime,
+    kind: c.kind as ScheduleKind,
+    active: c.active,
+  }));
+  const scheduleEvents: ScheduleEventDTO[] = eventRows.map((e) => ({
+    id: e.id,
+    title: e.title,
+    date: e.date,
+    startTime: e.startTime,
+    endTime: e.endTime,
+    kind: e.kind as ScheduleKind,
+    cancels: e.cancels,
+  }));
+  const scheduleBlocks = blocksForDate(date, commitments, scheduleEvents);
+  const scheduleFree = freeMinutes(date, commitments, scheduleEvents);
 
   const dtos: TaskDTO[] = tasks.map((t) => {
     const subtasks: TaskDTO[] = t.subtasks.map((c) => ({
@@ -127,6 +162,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       {/* Dashboard 2 cột: việc (trái) · thống kê/check-in/đề xuất (phải) */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label="Danh sách việc" className="min-w-0">
+          <ScheduleStrip blocks={scheduleBlocks} freeMin={scheduleFree} />
           {dtos.length === 0 ? (
             <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
               {isPast
