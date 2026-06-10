@@ -1,6 +1,8 @@
-import { hmToMinutes } from "@/lib/notify/time";
+import { hmToMinutes, minutesToHm } from "@/lib/notify/time";
 import type {
+  CapacityResult,
   CommitmentDTO,
+  FreeSlot,
   ScheduleBlock,
   ScheduleEventDTO,
   ScheduleKind,
@@ -17,11 +19,9 @@ export const SCHEDULE_KINDS: { value: ScheduleKind; label: string }[] = [
   { value: "khac", label: "Khác" },
 ];
 
-/** Giờ thức mặc định 07:00–23:00 = 960 phút (dùng để suy quỹ rảnh) */
+/** Giờ thức mặc định 07:00–23:00 (dùng làm fallback khi chưa có ScheduleSettings) */
 export const WAKING_START = "07:00";
 export const WAKING_END = "23:00";
-const WAKING_MINUTES =
-  hmToMinutes(WAKING_END) - hmToMinutes(WAKING_START); // 960
 
 /** 0=CN..6=T7 của một chuỗi ngày "YYYY-MM-DD" (giờ địa phương) */
 export function dayOfWeekOf(dateStr: string): number {
@@ -80,9 +80,26 @@ export function blocksForDate(
   return [...fromCommitments, ...fromEvents].sort(byStart);
 }
 
+/** Gộp các khoảng [start,end) chồng nhau → danh sách rời nhau, tăng dần. Dùng chung. */
+function mergeIntervals(
+  intervals: readonly (readonly [number, number])[],
+): [number, number][] {
+  const sorted = intervals
+    .filter(([s, e]) => e > s)
+    .slice()
+    .sort((a, b) => a[0] - b[0]);
+  const merged: [number, number][] = [];
+  for (const [s, e] of sorted) {
+    const last = merged[merged.length - 1];
+    if (!last || s > last[1]) merged.push([s, e]);
+    else if (e > last[1]) last[1] = e;
+  }
+  return merged;
+}
+
 /**
- * Tổng phút BẬN trong giờ thức — gộp các khoảng chồng nhau để không đếm trùng.
- * Chỉ tính khối CÓ giờ (bỏ khối cả ngày khỏi phép tính quỹ rảnh).
+ * Tổng phút BẬN trong giờ thức (07–23h) — gộp khoảng chồng để không đếm trùng.
+ * Chỉ tính khối CÓ giờ. Giữ nguyên hành vi cũ (không buffer) cho các nơi gọi cũ.
  */
 export function busyMinutes(blocks: ScheduleBlock[]): number {
   const ws = hmToMinutes(WAKING_START);
@@ -93,34 +110,80 @@ export function busyMinutes(blocks: ScheduleBlock[]): number {
       const s = Math.max(ws, hmToMinutes(b.startTime!));
       const e = Math.min(we, hmToMinutes(b.endTime!));
       return [s, e] as const;
-    })
-    .filter(([s, e]) => e > s)
-    .sort((a, b) => a[0] - b[0]);
-
-  let total = 0;
-  let curStart = -1;
-  let curEnd = -1;
-  for (const [s, e] of intervals) {
-    if (s > curEnd) {
-      if (curEnd > curStart) total += curEnd - curStart;
-      curStart = s;
-      curEnd = e;
-    } else if (e > curEnd) {
-      curEnd = e;
-    }
-  }
-  if (curEnd > curStart) total += curEnd - curStart;
-  return total;
+    });
+  return mergeIntervals(intervals).reduce((t, [s, e]) => t + (e - s), 0);
 }
 
-/** Quỹ phút RẢNH của một ngày = giờ thức − phút bận (≥ 0) */
+/** Cấu hình mềm cho computeFreeSlots — bỏ trống = hành vi tương thích ngược (07–23h, không buffer). */
+export interface ScheduleConfig {
+  wakeTime?: string;
+  sleepTime?: string;
+  bufferMin?: number;
+  minSlotMin?: number;
+}
+
+function pushSlot(
+  out: FreeSlot[],
+  start: number,
+  end: number,
+  minSlot: number,
+) {
+  const dur = end - start;
+  if (dur <= 0 || dur < minSlot) return;
+  out.push({
+    start: minutesToHm(start),
+    end: minutesToHm(end),
+    durationMin: dur,
+  });
+}
+
+/**
+ * Tính quỹ thời gian một ngày (mục 14): danh sách KHE TRỐNG + tổng phút rảnh.
+ * Nới mỗi lịch cứng ±bufferMin (đệm di chuyển), kẹp trong [wake, sleep], gộp chồng,
+ * khoảng trống giữa = khe rảnh; bỏ khe ngắn hơn minSlotMin.
+ * Bỏ trống config → buffer 0 + minSlot 0 + giờ thức 07–23h ⇒ capacityMin == freeMinutes cũ.
+ */
+export function computeFreeSlots(
+  dateStr: string,
+  commitments: CommitmentDTO[],
+  events: ScheduleEventDTO[],
+  config?: ScheduleConfig,
+): CapacityResult {
+  const wake = hmToMinutes(config?.wakeTime ?? WAKING_START);
+  const sleep = hmToMinutes(config?.sleepTime ?? WAKING_END);
+  const buffer = Math.max(0, config?.bufferMin ?? 0);
+  const minSlot = Math.max(0, config?.minSlotMin ?? 0);
+  const wakingMin = Math.max(0, sleep - wake);
+
+  const intervals = blocksForDate(dateStr, commitments, events)
+    .filter((b) => b.startTime && b.endTime)
+    .map((b) => {
+      const s = Math.max(wake, hmToMinutes(b.startTime!) - buffer);
+      const e = Math.min(sleep, hmToMinutes(b.endTime!) + buffer);
+      return [s, e] as const;
+    });
+  const busy = mergeIntervals(intervals);
+  const busyMin = busy.reduce((t, [s, e]) => t + (e - s), 0);
+
+  const slots: FreeSlot[] = [];
+  let cursor = wake;
+  for (const [s, e] of busy) {
+    if (s > cursor) pushSlot(slots, cursor, s, minSlot);
+    cursor = Math.max(cursor, e);
+  }
+  if (cursor < sleep) pushSlot(slots, cursor, sleep, minSlot);
+
+  const capacityMin = slots.reduce((t, s) => t + s.durationMin, 0);
+  return { slots, capacityMin, wakingMin, busyMin };
+}
+
+/** Quỹ phút RẢNH của một ngày (tương thích ngược) = tổng khe rảnh, giờ thức 07–23h, không buffer. */
 export function freeMinutes(
   dateStr: string,
   commitments: CommitmentDTO[],
   events: ScheduleEventDTO[],
 ): number {
-  const busy = busyMinutes(blocksForDate(dateStr, commitments, events));
-  return Math.max(0, WAKING_MINUTES - busy);
+  return computeFreeSlots(dateStr, commitments, events).capacityMin;
 }
 
 /** "3h30" / "45 phút" cho hiển thị gọn */

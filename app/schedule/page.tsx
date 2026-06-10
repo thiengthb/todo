@@ -7,9 +7,11 @@ import {
   todayStr,
   weekdayShortVN,
 } from "@/lib/dates";
-import { blocksForDate, freeMinutes } from "@/lib/schedule";
+import { blocksForDate, computeFreeSlots } from "@/lib/schedule";
+import { getScheduleSettings } from "@/lib/schedule-settings";
 import { PageHeader } from "@/components/page-header";
 import { WeekView, type DayColumn } from "@/components/schedule/week-view";
+import { ScheduleSettingsForm } from "@/components/schedule/schedule-settings-form";
 import type {
   CommitmentDTO,
   ScheduleEventDTO,
@@ -29,12 +31,15 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const dates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekEnd = dates[6];
 
-  const [commitmentRows, eventRows] = await Promise.all([
-    prisma.commitment.findMany({ orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] }),
+  const [commitmentRows, eventRows, settings] = await Promise.all([
+    prisma.commitment.findMany({
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+    }),
     prisma.scheduleEvent.findMany({
       where: { date: { gte: weekStart, lte: weekEnd } },
       orderBy: { date: "asc" },
     }),
+    getScheduleSettings(),
   ]);
 
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
@@ -63,7 +68,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     dateShort: formatDateShort(date),
     isToday: date === today,
     blocks: blocksForDate(date, commitments, events),
-    freeMin: freeMinutes(date, commitments, events),
+    freeMin: computeFreeSlots(date, commitments, events, settings).capacityMin,
   }));
 
   return (
@@ -73,15 +78,18 @@ export default async function SchedulePage({ searchParams }: PageProps) {
         title="Lịch tuần"
         description="Lịch cứng (học, làm) và việc đột xuất. Đây là bối cảnh để AI biết quỹ giờ rảnh thật của bạn và đề xuất việc vừa sức — lịch không phải việc cần làm nên không tính vào chuỗi hay thống kê."
       />
-      <WeekView
-        weekStart={weekStart}
-        prevStart={addDays(weekStart, -7)}
-        nextStart={addDays(weekStart, 7)}
-        thisStart={mondayOf(today)}
-        days={days}
-        commitments={commitments}
-        events={events}
-      />
+      <div className="space-y-10">
+        <WeekView
+          weekStart={weekStart}
+          prevStart={addDays(weekStart, -7)}
+          nextStart={addDays(weekStart, 7)}
+          thisStart={mondayOf(today)}
+          days={days}
+          commitments={commitments}
+          events={events}
+        />
+        <ScheduleSettingsForm initial={settings} />
+      </div>
     </div>
   );
 }

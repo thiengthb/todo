@@ -17,6 +17,14 @@ export function toHm(d: Date): string {
   ).padStart(2, "0")}`;
 }
 
+/** Phút-từ-nửa-đêm → "HH:MM" (đảo của hmToMinutes). Kẹp trong [0, 1439]. */
+export function minutesToHm(min: number): string {
+  const clamped = Math.max(0, Math.min(1439, Math.round(min)));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 /** "HH:MM" hợp lệ? */
 export function isValidHm(hm: string): boolean {
   return hmToMinutes(hm) >= 0;
@@ -58,7 +66,8 @@ export function randomNudgeTargetMinute(
   if (s < 0 || e < 0) return -1;
   if (e <= s) e = s + 60; // cửa sổ tối thiểu 1 giờ nếu cấu hình lạ
   let h = 0;
-  for (let i = 0; i < dateStr.length; i++) h = (h * 31 + dateStr.charCodeAt(i)) | 0;
+  for (let i = 0; i < dateStr.length; i++)
+    h = (h * 31 + dateStr.charCodeAt(i)) | 0;
   const span = e - s;
   return s + (Math.abs(h) % span);
 }

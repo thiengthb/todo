@@ -5,7 +5,8 @@ import { prisma } from "@/lib/db";
 import { isValidDateStr } from "@/lib/dates";
 import { isValidHm } from "@/lib/notify/time";
 import { hmToMinutes } from "@/lib/notify/time";
-import type { ScheduleKind } from "@/lib/types";
+import { saveScheduleSettings } from "@/lib/schedule-settings";
+import type { ScheduleKind, ScheduleSettingsDTO } from "@/lib/types";
 
 const KINDS: ScheduleKind[] = ["hoc", "lam", "khac"];
 const toKind = (k: string): ScheduleKind =>
@@ -105,7 +106,8 @@ export async function addScheduleEvent(
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
   if (!title) return { ok: false, error: "Cần tên sự kiện" };
-  if (!isValidDateStr(input.date)) return { ok: false, error: "Ngày không hợp lệ" };
+  if (!isValidDateStr(input.date))
+    return { ok: false, error: "Ngày không hợp lệ" };
 
   // có giờ thì phải hợp lệ; cả ngày (không giờ) hoặc cancels thì bỏ qua
   const hasTime = !!input.startTime && !!input.endTime;
@@ -129,4 +131,24 @@ export async function addScheduleEvent(
 export async function deleteScheduleEvent(id: string): Promise<void> {
   await prisma.scheduleEvent.delete({ where: { id } });
   revalidate();
+}
+
+/** Lưu cấu hình giờ thức / buffer / ngưỡng khe (mục 14) */
+export async function updateScheduleSettings(
+  input: ScheduleSettingsDTO,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isValidHm(input.wakeTime) || !isValidHm(input.sleepTime))
+    return { ok: false, error: "Giờ không hợp lệ" };
+  if (hmToMinutes(input.wakeTime) >= hmToMinutes(input.sleepTime))
+    return { ok: false, error: "Giờ thức phải trước giờ ngủ" };
+  if (input.bufferMin < 0 || input.bufferMin > 120)
+    return { ok: false, error: "Buffer phải trong khoảng 0–120 phút" };
+  if (input.minSlotMin < 0 || input.minSlotMin > 240)
+    return { ok: false, error: "Ngưỡng khe không hợp lệ" };
+  if (input.termAnchorMonday && !isValidDateStr(input.termAnchorMonday))
+    return { ok: false, error: "Mốc tuần không hợp lệ" };
+
+  await saveScheduleSettings(input);
+  revalidate();
+  return { ok: true };
 }

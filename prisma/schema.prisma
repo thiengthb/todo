@@ -116,6 +116,18 @@ model Commitment {
   @@index([dayOfWeek])
 }
 
+// Cấu hình lịch trình (mục 14, nâng cấp): 1 hàng singleton — giờ thức/ngủ + buffer + ngưỡng khe.
+// Dùng để tính quỹ giờ rảnh ĐỘNG (computeFreeSlots) thay cho hằng số 07–23h cứng. Mọi field có default.
+model ScheduleSettings {
+  id               String   @id @default("singleton")
+  wakeTime         String   @default("07:00")
+  sleepTime        String   @default("23:00")
+  bufferMin        Int      @default(15) // đệm trước/sau mỗi lịch cứng (di chuyển/nghỉ)
+  minSlotMin       Int      @default(30) // bỏ khe trống ngắn hơn ngưỡng này
+  termAnchorMonday String? // mốc thứ 2 để tính tuần chẵn/lẻ (mục 14, kỳ học) — tùy chọn
+  updatedAt        DateTime @updatedAt
+}
+
 // Sự kiện ĐỘT XUẤT một lần theo ngày cụ thể; hoặc cancels=true = "nghỉ cả ngày"
 // (bỏ qua mọi lịch cứng hôm đó). startTime null = sự kiện cả ngày.
 model ScheduleEvent {

@@ -113,7 +113,31 @@ export interface ScheduleBlock {
   startTime: string | null; // null = cả ngày
   endTime: string | null;
   kind: ScheduleKind;
-  source: "commitment" | "event";
+  source: "commitment" | "event" | "soft";
+}
+
+/** Một khe giờ rảnh trong ngày (mục 14) — tính động từ computeFreeSlots */
+export interface FreeSlot {
+  start: string; // "HH:MM"
+  end: string; // "HH:MM"
+  durationMin: number;
+}
+
+/** Kết quả tính quỹ thời gian một ngày (mục 14) */
+export interface CapacityResult {
+  slots: FreeSlot[];
+  capacityMin: number; // tổng phút rảnh (sau buffer, bỏ khe ngắn)
+  wakingMin: number; // tổng phút trong giờ thức
+  busyMin: number; // tổng phút bận (đã gộp chồng + buffer)
+}
+
+/** Cấu hình lịch trình (lib/schedule-settings.ts) — khớp model ScheduleSettings */
+export interface ScheduleSettingsDTO {
+  wakeTime: string;
+  sleepTime: string;
+  bufferMin: number;
+  minSlotMin: number;
+  termAnchorMonday: string | null;
 }
 
 // ---- Thông báo Discord (mục 13) ----
