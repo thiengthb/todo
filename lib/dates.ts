@@ -71,3 +71,17 @@ export function formatDateShort(dateStr: string): string {
 export function isValidDateStr(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(`${s}T00:00:00`).getTime());
 }
+
+const WEEKDAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+
+/** Nhãn thứ ngắn tiếng Việt: CN, T2..T7 */
+export function weekdayShortVN(dayOfWeek: number): string {
+  return WEEKDAY_SHORT[((dayOfWeek % 7) + 7) % 7];
+}
+
+/** Ngày thứ Hai của tuần chứa dateStr (tuần bắt đầu T2) */
+export function mondayOf(dateStr: string): string {
+  const dow = new Date(`${dateStr}T00:00:00`).getDay(); // 0=CN..6=T7
+  const offset = dow === 0 ? -6 : 1 - dow;
+  return addDays(dateStr, offset);
+}

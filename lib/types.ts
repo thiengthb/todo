@@ -80,6 +80,42 @@ export interface DecomposeResult {
   milestones: MilestoneDraft[];
 }
 
+// ---- Lịch trình (mục 14) ----
+
+export type ScheduleKind = "hoc" | "lam" | "khac";
+
+/** Lịch cứng lặp theo tuần (khớp model Commitment) */
+export interface CommitmentDTO {
+  id: string;
+  title: string;
+  dayOfWeek: number; // 0=CN .. 6=T7
+  startTime: string; // "HH:MM"
+  endTime: string;
+  kind: ScheduleKind;
+  active: boolean;
+}
+
+/** Sự kiện đột xuất một lần (khớp model ScheduleEvent) */
+export interface ScheduleEventDTO {
+  id: string;
+  title: string;
+  date: string; // "YYYY-MM-DD"
+  startTime: string | null;
+  endTime: string | null;
+  kind: ScheduleKind;
+  cancels: boolean;
+}
+
+/** Một khối lịch đã "phẳng hoá" cho một ngày cụ thể (commitment hoặc event) */
+export interface ScheduleBlock {
+  id: string;
+  title: string;
+  startTime: string | null; // null = cả ngày
+  endTime: string | null;
+  kind: ScheduleKind;
+  source: "commitment" | "event";
+}
+
 // ---- Thông báo Discord (mục 13) ----
 
 /** Bốn loại thông báo — khớp cột `kind` của NotificationLog */
