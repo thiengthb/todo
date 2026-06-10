@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   BookOpen,
   History,
   Home,
@@ -35,6 +36,28 @@ function useIsActive() {
     href === "/"
       ? pathname === "/"
       : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/**
+ * Link "Thông báo" (mục 13) — đặt ở footer sidebar + top-bar mobile (KHÔNG thêm tab thứ 5,
+ * giữ đúng quy ước 4 mục của bottom bar). Style như nút icon ghost.
+ */
+function NotifLink({ active }: { active: boolean }) {
+  return (
+    <Link
+      href="/notifications"
+      aria-label="Thông báo"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "inline-flex size-8 items-center justify-center rounded-md transition-colors",
+        active
+          ? "bg-muted text-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <Bell className="size-[18px]" />
+    </Link>
+  );
 }
 
 /**
@@ -133,7 +156,19 @@ export function AppShell({
           )}
         >
           <StreakChip {...streak} />
-          <ThemeToggle />
+          <div className={cn("flex items-center gap-0.5", collapsed && "flex-col")}>
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <NotifLink active={isActive("/notifications")} />
+                </TooltipTrigger>
+                <TooltipContent side="right">Thông báo</TooltipContent>
+              </Tooltip>
+            ) : (
+              <NotifLink active={isActive("/notifications")} />
+            )}
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
 
@@ -152,6 +187,7 @@ export function AppShell({
           </Link>
           <div className="flex items-center gap-0.5">
             <StreakChip {...streak} />
+            <NotifLink active={isActive("/notifications")} />
             <ThemeToggle />
           </div>
         </header>
