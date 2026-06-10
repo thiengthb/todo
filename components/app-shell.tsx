@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   BookOpen,
+  CalendarDays,
   History,
   Home,
   ListTodo,
@@ -39,14 +40,24 @@ function useIsActive() {
 }
 
 /**
- * Link "Thông báo" (mục 13) — đặt ở footer sidebar + top-bar mobile (KHÔNG thêm tab thứ 5,
+ * Link phụ (mục 13/14) — đặt ở footer sidebar + top-bar mobile (KHÔNG thêm tab thứ 5,
  * giữ đúng quy ước 4 mục của bottom bar). Style như nút icon ghost.
  */
-function NotifLink({ active }: { active: boolean }) {
+function SecondaryLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+}) {
   return (
     <Link
-      href="/notifications"
-      aria-label="Thông báo"
+      href={href}
+      aria-label={label}
       aria-current={active ? "page" : undefined}
       className={cn(
         "inline-flex size-8 items-center justify-center rounded-md transition-colors",
@@ -55,7 +66,7 @@ function NotifLink({ active }: { active: boolean }) {
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      <Bell className="size-[18px]" />
+      <Icon className="size-[18px]" />
     </Link>
   );
 }
@@ -158,14 +169,45 @@ export function AppShell({
           <StreakChip {...streak} />
           <div className={cn("flex items-center gap-0.5", collapsed && "flex-col")}>
             {collapsed ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <NotifLink active={isActive("/notifications")} />
-                </TooltipTrigger>
-                <TooltipContent side="right">Thông báo</TooltipContent>
-              </Tooltip>
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SecondaryLink
+                      href="/schedule"
+                      label="Lịch trình"
+                      icon={CalendarDays}
+                      active={isActive("/schedule")}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Lịch trình</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SecondaryLink
+                      href="/notifications"
+                      label="Thông báo"
+                      icon={Bell}
+                      active={isActive("/notifications")}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Thông báo</TooltipContent>
+                </Tooltip>
+              </>
             ) : (
-              <NotifLink active={isActive("/notifications")} />
+              <>
+                <SecondaryLink
+                  href="/schedule"
+                  label="Lịch trình"
+                  icon={CalendarDays}
+                  active={isActive("/schedule")}
+                />
+                <SecondaryLink
+                  href="/notifications"
+                  label="Thông báo"
+                  icon={Bell}
+                  active={isActive("/notifications")}
+                />
+              </>
             )}
             <ThemeToggle />
           </div>
@@ -187,7 +229,18 @@ export function AppShell({
           </Link>
           <div className="flex items-center gap-0.5">
             <StreakChip {...streak} />
-            <NotifLink active={isActive("/notifications")} />
+            <SecondaryLink
+              href="/schedule"
+              label="Lịch trình"
+              icon={CalendarDays}
+              active={isActive("/schedule")}
+            />
+            <SecondaryLink
+              href="/notifications"
+              label="Thông báo"
+              icon={Bell}
+              active={isActive("/notifications")}
+            />
             <ThemeToggle />
           </div>
         </header>
