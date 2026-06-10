@@ -10,7 +10,12 @@ import {
 } from "@/lib/schedule";
 import { getScheduleSettings } from "@/lib/schedule-settings";
 import { computeHabitStatus } from "@/lib/habits";
-import { localDay, parseIso, todayLocal } from "@/lib/mcp/tz";
+import {
+  coerceToInstant,
+  isDateOrIso,
+  localDay,
+  todayLocal,
+} from "@/lib/mcp/tz";
 import type {
   CommitmentDTO,
   Priority,
@@ -31,23 +36,28 @@ import type { Prisma } from "@prisma/client";
 // ---------- enums & schema ----------
 export const PRIORITY = z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]);
 export const STATUS = z.enum(["TODO", "IN_PROGRESS", "DONE", "CANCELLED"]);
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Cần dạng YYYY-MM-DD");
-const isoDateTime = z
+export const isoDate = z
   .string()
-  .datetime({ offset: true })
-  .or(z.string().datetime());
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Cần dạng YYYY-MM-DD");
+// KHOAN DUNG: nhận cả ngày "YYYY-MM-DD" lẫn ISO 8601 đầy đủ (coerce ở deriveFields/createProject).
+const flexibleDate = z
+  .string()
+  .refine(isDateOrIso, "Cần ngày YYYY-MM-DD hoặc thời điểm ISO 8601");
 
 export const taskCreateSchema = z.object({
   title: z.string().min(1, "Cần title"),
   description: z.string().optional(),
   date: isoDate.optional(),
-  scheduledFor: isoDateTime.optional(),
-  dueDate: isoDateTime.optional(),
+  scheduledFor: flexibleDate.optional(),
+  dueDate: flexibleDate.optional(),
   estimatedMinutes: z.number().int().min(0).optional(),
   deepWork: z.boolean().optional(), // ưu tiên khe sáng (mục 14)
   priority: PRIORITY.optional(),
   status: STATUS.optional(),
   projectId: z.string().optional(),
+  // gắn task vào kế hoạch dài hạn (mục 10) — để task hiện trong /plans + được AI rót
+  planId: z.string().optional(),
+  milestoneId: z.string().optional(),
   tags: z.array(z.string().min(1)).optional(),
 });
 export type TaskCreateInput = z.infer<typeof taskCreateSchema>;
@@ -77,11 +87,14 @@ function deriveFields(
     out.estimatedMinutes = input.estimatedMinutes;
   if (input.deepWork !== undefined) out.deepWork = input.deepWork;
   if (input.projectId !== undefined) out.projectId = input.projectId || null;
-  if (input.dueDate !== undefined) out.dueDate = parseIso(input.dueDate);
+  if (input.planId !== undefined) out.planId = input.planId || null;
+  if (input.milestoneId !== undefined)
+    out.milestoneId = input.milestoneId || null;
+  if (input.dueDate !== undefined) out.dueDate = coerceToInstant(input.dueDate);
 
   // scheduledFor ⇒ đồng bộ date
   if (input.scheduledFor !== undefined) {
-    const sf = parseIso(input.scheduledFor);
+    const sf = coerceToInstant(input.scheduledFor);
     out.scheduledFor = sf;
     out.date = localDay(sf);
   }
@@ -121,7 +134,7 @@ type TaskWithRel = Prisma.TaskGetPayload<{
 }>;
 
 /** Serialize task cho MCP (gọn, ISO 8601, kèm delayDays động). */
-function serializeTask(t: TaskWithRel) {
+export function serializeTask(t: TaskWithRel) {
   const today = todayLocal();
   return {
     id: t.id,
@@ -147,7 +160,7 @@ function serializeTask(t: TaskWithRel) {
   };
 }
 
-const INCLUDE = { tags: true, project: true } as const;
+export const INCLUDE = { tags: true, project: true } as const;
 
 // ---------- Task CRUD ----------
 export async function createTask(raw: unknown) {
@@ -261,8 +274,8 @@ export async function listTasks(raw: unknown) {
 export const projectCreateSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  startDate: isoDateTime.optional(),
-  targetEndDate: isoDateTime.optional(),
+  startDate: flexibleDate.optional(),
+  targetEndDate: flexibleDate.optional(),
   status: z.enum(["active", "done", "archived"]).optional(),
 });
 
@@ -272,8 +285,8 @@ export async function createProject(raw: unknown) {
     data: {
       name: p.name.trim(),
       description: p.description || null,
-      startDate: p.startDate ? parseIso(p.startDate) : null,
-      targetEndDate: p.targetEndDate ? parseIso(p.targetEndDate) : null,
+      startDate: p.startDate ? coerceToInstant(p.startDate) : null,
+      targetEndDate: p.targetEndDate ? coerceToInstant(p.targetEndDate) : null,
       status: p.status ?? "active",
     },
   });
@@ -291,8 +304,9 @@ function serializeProject(
     name: p.name,
     description: p.description,
     status: p.status,
-    startDate: p.startDate ? p.startDate.toISOString() : null,
-    targetEndDate: p.targetEndDate ? p.targetEndDate.toISOString() : null,
+    // trả ngày địa phương "YYYY-MM-DD" cho nhất quán với phần còn lại của app
+    startDate: p.startDate ? localDay(p.startDate) : null,
+    targetEndDate: p.targetEndDate ? localDay(p.targetEndDate) : null,
     progressPct: total > 0 ? Math.round((done / total) * 100) : 0,
     taskCount: total,
     doneCount: done,
@@ -334,8 +348,8 @@ export async function listProjects(raw: unknown) {
       doneCount,
       progressPct:
         p._count.tasks > 0 ? Math.round((doneCount / p._count.tasks) * 100) : 0,
-      startDate: p.startDate ? p.startDate.toISOString() : null,
-      targetEndDate: p.targetEndDate ? p.targetEndDate.toISOString() : null,
+      startDate: p.startDate ? localDay(p.startDate) : null,
+      targetEndDate: p.targetEndDate ? localDay(p.targetEndDate) : null,
     });
   }
   return out;
@@ -388,10 +402,19 @@ function* eachDay(from: string, to: string) {
   for (let d = from; d <= to; d = addDays(d, 1)) yield d;
 }
 
-export const rangeSchema = z.object({ from: isoDate, to: isoDate });
+// `to` tùy chọn — mặc định = `from` (Claude xem 1 ngày chỉ cần truyền `from`).
+export const rangeSchema = z.object({ from: isoDate, to: isoDate.optional() });
+
+/** Chuẩn hóa khoảng ngày: bù `to` = `from` nếu thiếu, đảm bảo from ≤ to. */
+function normalizeRange(raw: unknown): { from: string; to: string } {
+  const { from, to } = rangeSchema.parse(raw);
+  const end = to ?? from;
+  if (from > end) throw new Error("`from` phải ≤ `to` (định dạng YYYY-MM-DD).");
+  return { from, to: end };
+}
 
 export async function getScheduleRange(raw: unknown) {
-  const { from, to } = rangeSchema.parse(raw);
+  const { from, to } = normalizeRange(raw);
   const [{ commitments, softBlocks, events }, settings] = await Promise.all([
     loadScheduleSources(from, to),
     getScheduleSettings(),
@@ -417,7 +440,7 @@ export async function getScheduleRange(raw: unknown) {
 }
 
 export async function getWorkloadSummary(raw: unknown) {
-  const { from, to } = rangeSchema.parse(raw);
+  const { from, to } = normalizeRange(raw);
   const [{ commitments, softBlocks, events }, settings] = await Promise.all([
     loadScheduleSources(from, to),
     getScheduleSettings(),
