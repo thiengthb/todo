@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoHint } from "@/components/info-hint";
+import { IconTooltip } from "@/components/icon-tooltip";
 import { cn } from "@/lib/utils";
 import { addDays, todayStr } from "@/lib/dates";
 import { createPlan } from "@/app/actions";
@@ -228,17 +229,17 @@ export function CreatePlanDialog() {
               </span>
               <div className="flex gap-1">
                 {INTENSITIES.map((it) => (
-                  <Button
-                    key={it.value}
-                    type="button"
-                    size="sm"
-                    variant={intensity === it.value ? "default" : "outline"}
-                    onClick={() => setIntensity(it.value)}
-                    className="flex-1"
-                    title={it.hint}
-                  >
-                    {it.label}
-                  </Button>
+                  <IconTooltip key={it.value} label={it.hint}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={intensity === it.value ? "default" : "outline"}
+                      onClick={() => setIntensity(it.value)}
+                      className="flex-1"
+                    >
+                      {it.label}
+                    </Button>
+                  </IconTooltip>
                 ))}
               </div>
             </div>

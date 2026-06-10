@@ -2,12 +2,16 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { InfoHint } from "@/components/info-hint";
 
 interface PageHeaderProps {
   /** Dòng nhỏ phía trên tiêu đề (eyebrow) */
   eyebrow?: string;
   title: ReactNode;
+  /** Mô tả ngắn dưới tiêu đề. Phần giải thích DÀI nên dùng `info` thay vì `description`. */
   description?: ReactNode;
+  /** Giải thích dài → icon ⓘ cạnh tiêu đề (Popover) — giữ tiêu đề sạch (mục giao diện) */
+  info?: ReactNode;
   /** Hành động cấp trang, căn phải (vd nút "Kế hoạch mới") */
   action?: ReactNode;
   /** Link "‹ …" cho trang con — đóng vai breadcrumb-nhẹ (mục giao diện) */
@@ -26,6 +30,7 @@ export function PageHeader({
   eyebrow,
   title,
   description,
+  info,
   action,
   backHref,
   backLabel = "Quay lại",
@@ -44,15 +49,27 @@ export function PageHeader({
       )}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          {eyebrow && <p className="text-sm text-muted-foreground">{eyebrow}</p>}
-          <h1
-            className={cn(
-              "mt-1 text-xl font-semibold tracking-tight sm:text-2xl",
-              titleClassName,
+          {eyebrow && (
+            <p className="text-sm text-muted-foreground">{eyebrow}</p>
+          )}
+          <div className="mt-1 flex items-center gap-1.5">
+            <h1
+              className={cn(
+                "text-xl font-semibold tracking-tight sm:text-2xl",
+                titleClassName,
+              )}
+            >
+              {title}
+            </h1>
+            {info && (
+              <InfoHint
+                label={typeof title === "string" ? title : "Giải thích"}
+                side="bottom"
+              >
+                {info}
+              </InfoHint>
             )}
-          >
-            {title}
-          </h1>
+          </div>
           {description && (
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {description}
