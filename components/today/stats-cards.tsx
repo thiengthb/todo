@@ -1,3 +1,5 @@
+import { InfoHint } from "@/components/info-hint";
+
 function StatCard({
   label,
   value,
@@ -27,7 +29,16 @@ function StatCard({
 }
 
 /** 3 thẻ số: Đã xong (x/y) · Tỉ lệ % · Còn dở */
-export function StatsCards({ done, total }: { done: number; total: number }) {
+export function StatsCards({
+  done,
+  total,
+  velocity,
+}: {
+  done: number;
+  total: number;
+  /** tốc độ thật ~7 ngày (lib/velocity.ts) — null khi chưa đủ dữ liệu, sẽ ẩn caption */
+  velocity?: { avgDonePerDay: number; daysWithData: number } | null;
+}) {
   const percent = total === 0 ? 0 : Math.round((done / total) * 100);
   const remaining = total - done;
   // goal-gradient (mục 11): khi gần xong, nhấn QUÃNG ĐƯỜNG CÒN LẠI (động lực mạnh hơn % đã đi)
@@ -43,6 +54,22 @@ export function StatsCards({ done, total }: { done: number; total: number }) {
       {nearDone && (
         <p className="mt-2 text-center text-xs text-muted-foreground">
           Chỉ còn {remaining} việc nữa là trọn ngày hôm nay.
+        </p>
+      )}
+      {/* tốc độ thật — minh bạch con số AI dùng để hiệu chỉnh số lượng đề xuất (mục 6/11) */}
+      {velocity && (
+        <p className="mt-2 flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+          Tốc độ thật ≈{" "}
+          <span className="font-medium tabular-nums text-foreground">
+            {velocity.avgDonePerDay}
+          </span>{" "}
+          việc/ngày
+          <InfoHint label="Tốc độ thật là gì?">
+            Trung bình số việc bạn xong mỗi ngày-có-làm trong ~7 ngày gần đây
+            (dựa trên {velocity.daysWithData} ngày có dữ liệu). AI hiệu chỉnh số
+            lượng đề xuất theo con số này — bám tốc độ thật, không theo mong
+            muốn.
+          </InfoHint>
         </p>
       )}
     </div>

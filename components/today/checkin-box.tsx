@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { InfoHint } from "@/components/info-hint";
+import { computeCapacity } from "@/lib/capacity";
 import { upsertCheckin } from "@/app/actions";
 
 export interface CheckinValues {
@@ -10,6 +11,14 @@ export interface CheckinValues {
   mood: number | null;
   stress: number | null;
   sleepHours: number | null;
+}
+
+/** Diễn giải mềm điểm capacity 0..100 — không phán xét, chỉ gợi ý điều chỉnh tải */
+function capacityLabel(score: number): { text: string; tone: string } {
+  if (score >= 66)
+    return { text: "Sức tốt", tone: "text-emerald-600 dark:text-emerald-400" };
+  if (score >= 40) return { text: "Sức vừa", tone: "text-muted-foreground" };
+  return { text: "Sức thấp", tone: "text-amber-600 dark:text-amber-400" };
 }
 
 /** Một thang 1..5, 1 chạm để chọn; chạm lại giá trị đang chọn = bỏ */
@@ -66,6 +75,10 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
 
   const SLEEP = [5, 6, 7, 8];
 
+  // capacity tính ĐỘNG ngay trên client từ check-in hiện tại (mục 11) — null khi chưa nhập gì
+  const capacity = computeCapacity(v);
+  const cap = capacity != null ? capacityLabel(capacity) : null;
+
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border/70 p-4">
       <p className="flex items-center gap-1.5 text-sm font-medium">
@@ -79,6 +92,34 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
           . Bỏ trống cũng không sao.
         </InfoHint>
       </p>
+
+      {/* Gauge sức ngày — chỉ hiện khi đã có check-in; cập nhật ngay khi chấm */}
+      {capacity != null && cap && (
+        <div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Sức hôm nay</span>
+            <span className={cn("font-medium tabular-nums", cap.tone)}>
+              {cap.text} · {capacity}
+            </span>
+          </div>
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn(
+                "h-full rounded-full transition-[width] duration-500",
+                capacity < 40 ? "bg-amber-500/70" : "bg-foreground/70",
+              )}
+              style={{ width: `${capacity}%` }}
+            />
+          </div>
+          {capacity < 40 && (
+            <p className="mt-1.5 text-[11px] leading-relaxed text-emerald-600 dark:text-emerald-400">
+              Sức đang thấp — hôm nay nhẹ thôi cũng được. Giữ 1 việc chính là
+              đủ.
+            </p>
+          )}
+        </div>
+      )}
+
       <Scale
         label="Năng lượng"
         value={v.energy}

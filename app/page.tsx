@@ -10,6 +10,10 @@ import {
 import { DayNav } from "@/components/day-nav";
 import { pickMitId } from "@/lib/priority";
 import { buildReflection } from "@/lib/reflection";
+import { computeStreaks } from "@/lib/streak";
+import { computeVelocity } from "@/lib/velocity";
+import { computeDifficultyHints } from "@/lib/difficulty";
+import { computePlanProgress } from "@/lib/plan";
 import type {
   CommitmentDTO,
   Emotion,
@@ -25,6 +29,10 @@ import { StatsCards } from "@/components/today/stats-cards";
 import { SuggestSheet } from "@/components/today/suggest-sheet";
 import { TaskItem } from "@/components/today/task-item";
 import { ScheduleStrip } from "@/components/today/schedule-strip";
+import { StreakBanner } from "@/components/today/streak-banner";
+import { PlanMomentum } from "@/components/today/plan-momentum";
+import { EmptyState } from "@/components/empty-state";
+import { ListTodo } from "lucide-react";
 import { blocksForDate, freeMinutes } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +49,18 @@ export default async function DayPage({ searchParams }: PageProps) {
   const isToday = date === today;
   const isPast = date < today;
 
-  const [tasks, dailyNote, checkin, recentDone7, commitmentRows, eventRows] =
-    await Promise.all([
+  const [
+    tasks,
+    dailyNote,
+    checkin,
+    recentDone7,
+    commitmentRows,
+    eventRows,
+    activeDayRows,
+    weekTaskRows,
+    ratedRows,
+    activePlanRows,
+  ] = await Promise.all([
     // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
     prisma.task.findMany({
       where: { date, parentId: null },
@@ -74,6 +92,43 @@ export default async function DayPage({ searchParams }: PageProps) {
     // lịch trình (mục 14): commitment đang bật + event của ngày đang xem
     prisma.commitment.findMany({ where: { active: true } }),
     prisma.scheduleEvent.findMany({ where: { date } }),
+    // các tín hiệu "thông minh" — chỉ cần cho hôm nay (mục 11/12)
+    // ngày "giữ lửa" → tính streak (banner nhắc khi sắp đứt)
+    isToday
+      ? prisma.task.findMany({
+          where: { done: true },
+          select: { date: true },
+          distinct: ["date"],
+        })
+      : Promise.resolve([]),
+    // task lá ~7 ngày trước → tốc độ thật (khớp weeklyAvg của /api/suggest)
+    isToday
+      ? prisma.task.findMany({
+          where: {
+            date: { gte: addDays(today, -7), lt: today },
+            subtasks: { none: {} },
+          },
+          select: { date: true, done: true },
+        })
+      : Promise.resolve([]),
+    // task lá đã chấm cảm xúc ~14 ngày → suy chủ đề "hay mệt" (difficulty hints)
+    isToday
+      ? prisma.task.findMany({
+          where: {
+            date: { gte: addDays(today, -13), lte: today },
+            emotion: { not: null },
+            subtasks: { none: {} },
+          },
+          select: { title: true, emotion: true },
+        })
+      : Promise.resolve([]),
+    // kế hoạch đang chạy → momentum card + tiến độ động
+    isToday
+      ? prisma.plan.findMany({
+          where: { status: "active" },
+          include: { milestones: { orderBy: { order: "asc" } } },
+        })
+      : Promise.resolve([]),
   ]);
 
   // dải lịch cứng của ngày đang xem (read-only) + quỹ giờ rảnh động
@@ -141,6 +196,32 @@ export default async function DayPage({ searchParams }: PageProps) {
       })
     : null;
 
+  // Tín hiệu "thông minh" khác (chỉ hôm nay) — mỗi cái TỰ ẩn khi thiếu dữ liệu (mục 11/12)
+  const streak = isToday
+    ? computeStreaks(
+        activeDayRows.map((r) => r.date),
+        today,
+      )
+    : null;
+  const velocity = isToday ? computeVelocity(weekTaskRows) : null;
+  const hardTopics = isToday
+    ? computeDifficultyHints(ratedRows).hardTopics
+    : [];
+  const planMomentum = isToday
+    ? activePlanRows.map((p) => {
+        const prog = computePlanProgress(p, p.milestones, today);
+        return {
+          id: p.id,
+          title: p.title,
+          currentMilestone: prog.currentMilestone,
+          progressPct: prog.progressPct,
+          behindDays: prog.behindDays,
+        };
+      })
+    : [];
+  // banner nhắc giữ lửa: chỉ khi chuỗi sắp đứt VÀ hôm nay chưa xong việc nào
+  const showStreakBanner = isToday && !!streak?.atRisk && doneCount === 0;
+
   return (
     <div className="py-8">
       <header className="flex items-start justify-between gap-3">
@@ -159,18 +240,28 @@ export default async function DayPage({ searchParams }: PageProps) {
         <DayNav date={date} today={today} />
       </header>
 
+      {/* Nhắc giữ lửa khi chuỗi sắp đứt (mục 11) — full-width trên dashboard */}
+      {showStreakBanner && streak && <StreakBanner current={streak.current} />}
+
       {/* Dashboard 2 cột: việc (trái) · thống kê/check-in/đề xuất (phải) */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label="Danh sách việc" className="min-w-0">
           <ScheduleStrip blocks={scheduleBlocks} freeMin={scheduleFree} />
           {dtos.length === 0 ? (
-            <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
-              {isPast
-                ? "Ngày này không có việc nào."
-                : isToday
-                  ? "Chưa có việc nào — thêm việc đầu tiên bên dưới."
-                  : "Chưa có kế hoạch cho ngày này — thêm trước bên dưới."}
-            </p>
+            <EmptyState
+              icon={ListTodo}
+              title={
+                isPast
+                  ? "Ngày này không có việc nào"
+                  : isToday
+                    ? "Chưa có việc nào hôm nay"
+                    : "Chưa có kế hoạch cho ngày này"
+              }
+              description={
+                isPast ? undefined : "Thêm việc đầu tiên ở ô bên dưới."
+              }
+              className="py-10"
+            />
           ) : (
             <div>
               {dtos.map((t) => (
@@ -181,7 +272,7 @@ export default async function DayPage({ searchParams }: PageProps) {
           {/* Quá khứ chỉ để quan sát — không thêm việc ngược thời gian */}
           {!isPast && (
             <div className="mt-1">
-              <AddTask date={date} isToday={isToday} />
+              <AddTask date={date} isToday={isToday} hardTopics={hardTopics} />
             </div>
           )}
 
@@ -203,7 +294,11 @@ export default async function DayPage({ searchParams }: PageProps) {
         </section>
 
         <aside className="flex flex-col gap-4">
-          <StatsCards done={doneCount} total={leaves.length} />
+          <StatsCards
+            done={doneCount}
+            total={leaves.length}
+            velocity={velocity}
+          />
           {isToday && (
             <CheckinBox
               initial={{
@@ -213,6 +308,9 @@ export default async function DayPage({ searchParams }: PageProps) {
                 sleepHours: checkin?.sleepHours ?? null,
               }}
             />
+          )}
+          {isToday && planMomentum.length > 0 && (
+            <PlanMomentum plans={planMomentum} />
           )}
           {isToday && <SuggestSheet />}
         </aside>
