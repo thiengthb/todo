@@ -372,36 +372,54 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
 
 ---
 
-## 14. Lịch trình (lịch cứng nuôi đề xuất)
+## 14. Lịch trình → Day Planner theo capacity
 
-> KHÔNG phải Google Calendar. Là **tầng bối cảnh**: cho bộ máy đề xuất biết **quỹ giờ rảnh thật**
-> mỗi ngày → "khả thi" chính xác hơn. Lịch cứng KHÔNG phải Task: **không** tính vào streak/stats/
-> completion. AI **chỉ gợi ý** nhét việc vào khe trống (không tự xếp — minh bạch, §11).
+> KHÔNG phải Google Calendar. Là **tầng bối cảnh + xếp giờ**: cho bộ máy đề xuất biết **quỹ giờ rảnh
+> thật** + **các khe trống** mỗi ngày → "khả thi" chính xác hơn, và để timeline đặt việc vào giờ. Lịch
+> KHÔNG phải Task: **không** tính vào streak/stats/completion. AI **chỉ gợi ý** khe giờ (không tự áp đặt
+> — minh bạch, §11); **server recompute + validate** khe AI trả (loại slot đè lịch cứng).
 
-### 14.1 Mô hình & đo động
+### 14.1 Mô hình (tất cả ĐO ĐỘNG ở `lib/schedule.ts`, KHÔNG cột tiến độ cứng; chuỗi ngày/giờ địa phương)
 
-- `Commitment` (lịch CỨNG lặp theo tuần: `dayOfWeek` 0=CN..6=T7, `startTime`/`endTime`, `kind`
-  hoc|lam|khac, `active`) + `ScheduleEvent` (đột xuất theo `date`; `startTime` null = cả ngày;
-  `cancels=true` = nghỉ cả ngày → bỏ qua lịch cứng hôm đó). Lặp chỉ theo TUẦN (không RRULE đầy đủ).
-- ĐO ĐỘNG ở `lib/schedule.ts` (giống delay/streak/progress, KHÔNG cột DB): `blocksForDate` (phẳng hoá
-  commitment khớp thứ + event), `busyMinutes` (gộp khoảng chồng), `freeMinutes` = giờ thức (07–23h,
-  960′) − bận. Helper ngày: `mondayOf`, `weekdayShortVN` ở `lib/dates.ts`.
+- **Lịch cứng** `Commitment` (lặp theo tuần: `dayOfWeek`, `startTime`/`endTime`, `kind` hoc|lam|khac,
+  `active`) + **kỳ học** `validFrom`/`validUntil` (tự hết hạn) + `weekParity` null|odd|even (tuần chẵn/lẻ).
+- **Khung mềm** `SoftBlock` (time-blocking, DỜI ĐƯỢC — cùng field + kỳ học): KHÔNG trừ quỹ rảnh cứng,
+  chỉ giảm "quỹ gợi ý" của AI (`softLoadMinutes`).
+- **Đột xuất** `ScheduleEvent` (`startTime` null = cả ngày; `cancels=true` = nghỉ cả ngày).
+- **Cấu hình** `ScheduleSettings` (singleton: `wakeTime`/`sleepTime`/`bufferMin`/`minSlotMin`/
+  `termAnchorMonday`) qua `lib/schedule-settings.ts`.
+- Hàm lõi: `blocksForDate(date, commitments, events, anchorMonday?)` (lọc validity luôn + parity khi có
+  anchor), `softBlocksForDate`, `computeFreeSlots(date, …, config)` → **danh sách khe trống** `{start,end,
+  durationMin}` + `capacityMin` (nới buffer, kẹp giờ thức, bỏ khe < minSlot). `freeMinutes` = wrapper
+  tương thích ngược (buffer 0). KHÔNG dùng `rrule` (lặp tuần + odd/even đủ).
 
-### 14.2 Tích hợp đề xuất (giá trị cốt lõi)
+### 14.2 Học thời lượng/năng lượng (mục 11 mở rộng)
 
-- `/api/suggest`: `SuggestContext` thêm `tomorrowSchedule` + `freeMinutesTomorrow`. Prompt (quy tắc 14):
-  TỔNG khối lượng phải VỪA quỹ giờ rảnh (không chỉ `avgDonePerDay`); free thấp → giảm tải; đặt `cue`
-  vào khe trống quanh lịch cứng; KHÔNG gán việc vào giờ đã có lịch.
-- Thông báo (mục 13): `NotificationFacts` thêm `todaySchedule` + `freeMinutesToday`; bản tin sáng nhắc
-  khéo "hôm nay học 8–11h, còn ~3h rảnh".
+- `Task` thêm `estimatedMinutes` (ước lượng), `deepWork` (ưu tiên khe sáng), `actualBucket`
+  ("faster"|"asExpected"|"slower" — 1 chạm khi xong). `computeDifficultyHints` thêm `slowTopics`/
+  `fastTopics`. Tất cả tùy chọn/1-chạm, KHÔNG phán xét.
+- **Thói quen** `Habit` + `HabitCheck` (mục 11): 1-chạm, streak ĐỘNG (`lib/habits.ts`), **KHÔNG điểm**;
+  cô lập khỏi Task stats/streak/`weeklyAvg`.
 
-### 14.3 UI
+### 14.3 Tích hợp đề xuất (một luồng `/api/suggest`)
 
-- Trang `/schedule`: lưới 7 cột (T2–CN, agenda theo ngày + badge "rảnh ~Xh") + "Quản lý lịch cứng"
-  (Switch bật/tắt, sửa, xoá — gồm cả lịch đang tắt). Dialog thêm/sửa chung cho commitment & event.
-  Vào app qua link phụ (footer/top-bar) như Thông báo — **KHÔNG thêm tab thứ 5** (giữ 4 tab §12).
-- Trang Hôm nay: dải `ScheduleStrip` (chỉ-đọc) trên danh sách việc, hiện lịch + quỹ giờ rảnh ngày đang xem.
-- Màu: trung tính + viền trái nhạt theo `kind` (không accent chói, §12).
+- `SuggestContext` thêm `freeSlotsTomorrow`, `suggestedCapacityMin` (= quỹ rảnh − softLoad),
+  `preferredWindowsTomorrow`, `habitsToday`. `SuggestionItem` thêm `slotStart`/`estimatedMinutes`/
+  `deepWork`. Prompt (quy tắc 15): xếp `slotStart` vào khe đủ dài, `deepWork`→khe sớm, tổng estimate ≤
+  `suggestedCapacityMin`, KHÔNG đè lịch cứng. **Trust boundary** ở route: loại `slotStart` ngoài khe thật.
+- Accept: `addTomorrowTask(…, extra)` set `scheduledFor`/estimate/deepWork; `scheduleTaskAt` đổi giờ việc đã có.
+- Thông báo (mục 13): `NotificationFacts` có `todaySchedule` + `freeMinutesToday`.
+
+### 14.4 UI
+
+- **Trang Hôm nay** = trung tâm: toggle **Danh sách ⇄ Dòng giờ** (giữ qua `?view`; quá khứ ép List).
+  `DayTimeline` (thanh giờ wake→sleep: lịch cứng khóa + khung mềm nét đứt + khe rảnh + việc đã xếp +
+  đường now) + `CapacityBanner` (rảnh ~Xh, N khe, cảnh báo quá tải) + `SlotPicker` (xếp/đổi giờ, không
+  drag-drop) + `HabitStrip` (1-chạm). Chế độ List giữ `ScheduleStrip` cũ.
+- **Trang `/schedule`**: lưới tuần (lịch cứng + khung mềm nét đứt) + quản lý Lịch cứng / Khung tập trung /
+  Thói quen + form "Giờ thức & quỹ thời gian". Dialog thêm/sửa chung 3 loại (commitment/soft/event) + khối
+  "Kỳ học" gập lại. Vào qua link phụ — **KHÔNG thêm tab thứ 5** (giữ 4 tab §12).
+- Màu: trung tính + viền trái nhạt theo `kind`; khung mềm = nét đứt + glyph Move; không accent chói (§12).
 
 ---
 
