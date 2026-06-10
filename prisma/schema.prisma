@@ -69,6 +69,49 @@ model DailyNote {
   note String // ghi chú cuối ngày của người dùng
 }
 
+// Thông báo Discord (mục 13): cấu hình 1 hàng (app một người dùng) — webhook + cường độ +
+// bật/tắt + giờ từng loại + giờ yên + nội dung AI. Mọi field optional/độ ma sát thấp (mục 11.1).
+model NotificationSettings {
+  id               String  @id @default("singleton")
+  enabled          Boolean @default(false) // công tắc tổng — mặc định tắt tới khi dán webhook
+  discordWebhookUrl String?
+  intensity        String  @default("balanced") // minimal | balanced | active (preset cường độ)
+
+  morningEnabled    Boolean @default(true)
+  morningTime       String  @default("07:30") // "HH:MM" giờ địa phương (TZ server)
+  streakGuardEnabled Boolean @default(true)
+  streakGuardTime   String  @default("20:00")
+  randomNudgeEnabled Boolean @default(true)
+  eveningEnabled    Boolean @default(false)
+  eveningTime       String  @default("21:30")
+
+  // cửa sổ cho cú hích ngẫu nhiên + giờ yên (không gửi gì trong khoảng này)
+  randomWindowStart String @default("09:00")
+  randomWindowEnd   String @default("18:00")
+  quietStart        String @default("22:00")
+  quietEnd          String @default("07:00")
+
+  // nội dung do AI viết — bật/tắt từng phần
+  includeMotivation Boolean @default(true)
+  includeQuote      Boolean @default(true)
+  includeTip        Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+}
+
+// Nhật ký gửi (mục 13): idempotency (1 lần/loại/ngày), lịch sử cho UI, và để AI tránh lặp câu.
+model NotificationLog {
+  id     String   @id @default(cuid())
+  kind   String // morning | streak_guard | random_nudge | evening
+  date   String // "YYYY-MM-DD" — khoá idempotency cùng kind
+  status String // sent | skipped | error
+  detail String? // xem trước nội dung đã gửi / lý do bỏ qua / thông báo lỗi
+  sentAt DateTime @default(now())
+
+  @@index([kind, date])
+  @@index([sentAt])
+}
+
 // Personal OS (mục 11): check-in cấu trúc trong ngày — TẤT CẢ optional, bỏ qua được.
 // Dùng để suy "capacity" (sức/ngày) động; AI giảm tải / đề xuất ngày phục hồi khi sức thấp.
 model DayCheckin {
