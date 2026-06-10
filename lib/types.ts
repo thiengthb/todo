@@ -14,6 +14,12 @@ export interface SuggestionItem {
   subtasks?: string[];
   /** gợi ý "khi nào/ở đâu" làm việc (implementation intention, mục 11) — tùy chọn */
   cue?: string;
+  /** giờ AI đề xuất bắt đầu, "HH:MM" — nằm trong một khe rảnh (mục 14); server đã validate */
+  slotStart?: string;
+  /** ước lượng thời lượng (phút) AI đề xuất — mục 14 */
+  estimatedMinutes?: number;
+  /** AI đánh dấu việc cần tập trung sâu (mục 14) */
+  deepWork?: boolean;
 }
 
 /** Đề xuất phục vụ một kế hoạch — kèm liên kết để gắn task vào plan/milestone */

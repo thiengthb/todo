@@ -1,5 +1,7 @@
+import { isValidHm } from "@/lib/notify/time";
 import type {
   DecomposeResult,
+  FreeSlot,
   Intensity,
   MilestoneDraft,
   PlanSuggestionItem,
@@ -39,10 +41,12 @@ export interface SuggestContext {
   activePlans: ActivePlanContext[];
   /** việc đã chấm cảm xúc ~14 ngày gần nhất — "reference class" để hiệu chỉnh độ khó (mục 11) */
   recentDone: { title: string; emotion: string | null }[];
-  /** gợi ý chủ đề khó/dễ suy từ lịch sử cảm xúc (mục 11) */
+  /** gợi ý chủ đề khó/dễ/chậm/nhanh suy từ lịch sử cảm xúc + thời lượng (mục 11/14) */
   difficultyHints: {
     hardTopics: string[];
     easyTopics: string[];
+    slowTopics: string[];
+    fastTopics: string[];
     samples: number;
   };
   /** check-in Personal OS hôm nay (mục 11) — null nếu chưa nhập */
@@ -63,6 +67,18 @@ export interface SuggestContext {
   }[];
   /** phút RẢNH ngày mai = giờ thức − lịch cứng (mục 14) */
   freeMinutesTomorrow: number;
+  /** danh sách KHE TRỐNG ngày mai (mục 14) — để AI gắn việc vào giờ cụ thể */
+  freeSlotsTomorrow: FreeSlot[];
+  /** quỹ gợi ý = quỹ rảnh − khung mềm đã đặt (mục 14); AI bám số này cho tổng tải */
+  suggestedCapacityMin: number;
+  /** khung giờ tập trung (soft block) ngày mai — AI nên ưu tiên xếp việc vào đây */
+  preferredWindowsTomorrow: {
+    title: string;
+    startTime: string | null;
+    endTime: string | null;
+  }[];
+  /** thói quen hôm nay (mục 11) — thông tin, KHÔNG tính vào tải task */
+  habitsToday?: { title: string; doneToday: boolean }[];
 }
 
 const SYSTEM_PROMPT = `Bạn là trợ lý lập kế hoạch cá nhân. Nhiệm vụ: từ dữ liệu thật của người dùng
@@ -118,12 +134,26 @@ Nguyên tắc bắt buộc:
    → giảm mạnh số việc và độ khó, chỉ giữ 1 việc chính; rất thấp (< 60) → chỉ 1 việc nhỏ hoặc ngày nghỉ.
    Khi đặt "cue", nhắm vào KHE TRỐNG quanh lịch cứng (vd lịch làm 8–17h → cue "buổi tối, sau 18h").
    KHÔNG gán việc vào khung giờ đã có lịch cứng. Không có lịch (mảng rỗng) → bỏ qua, dựa tốc độ thật như cũ.
-15. Viết toàn bộ bằng tiếng Việt.
+15. XẾP VÀO KHE GIỜ (mục 14): mỗi việc đề xuất NÊN kèm "estimatedMinutes" (ước lượng thời lượng) và
+   "slotStart" (giờ bắt đầu "HH:MM") rơi vào MỘT khe trong "freeSlotsTomorrow" đủ dài chứa việc đó.
+   Việc "deepWork": true → xếp vào khe SỚM nhất trong ngày (năng lượng cao buổi sáng). Ưu tiên đặt việc
+   vào "preferredWindowsTomorrow" (khung tập trung người dùng đã chọn) nếu phù hợp. TUYỆT ĐỐI không đặt
+   "slotStart" trùng giờ lịch cứng. TỔNG "estimatedMinutes" của mọi việc ≤ "suggestedCapacityMin".
+   Dùng "slowTopics"/"fastTopics" để ước lượng thời lượng sát hơn (chủ đề hay chậm → cộng giờ). Nếu
+   không chắc giờ phù hợp, để "slotStart" trống (null) — KHÔNG đoán bừa.
+16. Viết toàn bộ bằng tiếng Việt.
 
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
 // các bước chia nhỏ (mục 11) — mảng tiêu đề ngắn, optional
 const SUBTASKS_SCHEMA = { type: "ARRAY", items: { type: "STRING" } } as const;
+
+// field xếp giờ (mục 14) — dùng chung cho item thường & plan item
+const SLOT_PROPS = {
+  slotStart: { type: "STRING", nullable: true },
+  estimatedMinutes: { type: "INTEGER", nullable: true },
+  deepWork: { type: "BOOLEAN", nullable: true },
+} as const;
 
 const ITEM_SCHEMA = {
   type: "OBJECT",
@@ -133,6 +163,7 @@ const ITEM_SCHEMA = {
     reason: { type: "STRING" },
     subtasks: SUBTASKS_SCHEMA,
     cue: { type: "STRING", nullable: true },
+    ...SLOT_PROPS,
   },
   required: ["title", "priority", "reason"],
 } as const;
@@ -145,6 +176,7 @@ const PLAN_ITEM_SCHEMA = {
     reason: { type: "STRING" },
     subtasks: SUBTASKS_SCHEMA,
     cue: { type: "STRING", nullable: true },
+    ...SLOT_PROPS,
     planId: { type: "STRING" },
     milestoneId: { type: "STRING", nullable: true },
   },
@@ -196,6 +228,18 @@ function parseResult(raw: string): SuggestionResult {
       .map((s) => s.trim());
     return steps.length > 0 ? steps : undefined;
   };
+  // field xếp giờ (mục 14) — slotStart hợp lệ "HH:MM", estimate dương, deepWork true
+  const parseSlot = (item: Record<string, unknown>) => ({
+    slotStart:
+      typeof item.slotStart === "string" && isValidHm(item.slotStart)
+        ? item.slotStart
+        : undefined,
+    estimatedMinutes:
+      typeof item.estimatedMinutes === "number" && item.estimatedMinutes > 0
+        ? Math.round(item.estimatedMinutes)
+        : undefined,
+    deepWork: item.deepWork === true ? true : undefined,
+  });
   const parseItems = (
     key: "carry_over" | "suggested_tasks",
   ): SuggestionItem[] => {
@@ -218,6 +262,7 @@ function parseResult(raw: string): SuggestionResult {
           typeof item.cue === "string" && item.cue.trim()
             ? item.cue.trim()
             : undefined,
+        ...parseSlot(item),
       };
     });
   };
@@ -247,6 +292,7 @@ function parseResult(raw: string): SuggestionResult {
             typeof item.cue === "string" && item.cue.trim()
               ? item.cue.trim()
               : undefined,
+          ...parseSlot(item),
           planId: item.planId,
           milestoneId:
             typeof item.milestoneId === "string" ? item.milestoneId : null,
@@ -434,7 +480,9 @@ export async function composeNotificationVoice(
   return {
     message: obj.message.trim(),
     quote:
-      typeof obj.quote === "string" && obj.quote.trim() ? obj.quote.trim() : null,
+      typeof obj.quote === "string" && obj.quote.trim()
+        ? obj.quote.trim()
+        : null,
     tip: typeof obj.tip === "string" && obj.tip.trim() ? obj.tip.trim() : null,
   };
 }

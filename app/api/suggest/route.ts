@@ -15,12 +15,21 @@ import {
 import { computePlanProgress } from "@/lib/plan";
 import { computeDifficultyHints } from "@/lib/difficulty";
 import { computeCapacity } from "@/lib/capacity";
-import { blocksForDate, freeMinutes } from "@/lib/schedule";
+import {
+  blocksForDate,
+  computeFreeSlots,
+  softBlocksForDate,
+  softLoadMinutes,
+} from "@/lib/schedule";
+import { getScheduleSettings } from "@/lib/schedule-settings";
+import { habitDueOn } from "@/lib/habits";
+import { hmToMinutes } from "@/lib/notify/time";
 import type {
   CommitmentDTO,
   PlanAlert,
   ScheduleEventDTO,
   ScheduleKind,
+  SoftBlockDTO,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +62,11 @@ export async function POST(): Promise<NextResponse> {
       plans,
       checkin,
       commitmentRows,
+      softBlockRows,
       tomorrowEventRows,
+      scheduleSettings,
+      habitRows,
+      habitCheckRows,
     ] = await Promise.all([
       prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
       // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
@@ -64,14 +77,14 @@ export async function POST(): Promise<NextResponse> {
       prisma.task.findMany({
         where: { date: { gte: weekAgoStr, lt: today }, ...NOT_CONTAINER },
       }),
-      // việc đã chấm cảm xúc ~14 ngày → suy độ khó
+      // việc đã chấm cảm xúc/thời lượng ~14 ngày → suy độ khó + chậm/nhanh (mục 11/14)
       prisma.task.findMany({
         where: {
           date: { gte: twoWeeksAgoStr, lte: today },
-          emotion: { not: null },
+          OR: [{ emotion: { not: null } }, { actualBucket: { not: null } }],
           ...NOT_CONTAINER,
         },
-        select: { title: true, emotion: true },
+        select: { title: true, emotion: true, actualBucket: true },
       }),
       prisma.dailyNote.findUnique({ where: { date: today } }),
       prisma.plan.findMany({
@@ -80,7 +93,14 @@ export async function POST(): Promise<NextResponse> {
       }),
       prisma.dayCheckin.findUnique({ where: { date: today } }),
       prisma.commitment.findMany({ where: { active: true } }),
+      prisma.softBlock.findMany({ where: { active: true } }),
       prisma.scheduleEvent.findMany({ where: { date: tomorrow } }),
+      getScheduleSettings(),
+      prisma.habit.findMany({ where: { active: true } }),
+      prisma.habitCheck.findMany({
+        where: { date: today },
+        select: { habitId: true },
+      }),
     ]);
 
     // Lịch cứng ngày mai → quỹ giờ rảnh thật (mục 14)
@@ -105,7 +125,50 @@ export async function POST(): Promise<NextResponse> {
       kind: e.kind as ScheduleKind,
       cancels: e.cancels,
     }));
-    const tomorrowBlocks = blocksForDate(tomorrow, commitments, tomorrowEvents);
+    const softBlocks: SoftBlockDTO[] = softBlockRows.map((s) => ({
+      id: s.id,
+      title: s.title,
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      kind: (["hoc", "lam", "khac"].includes(s.kind)
+        ? s.kind
+        : "khac") as ScheduleKind,
+      active: s.active,
+      validFrom: s.validFrom,
+      validUntil: s.validUntil,
+      weekParity: s.weekParity,
+    }));
+    const anchor = scheduleSettings.termAnchorMonday;
+    const tomorrowBlocks = blocksForDate(
+      tomorrow,
+      commitments,
+      tomorrowEvents,
+      anchor,
+    );
+    // khe trống + quỹ giờ ngày mai (mục 14)
+    const capacity = computeFreeSlots(
+      tomorrow,
+      commitments,
+      tomorrowEvents,
+      scheduleSettings,
+    );
+    // khung mềm ngày mai → giảm "quỹ gợi ý" + làm preferred windows cho AI
+    const tomorrowSoft = softBlocksForDate(
+      tomorrow,
+      softBlocks,
+      tomorrowEvents,
+      anchor,
+    );
+    const suggestedCapacityMin = Math.max(
+      0,
+      capacity.capacityMin - softLoadMinutes(capacity.slots, tomorrowSoft),
+    );
+    // thói quen hôm nay (thông tin) — chỉ thói quen đến hạn
+    const checkedHabitIds = new Set(habitCheckRows.map((r) => r.habitId));
+    const habitsToday = habitRows
+      .filter((h) => habitDueOn(h, today))
+      .map((h) => ({ title: h.title, doneToday: checkedHabitIds.has(h.id) }));
 
     // Trung bình ~7 ngày: chỉ tính những ngày thực sự có task
     const byDate = new Map<string, { done: number; total: number }>();
@@ -204,10 +267,36 @@ export async function POST(): Promise<NextResponse> {
         endTime: b.endTime,
         kind: b.kind,
       })),
-      freeMinutesTomorrow: freeMinutes(tomorrow, commitments, tomorrowEvents),
+      freeMinutesTomorrow: capacity.capacityMin,
+      freeSlotsTomorrow: capacity.slots,
+      suggestedCapacityMin,
+      preferredWindowsTomorrow: tomorrowSoft.map((b) => ({
+        title: b.title,
+        startTime: b.startTime,
+        endTime: b.endTime,
+      })),
+      habitsToday,
     };
 
     const result = await suggestTomorrow(ctx);
+
+    // TRUST BOUNDARY (mục 14): loại slotStart model đặt NGOÀI khe rảnh thật (vd đè lịch cứng).
+    // Server recompute slots, chỉ giữ slotStart rơi vào một khe; sai → bỏ (không đặt giờ).
+    const slotRanges = capacity.slots.map(
+      (s) => [hmToMinutes(s.start), hmToMinutes(s.end)] as const,
+    );
+    const slotOk = (hm: string | undefined): boolean => {
+      if (!hm) return false;
+      const t = hmToMinutes(hm);
+      return slotRanges.some(([s, e]) => t >= s && t < e);
+    };
+    for (const item of [
+      ...result.carry_over,
+      ...result.suggested_tasks,
+      ...result.plan_tasks,
+    ]) {
+      if (item.slotStart && !slotOk(item.slotStart)) item.slotStart = undefined;
+    }
 
     // Chỉ giữ plan_task có planId hợp lệ (tránh model bịa id)
     const validPlanIds = new Set(plans.map((p) => p.id));

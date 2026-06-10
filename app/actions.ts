@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { addDays, isValidDateStr, todayStr, tomorrowStr } from "@/lib/dates";
+import { isValidHm } from "@/lib/notify/time";
 import type {
   Emotion,
   Intensity,
@@ -125,6 +126,12 @@ export async function addTomorrowTask(
   subtasks?: string[],
   cue?: string | null,
   impact?: string | null,
+  // xếp giờ (mục 14) — đề xuất của AI đã được server validate
+  extra?: {
+    slotStart?: string | null;
+    estimatedMinutes?: number | null;
+    deepWork?: boolean;
+  },
 ): Promise<void> {
   const t = title.trim();
   if (!t) return;
@@ -142,6 +149,11 @@ export async function addTomorrowTask(
   const planId = link?.planId ?? null;
   const milestoneId = link?.milestoneId ?? null;
   const steps = (subtasks ?? []).map((s) => s.trim()).filter(Boolean);
+  // giờ dự kiến làm (mục 14): ghép date ngày mai + slotStart → DateTime địa phương
+  const scheduledFor =
+    extra?.slotStart && isValidHm(extra.slotStart)
+      ? new Date(`${date}T${extra.slotStart}:00`)
+      : null;
 
   const parent = await prisma.task.create({
     data: {
@@ -153,6 +165,12 @@ export async function addTomorrowTask(
       cue: cue?.trim() || null,
       // priority của đề xuất = tín hiệu 80/20 → lưu thành impact (mục 11)
       impact: impact ?? null,
+      scheduledFor,
+      estimatedMinutes:
+        extra?.estimatedMinutes && extra.estimatedMinutes > 0
+          ? Math.round(extra.estimatedMinutes)
+          : null,
+      deepWork: extra?.deepWork === true,
     },
   });
 
@@ -168,6 +186,22 @@ export async function addTomorrowTask(
       })),
     });
   }
+  revalidatePath("/");
+}
+
+/** Xếp một việc đã có vào khe giờ (mục 14): set scheduledFor theo `date` của task. null = bỏ giờ. */
+export async function scheduleTaskAt(
+  id: string,
+  hm: string | null,
+): Promise<void> {
+  const task = await prisma.task.findUnique({
+    where: { id },
+    select: { date: true },
+  });
+  if (!task) return;
+  const scheduledFor =
+    hm && isValidHm(hm) ? new Date(`${task.date}T${hm}:00`) : null;
+  await prisma.task.update({ where: { id }, data: { scheduledFor } });
   revalidatePath("/");
 }
 

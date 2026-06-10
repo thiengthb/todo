@@ -73,6 +73,15 @@ function SuggestionRow({
             {item.cue}
           </p>
         )}
+        {(item.slotStart || item.estimatedMinutes) && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Clock className="size-3 shrink-0" />
+            {item.slotStart && `gợi ý lúc ${item.slotStart}`}
+            {item.slotStart && item.estimatedMinutes && " · "}
+            {item.estimatedMinutes && `~${item.estimatedMinutes}′`}
+            {item.deepWork && " · tập trung sâu"}
+          </p>
+        )}
         {item.subtasks && item.subtasks.length > 0 && (
           <ul className="mt-1.5 space-y-1 border-l border-border/60 pl-3">
             {item.subtasks.map((s, i) => (
@@ -96,6 +105,11 @@ function SuggestionRow({
               item.subtasks,
               item.cue,
               item.priority, // priority đề xuất = tín hiệu 80/20 (mục 11)
+              {
+                slotStart: item.slotStart ?? null,
+                estimatedMinutes: item.estimatedMinutes ?? null,
+                deepWork: item.deepWork,
+              },
             );
             setAdded(true);
           })
@@ -108,6 +122,10 @@ function SuggestionRow({
           </>
         ) : pending ? (
           <Loader2 className="size-3.5 animate-spin" />
+        ) : item.slotStart ? (
+          <>
+            <Clock className="size-3.5" /> Xếp {item.slotStart}
+          </>
         ) : (
           <>
             <Plus className="size-3.5" /> Ngày mai
