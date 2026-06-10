@@ -34,9 +34,8 @@ import { ScheduleStrip } from "@/components/today/schedule-strip";
 import { StreakBanner } from "@/components/today/streak-banner";
 import { PlanMomentum } from "@/components/today/plan-momentum";
 import { HabitStrip } from "@/components/today/habit-strip";
-import { CapacityBanner } from "@/components/today/capacity-banner";
+import { FocusBar } from "@/components/today/focus-bar";
 import { DayTimeline } from "@/components/today/day-timeline";
-import { ViewToggle } from "@/components/today/view-toggle";
 import { EmptyState } from "@/components/empty-state";
 import { ListTodo } from "lucide-react";
 import {
@@ -345,19 +344,19 @@ export default async function DayPage({ searchParams }: PageProps) {
       {/* Dashboard 2 cột: việc (trái) · thống kê/check-in/đề xuất (phải) */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label="Danh sách việc" className="min-w-0">
-          {/* dải chip lịch chỉ ở chế độ Danh sách (timeline đã vẽ khối) */}
-          {view === "list" && (
-            <ScheduleStrip blocks={scheduleBlocks} freeMin={scheduleFree} />
-          )}
-          {isToday && <HabitStrip habits={todayHabits} />}
+          {/* thanh tiêu điểm: quỹ giờ + toggle Danh sách/Dòng giờ (gộp 2 dải cũ) */}
           {!isPast && (
-            <CapacityBanner
+            <FocusBar
+              date={date}
+              view={view}
               freeMin={scheduleFree}
               slotCount={capacity.slots.length}
               plannedMin={plannedMin}
             />
           )}
-          {!isPast && <ViewToggle date={date} current={view} />}
+          {/* dải chip lịch chỉ ở chế độ Danh sách (timeline đã vẽ khối) */}
+          {view === "list" && <ScheduleStrip blocks={scheduleBlocks} />}
+          {isToday && <HabitStrip habits={todayHabits} />}
 
           {view === "timeline" && !isPast ? (
             <>

@@ -1,12 +1,18 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { Plus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoHint } from "@/components/info-hint";
 import { saveNote } from "@/app/actions";
 
+/**
+ * Ghi chú cuối ngày (mục giao diện, đại tu 2026-06) — progressive disclosure: khi chưa có ghi chú
+ * chỉ hiện 1 dòng "+ Ghi chú hôm nay", bấm mới mở Textarea → trang Hôm nay đỡ dài.
+ */
 export function NoteBox({ initialNote }: { initialNote: string }) {
   const [note, setNote] = useState(initialNote);
+  const [open, setOpen] = useState(initialNote.trim() !== "");
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const lastSaved = useRef(initialNote);
@@ -18,6 +24,19 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
       await saveNote(note);
       setSavedAt(Date.now());
     });
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+      >
+        <Plus className="size-4 shrink-0" />
+        Ghi chú hôm nay
+      </button>
+    );
   }
 
   return (
@@ -37,6 +56,7 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
       <Textarea
         id="daily-note"
         value={note}
+        autoFocus={initialNote.trim() === ""}
         onChange={(e) => setNote(e.target.value)}
         onBlur={persist}
         placeholder="VD: chiều nay hơi đuối vì họp nhiều, nhưng xong được việc khó nhất..."

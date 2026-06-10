@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CalendarDays, Clock } from "lucide-react";
-import { formatMinutes } from "@/lib/schedule";
 import { cn } from "@/lib/utils";
 import type { ScheduleBlock, ScheduleKind } from "@/lib/types";
 
@@ -14,13 +13,7 @@ const KIND_BORDER: Record<ScheduleKind, string> = {
  * Dải lịch cứng của ngày đang xem (chỉ-đọc, mục 14) — hiện trên danh sách việc
  * để thấy "khung ngày" trước khi làm việc. Ẩn khi không có lịch nào.
  */
-export function ScheduleStrip({
-  blocks,
-  freeMin,
-}: {
-  blocks: ScheduleBlock[];
-  freeMin: number;
-}) {
+export function ScheduleStrip({ blocks }: { blocks: ScheduleBlock[] }) {
   if (blocks.length === 0) return null;
 
   return (
@@ -33,7 +26,7 @@ export function ScheduleStrip({
           href="/schedule"
           className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
         >
-          rảnh ~{formatMinutes(freeMin)} ›
+          Mở lịch ›
         </Link>
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -47,7 +40,9 @@ export function ScheduleStrip({
           >
             <Clock className="size-3 shrink-0 text-muted-foreground" />
             <span className="text-muted-foreground tabular-nums">
-              {b.startTime && b.endTime ? `${b.startTime}–${b.endTime}` : "Cả ngày"}
+              {b.startTime && b.endTime
+                ? `${b.startTime}–${b.endTime}`
+                : "Cả ngày"}
             </span>
             <span className="font-medium">{b.title}</span>
           </span>
