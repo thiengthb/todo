@@ -455,10 +455,18 @@ Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`,
 ### 15.4 Tools / Resources / Prompts (`lib/mcp/server.ts`)
 - Tools: `ping`, `create_task`, `update_task`, `complete_task`, `delete_task`, `get_task`,
   `list_tasks`, `get_schedule`, `get_workload_summary`, `bulk_create_tasks`, `create_project`,
-  `get_project`, `list_projects`. Description nhấn: `scheduledFor`≠`dueDate`; gọi `get_schedule`/
-  `get_workload_summary` TRƯỚC khi xếp việc.
-- Resources: `today_overview`, `active_projects`. Prompts: `plan_my_day`, `plan_week`, `plan_project`,
-  `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt** → mới ghi.
+  `get_project`, `list_projects`, `list_habits`, `check_habit`. Description nhấn: `scheduledFor`≠`dueDate`;
+  gọi `get_schedule`/`get_workload_summary` TRƯỚC khi xếp việc.
+- **Đồng bộ với day-planner (mục 14):** `get_schedule` mỗi ngày trả `blocks` (lịch cứng đã lọc kỳ học +
+  tuần chẵn/lẻ theo `ScheduleSettings.termAnchorMonday`) + `softBlocks` (khung mềm, không chiếm quỹ cứng) +
+  `tasks`. `get_workload_summary` dùng `computeFreeSlots` theo `ScheduleSettings` (giờ thức/buffer/minSlot):
+  trả `freeMinutes` (quỹ thật, đã trừ buffer), `softLoadMinutes`, `suggestedFreeMinutes` (= free − soft, quỹ
+  NÊN xếp việc mới), `freeSlots[]`. `create_task`/`update_task` nhận thêm `deepWork`; serialize trả thêm
+  `deepWork`/`actualBucket`. Habit (mục 11) cô lập khỏi task: `list_habits` (dueToday/doneToday/streak —
+  thông tin, KHÔNG điểm), `check_habit` (tick 1 ngày, idempotent).
+- Resources: `today_overview` (+ `habits`), `active_projects`. Prompts: `plan_my_day`, `plan_week`,
+  `plan_project`, `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt**
+  → mới ghi; tôn trọng `suggestedFreeMinutes` + gắn `scheduledFor` vào `freeSlots` thật.
 
 ### 15.5 Auth — bearer (Desktop/CLI) + OAuth 2.1 (Claude.ai web)
 `checkMcpAuth` (`lib/mcp/auth.ts`) chấp nhận **cả hai**: static bearer `MCP_AUTH_TOKEN` (Claude

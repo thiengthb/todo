@@ -1,13 +1,22 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { daysBetween, addDays } from "@/lib/dates";
-import { blocksForDate, busyMinutes, freeMinutes } from "@/lib/schedule";
+import {
+  blocksForDate,
+  busyMinutes,
+  computeFreeSlots,
+  softBlocksForDate,
+  softLoadMinutes,
+} from "@/lib/schedule";
+import { getScheduleSettings } from "@/lib/schedule-settings";
+import { computeHabitStatus } from "@/lib/habits";
 import { localDay, parseIso, todayLocal } from "@/lib/mcp/tz";
 import type {
   CommitmentDTO,
   Priority,
   ScheduleEventDTO,
   ScheduleKind,
+  SoftBlockDTO,
 } from "@/lib/types";
 import type { Prisma } from "@prisma/client";
 
@@ -35,6 +44,7 @@ export const taskCreateSchema = z.object({
   scheduledFor: isoDateTime.optional(),
   dueDate: isoDateTime.optional(),
   estimatedMinutes: z.number().int().min(0).optional(),
+  deepWork: z.boolean().optional(), // ưu tiên khe sáng (mục 14)
   priority: PRIORITY.optional(),
   status: STATUS.optional(),
   projectId: z.string().optional(),
@@ -65,6 +75,7 @@ function deriveFields(
     out.description = input.description || null;
   if (input.estimatedMinutes !== undefined)
     out.estimatedMinutes = input.estimatedMinutes;
+  if (input.deepWork !== undefined) out.deepWork = input.deepWork;
   if (input.projectId !== undefined) out.projectId = input.projectId || null;
   if (input.dueDate !== undefined) out.dueDate = parseIso(input.dueDate);
 
@@ -124,6 +135,8 @@ function serializeTask(t: TaskWithRel) {
     scheduledFor: t.scheduledFor ? t.scheduledFor.toISOString() : null,
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
     estimatedMinutes: t.estimatedMinutes,
+    deepWork: t.deepWork,
+    actualBucket: t.actualBucket, // "faster"|"asExpected"|"slower"|null (1 chạm khi xong)
     projectId: t.projectId,
     project: t.project ? { id: t.project.id, name: t.project.name } : null,
     tags: t.tags.map((tag) => tag.name),
@@ -330,8 +343,9 @@ export async function listProjects(raw: unknown) {
 
 // ---------- schedule & workload (tái dùng lib/schedule) ----------
 async function loadScheduleSources(from: string, to: string) {
-  const [commitmentRows, eventRows] = await Promise.all([
+  const [commitmentRows, softRows, eventRows] = await Promise.all([
     prisma.commitment.findMany({ where: { active: true } }),
+    prisma.softBlock.findMany({ where: { active: true } }),
     prisma.scheduleEvent.findMany({ where: { date: { gte: from, lte: to } } }),
   ]);
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
@@ -346,6 +360,18 @@ async function loadScheduleSources(from: string, to: string) {
     validUntil: c.validUntil,
     weekParity: c.weekParity,
   }));
+  const softBlocks: SoftBlockDTO[] = softRows.map((s) => ({
+    id: s.id,
+    title: s.title,
+    dayOfWeek: s.dayOfWeek,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    kind: s.kind as ScheduleKind,
+    active: s.active,
+    validFrom: s.validFrom,
+    validUntil: s.validUntil,
+    weekParity: s.weekParity,
+  }));
   const events: ScheduleEventDTO[] = eventRows.map((e) => ({
     id: e.id,
     title: e.title,
@@ -355,7 +381,7 @@ async function loadScheduleSources(from: string, to: string) {
     kind: e.kind as ScheduleKind,
     cancels: e.cancels,
   }));
-  return { commitments, events };
+  return { commitments, softBlocks, events };
 }
 
 function* eachDay(from: string, to: string) {
@@ -366,7 +392,11 @@ export const rangeSchema = z.object({ from: isoDate, to: isoDate });
 
 export async function getScheduleRange(raw: unknown) {
   const { from, to } = rangeSchema.parse(raw);
-  const { commitments, events } = await loadScheduleSources(from, to);
+  const [{ commitments, softBlocks, events }, settings] = await Promise.all([
+    loadScheduleSources(from, to),
+    getScheduleSettings(),
+  ]);
+  const anchor = settings.termAnchorMonday;
   const tasks = await prisma.task.findMany({
     where: { date: { gte: from, lte: to } },
     include: INCLUDE,
@@ -376,7 +406,10 @@ export async function getScheduleRange(raw: unknown) {
   for (const date of eachDay(from, to)) {
     days.push({
       date,
-      blocks: blocksForDate(date, commitments, events),
+      // lịch cứng (khoá) — lọc kỳ học + tuần chẵn/lẻ theo anchor
+      blocks: blocksForDate(date, commitments, events, anchor),
+      // khung mềm (time-blocking, dời được) — KHÔNG trừ quỹ rảnh cứng
+      softBlocks: softBlocksForDate(date, softBlocks, events, anchor),
       tasks: tasks.filter((t) => t.date === date).map(serializeTask),
     });
   }
@@ -385,7 +418,18 @@ export async function getScheduleRange(raw: unknown) {
 
 export async function getWorkloadSummary(raw: unknown) {
   const { from, to } = rangeSchema.parse(raw);
-  const { commitments, events } = await loadScheduleSources(from, to);
+  const [{ commitments, softBlocks, events }, settings] = await Promise.all([
+    loadScheduleSources(from, to),
+    getScheduleSettings(),
+  ]);
+  // Cấu hình quỹ giờ thật của người dùng (giờ thức/buffer/khe tối thiểu/anchor parity)
+  const config = {
+    wakeTime: settings.wakeTime,
+    sleepTime: settings.sleepTime,
+    bufferMin: settings.bufferMin,
+    minSlotMin: settings.minSlotMin,
+    termAnchorMonday: settings.termAnchorMonday,
+  };
   const tasks = await prisma.task.findMany({
     where: { date: { gte: from, lte: to }, done: false },
     select: { date: true, estimatedMinutes: true },
@@ -393,7 +437,20 @@ export async function getWorkloadSummary(raw: unknown) {
   const days = [];
   for (const date of eachDay(from, to)) {
     const dayTasks = tasks.filter((t) => t.date === date);
-    const busy = busyMinutes(blocksForDate(date, commitments, events));
+    const blocks = blocksForDate(
+      date,
+      commitments,
+      events,
+      settings.termAnchorMonday,
+    );
+    const cap = computeFreeSlots(date, commitments, events, config);
+    const softToday = softBlocksForDate(
+      date,
+      softBlocks,
+      events,
+      settings.termAnchorMonday,
+    );
+    const softLoad = softLoadMinutes(cap.slots, softToday);
     days.push({
       date,
       taskCount: dayTasks.length,
@@ -401,9 +458,62 @@ export async function getWorkloadSummary(raw: unknown) {
         (s, t) => s + (t.estimatedMinutes ?? 0),
         0,
       ),
-      committedMinutes: busy, // lịch cứng (học/làm)
-      freeMinutes: freeMinutes(date, commitments, events),
+      committedMinutes: busyMinutes(blocks), // lịch cứng (học/làm), không kể buffer
+      freeMinutes: cap.capacityMin, // quỹ rảnh thật theo ScheduleSettings (đã trừ buffer)
+      softLoadMinutes: softLoad, // thời gian đã chủ ý dành cho khung mềm
+      suggestedFreeMinutes: Math.max(0, cap.capacityMin - softLoad), // quỹ NÊN dùng xếp việc mới
+      freeSlots: cap.slots, // danh sách khe trống {start,end,durationMin} để gắn scheduledFor
     });
   }
   return { from, to, days };
+}
+
+// ---------- habits (mục 11 — 1 chạm, streak ĐỘNG, KHÔNG điểm) ----------
+export async function listHabits() {
+  const today = todayLocal();
+  const habits = await prisma.habit.findMany({
+    where: { active: true },
+    include: { checks: { select: { date: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  return habits.map((h) => {
+    const status = computeHabitStatus(
+      { daysOfWeek: h.daysOfWeek },
+      h.checks.map((c) => c.date),
+      today,
+    );
+    return {
+      id: h.id,
+      title: h.title,
+      daysOfWeek: h.daysOfWeek, // CSV "1,2,3" hoặc null = hằng ngày
+      dueToday: status.dueToday,
+      doneToday: status.doneToday,
+      streak: status.streak, // thông tin, KHÔNG phải điểm số
+    };
+  });
+}
+
+export const habitCheckSchema = z.object({
+  id: z.string(),
+  date: isoDate.optional(), // mặc định hôm nay
+  checked: z.boolean().optional(), // mặc định true (đánh dấu đã làm)
+});
+
+/** Tick/bỏ tick thói quen cho một ngày (idempotent qua @@unique([habitId, date])). */
+export async function setHabitCheck(raw: unknown) {
+  const { id, date, checked } = habitCheckSchema.parse(raw);
+  const day = date ?? todayLocal();
+  const want = checked ?? true;
+  if (want) {
+    await prisma.habitCheck.upsert({
+      where: { habitId_date: { habitId: id, date: day } },
+      create: { habitId: id, date: day },
+      update: {},
+    });
+  } else {
+    await prisma.habitCheck
+      .delete({ where: { habitId_date: { habitId: id, date: day } } })
+      .catch(() => {}); // chưa tick thì bỏ qua
+  }
+  return { id, date: day, checked: want };
 }

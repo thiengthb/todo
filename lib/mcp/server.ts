@@ -13,11 +13,14 @@ import {
   getScheduleRange,
   getTask,
   getWorkloadSummary,
+  habitCheckSchema,
   listFilterSchema,
+  listHabits,
   listProjects,
   listTasks,
   projectCreateSchema,
   rangeSchema,
+  setHabitCheck,
   taskCreateSchema,
   taskUpdateSchema,
   updateTask,
@@ -47,8 +50,9 @@ export const mcpHandler = createMcpHandler(
     server.tool(
       "create_task",
       "Tạo MỘT việc. `scheduledFor` = lúc DỰ ĐỊNH làm (ISO 8601, dùng để xếp lịch theo giờ), " +
-        "KHÁC `dueDate` = hạn chót (ràng buộc). `estimatedMinutes` để tính tải. `priority` " +
-        "(LOW/MEDIUM/HIGH/URGENT). Nếu tạo nhiều việc cùng lúc, hãy dùng `bulk_create_tasks`.",
+        "KHÁC `dueDate` = hạn chót (ràng buộc). `estimatedMinutes` để tính tải. `deepWork=true` " +
+        "cho việc cần tập trung sâu (app ưu tiên xếp khe sáng). `priority` (LOW/MEDIUM/HIGH/URGENT). " +
+        "Nếu tạo nhiều việc cùng lúc, hãy dùng `bulk_create_tasks`.",
       taskCreateSchema.shape,
       async (args) => ok(await createTask(args)),
     );
@@ -94,7 +98,9 @@ export const mcpHandler = createMcpHandler(
     server.tool(
       "get_schedule",
       "Xem lịch một khoảng ngày (`from`..`to`, YYYY-MM-DD): mỗi ngày gồm `blocks` (lịch cứng " +
-        "học/làm + sự kiện) và `tasks`. GỌI TOOL NÀY TRƯỚC khi xếp việc mới để tránh chồng lịch.",
+        "học/làm + sự kiện, đã lọc kỳ học & tuần chẵn/lẻ), `softBlocks` (khung giờ tập trung " +
+        "dời được — KHÔNG chiếm quỹ rảnh cứng nhưng nên tôn trọng), và `tasks`. GỌI TOOL NÀY " +
+        "TRƯỚC khi xếp việc mới để tránh chồng lịch cứng.",
       rangeSchema.shape,
       async (args) => ok(await getScheduleRange(args)),
     );
@@ -102,8 +108,11 @@ export const mcpHandler = createMcpHandler(
     server.tool(
       "get_workload_summary",
       "Tổng quan TẢI theo ngày (`from`..`to`): mỗi ngày có taskCount, totalEstimatedMinutes, " +
-        "committedMinutes (lịch cứng), freeMinutes (quỹ rảnh thật). GỌI TRƯỚC `bulk_create_tasks` " +
-        "để dàn đều việc, tránh dồn một ngày quá tải (đừng vượt freeMinutes của ngày đó).",
+        "committedMinutes (lịch cứng), freeMinutes (quỹ rảnh THẬT theo giờ thức/buffer của người " +
+        "dùng), softLoadMinutes (đã dành cho khung mềm), suggestedFreeMinutes (= freeMinutes − " +
+        "softLoad: quỹ NÊN dùng để xếp việc mới), và freeSlots (danh sách khe trống {start,end," +
+        "durationMin} để gắn scheduledFor). GỌI TRƯỚC `bulk_create_tasks` để dàn đều, đừng vượt " +
+        "suggestedFreeMinutes của ngày đó.",
       rangeSchema.shape,
       async (args) => ok(await getWorkloadSummary(args)),
     );
@@ -139,16 +148,39 @@ export const mcpHandler = createMcpHandler(
       async (args) => ok(await listProjects(args)),
     );
 
+    // ---------------- Habits (mục 11 — KHÔNG điểm, streak chỉ là thông tin) ----------------
+    server.tool(
+      "list_habits",
+      "Liệt kê thói quen đang bật + trạng thái hôm nay: dueToday (có đến hạn hôm nay?), " +
+        "doneToday (đã tick chưa?), streak (số ngày-đến-hạn liên tiếp — THÔNG TIN, không phải " +
+        "điểm). Habit TÁCH BIỆT khỏi task: không tính vào streak/thống kê việc.",
+      {},
+      async () => ok(await listHabits()),
+    );
+
+    server.tool(
+      "check_habit",
+      "Đánh dấu (hoặc bỏ đánh dấu) một thói quen cho một ngày. `id` bắt buộc; `date` mặc định " +
+        "hôm nay (YYYY-MM-DD); `checked` mặc định true. Idempotent — gọi lại không tạo trùng.",
+      habitCheckSchema.shape,
+      async (args) => ok(await setHabitCheck(args)),
+    );
+
     // ---------------- Resources ----------------
     server.resource(
       "today_overview",
       "todo://today-overview",
-      { description: "Tóm tắt hôm nay: việc, tải, quỹ rảnh, streak.", mimeType: "application/json" },
+      {
+        description:
+          "Tóm tắt hôm nay: việc, tải, quỹ rảnh, khe trống, thói quen, streak.",
+        mimeType: "application/json",
+      },
       async (uri) => {
         const today = todayLocal();
-        const [tasks, workload, activeRows] = await Promise.all([
+        const [tasks, workload, habits, activeRows] = await Promise.all([
           listTasks({ from: today, to: today }),
           getWorkloadSummary({ from: today, to: today }),
+          listHabits(),
           prisma.task.findMany({
             where: { done: true },
             select: { date: true },
@@ -168,6 +200,7 @@ export const mcpHandler = createMcpHandler(
                 today,
                 tasks,
                 workload: workload.days[0] ?? null,
+                habits,
                 streak: {
                   current: streak.current,
                   atRisk: streak.atRisk,
@@ -183,7 +216,10 @@ export const mcpHandler = createMcpHandler(
     server.resource(
       "active_projects",
       "todo://active-projects",
-      { description: "Project đang chạy + % hoàn thành.", mimeType: "application/json" },
+      {
+        description: "Project đang chạy + % hoàn thành.",
+        mimeType: "application/json",
+      },
       async (uri) => ({
         contents: [
           {
@@ -196,10 +232,12 @@ export const mcpHandler = createMcpHandler(
     );
 
     // ---------------- Prompts (ép quy trình an toàn) ----------------
-    const SAFE = `QUY TRÌNH BẮT BUỘC: (1) đọc ngữ cảnh thật trước (get_schedule + get_workload_summary, ` +
+    const SAFE =
+      `QUY TRÌNH BẮT BUỘC: (1) đọc ngữ cảnh thật trước (get_schedule + get_workload_summary, ` +
       `và resource today_overview nếu cần); (2) TRÌNH BÀY kế hoạch đề xuất cho người dùng và CHỜ họ ` +
-      `đồng ý; (3) chỉ khi được duyệt mới ghi (bulk_create_tasks/create_task). Tôn trọng freeMinutes ` +
-      `mỗi ngày — không nhồi vượt quỹ rảnh. scheduledFor = lúc làm, dueDate = hạn chót.`;
+      `đồng ý; (3) chỉ khi được duyệt mới ghi (bulk_create_tasks/create_task). Tôn trọng ` +
+      `suggestedFreeMinutes mỗi ngày — không nhồi vượt quỹ rảnh; gắn scheduledFor vào freeSlots ` +
+      `thật, KHÔNG đè lịch cứng. scheduledFor = lúc làm, dueDate = hạn chót.`;
 
     server.prompt(
       "plan_my_day",
