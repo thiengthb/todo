@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 async function handler(req: Request): Promise<Response> {
-  const denied = checkMcpAuth(req);
+  const denied = await checkMcpAuth(req);
   if (denied) return denied;
   return mcpHandler(req);
 }
