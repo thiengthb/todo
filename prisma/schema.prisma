@@ -35,6 +35,38 @@ model Task {
   impact      String?
   // lý do trượt (mục 11): "tired" | "too_hard" | "no_time" | "unclear" | "deprioritized"
   slipReason  String?
+
+  // ── Field lập kế hoạch generic cho MCP (mục 15) — TẤT CẢ optional, đồng bộ với field cũ ở
+  //    lib/mcp/repository. KHÔNG đổi/xoá field cũ; app hiện tại chạy nguyên vẹn.
+  description      String? // mô tả dài (MCP) — app hiện chỉ dùng title; optional
+  status           String? // "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED" (đồng bộ với `done`)
+  priority         String? // "LOW" | "MEDIUM" | "HIGH" | "URGENT" (song song `impact`)
+  dueDate          DateTime? // hạn chót (ràng buộc), KHÁC scheduledFor
+  scheduledFor     DateTime? // mốc dự kiến làm (lịch theo giờ); set kèm `date` = ngày địa phương
+  estimatedMinutes Int? // ước lượng thời lượng → tính workload/ngày
+  projectId        String?
+  project          Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  tags             Tag[] // quan hệ m-n ngầm (SQLite không có String[])
+}
+
+// "Kế hoạch giai đoạn" generic do MCP/Claude tạo (mục 15) — RIÊNG với Plan (roadmap AI của app).
+model Project {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  startDate     DateTime?
+  targetEndDate DateTime?
+  status        String    @default("active") // active | done | archived
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tasks         Task[]
+}
+
+// Nhãn phân loại tự do (mục 15) — quan hệ m-n với Task
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  tasks Task[]
 }
 
 // Kế hoạch dài hạn (mục 10) — roadmap cuốn chiếu, AI rót task hằng ngày bám tốc độ thật
