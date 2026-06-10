@@ -17,6 +17,7 @@ import {
   Smile,
   Sparkles,
   Target,
+  Terminal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -109,14 +110,14 @@ const SCIENCE: { title: string; desc: string }[] = [
 
 const MCP_STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
-    icon: Plug,
-    title: "Thêm connector",
-    desc: "Trong Claude (Desktop / Cursor / VS Code): Settings → Connectors (MCP) → Add. URL: https://<tên-miền>/api/mcp",
+    icon: Terminal,
+    title: "Claude Code (CLI)",
+    desc: "Chạy lệnh claude mcp add bên dưới — kết nối trực tiếp qua HTTP kèm Bearer token, KHÔNG cần npx mcp-remote.",
   },
   {
-    icon: Bot,
-    title: "Xác thực",
-    desc: "Desktop/CLI: dán Bearer token (MCP_AUTH_TOKEN). Claude.ai web: bấm Connect → tự chạy OAuth, xác nhận bằng chính token đó.",
+    icon: Plug,
+    title: "Claude Desktop",
+    desc: "Settings → Connectors → Add custom connector → URL https://<tên-miền>/api/mcp. Desktop tự chạy OAuth: nhập MCP token ở trang xác nhận. Không cài npx, hết lỗi 'C:\\Program'.",
   },
   {
     icon: MessageSquareText,
@@ -124,6 +125,10 @@ const MCP_STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
     desc: "Hỏi tự nhiên. Claude đọc lịch + quỹ giờ thật, trình bày kế hoạch, CHỜ bạn duyệt rồi mới ghi vào app.",
   },
 ];
+
+// Lệnh kết nối trực tiếp (không cần cầu nối mcp-remote)
+const MCP_CONNECT_CLI =
+  'claude mcp add --transport http todo https://<tên-miền>/api/mcp \\\n  --header "Authorization: Bearer <MCP_AUTH_TOKEN>"';
 
 const MCP_TOOL_GROUPS: { icon: LucideIcon; label: string; tools: string[] }[] =
   [
@@ -146,8 +151,20 @@ const MCP_TOOL_GROUPS: { icon: LucideIcon; label: string; tools: string[] }[] =
       tools: ["get_schedule", "get_workload_summary"],
     },
     {
+      icon: Target,
+      label: "Kế hoạch dài hạn",
+      tools: [
+        "create_plan",
+        "add_milestones",
+        "update_plan",
+        "list_plans",
+        "get_plan",
+        "check_milestone",
+      ],
+    },
+    {
       icon: FolderKanban,
-      label: "Dự án",
+      label: "Dự án (gom nhóm)",
       tools: ["create_project", "get_project", "list_projects"],
     },
     {
@@ -168,7 +185,7 @@ const MCP_PROMPTS: { name: string; desc: string }[] = [
   },
   {
     name: "plan_project",
-    desc: "Mục tiêu lớn + deadline → tạo project và chia việc theo tuần.",
+    desc: "Mục tiêu lớn + deadline → tạo kế hoạch (Plan) với roadmap cột mốc, rồi rót việc cuốn chiếu.",
   },
   {
     name: "review_and_reschedule",
@@ -179,7 +196,7 @@ const MCP_PROMPTS: { name: string; desc: string }[] = [
 const MCP_PHRASES: string[] = [
   "Lên kế hoạch hôm nay cho tôi dựa trên lịch và quỹ giờ rảnh.",
   "Tuần này tôi có mấy việc lớn, dàn giúp tôi tránh quá tải.",
-  "Tôi muốn học tiếng Nhật trong 30 ngày — tạo dự án và chia nhỏ.",
+  "Tôi muốn luyện thi N2 trong 6 tháng — tạo kế hoạch với các cột mốc kiểm chứng được.",
   "Xem việc nào đang trễ và đề xuất dời lịch giúp tôi.",
 ];
 
@@ -375,6 +392,28 @@ export default function GuidePage() {
                   </Reveal>
                 ))}
               </div>
+              <Reveal delay={120}>
+                <div className="mt-3 rounded-lg border border-border/70 bg-muted/30 p-4">
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <Terminal className="size-4 text-muted-foreground" />
+                    Kết nối nhanh bằng Claude Code
+                  </p>
+                  <pre className="mt-2 overflow-x-auto rounded-md border border-border/70 bg-background p-3 font-mono text-[11px] leading-relaxed text-foreground">
+                    {MCP_CONNECT_CLI}
+                  </pre>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                    Thay <code className="font-mono">&lt;tên-miền&gt;</code> và{" "}
+                    <code className="font-mono">&lt;MCP_AUTH_TOKEN&gt;</code>.
+                    Cách này nối thẳng HTTP — không cần{" "}
+                    <code className="font-mono">npx mcp-remote</code>.{" "}
+                    <code className="font-mono">mcp-remote</code> chỉ là phương
+                    án dự phòng; nếu dùng, đặt{" "}
+                    <code className="font-mono">command</code> là{" "}
+                    <code className="font-mono">npx</code> (đừng để đường dẫn
+                    đầy đủ có khoảng trắng → lỗi “C:\Program”).
+                  </p>
+                </div>
+              </Reveal>
             </section>
 
             <section>
