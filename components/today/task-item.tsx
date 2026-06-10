@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import {
   Brain,
+  CalendarClock,
   Check,
   ChevronsDown,
   ChevronsUp,
@@ -46,7 +47,8 @@ import {
   type ActualBucket,
   type SlipReason,
 } from "@/app/actions";
-import type { Emotion, Priority, TaskDTO } from "@/lib/types";
+import { SlotPicker } from "@/components/today/slot-picker";
+import type { Emotion, FreeSlot, Priority, TaskDTO } from "@/lib/types";
 
 // lý do trượt 1 chạm (mục 11) — AI học để chia nhỏ / giảm tải
 const SLIP_REASONS: { value: SlipReason; label: string }[] = [
@@ -424,7 +426,16 @@ function PlanChip({ title }: { title: string }) {
 }
 
 /** Một dòng việc đơn (leaf): checkbox + tiêu đề + badge trì hoãn + cảm xúc + xoá */
-function LeafRow({ task, isMit }: { task: TaskDTO; isMit?: boolean }) {
+function LeafRow({
+  task,
+  isMit,
+  freeSlots,
+}: {
+  task: TaskDTO;
+  isMit?: boolean;
+  /** nếu có → hiện nút xếp việc vào khe giờ (mục 14, dùng ở danh sách chưa xếp giờ) */
+  freeSlots?: FreeSlot[];
+}) {
   const [, startTransition] = useTransition();
 
   return (
@@ -485,6 +496,22 @@ function LeafRow({ task, isMit }: { task: TaskDTO; isMit?: boolean }) {
 
       {!task.done && task.delay >= 1 && (
         <SlipButton id={task.id} slipReason={task.slipReason} />
+      )}
+      {freeSlots && !task.done && !task.scheduledFor && (
+        <SlotPicker
+          taskId={task.id}
+          estimatedMinutes={task.estimatedMinutes}
+          freeSlots={freeSlots}
+          trigger={
+            <button
+              type="button"
+              aria-label="Xếp vào khe giờ"
+              className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-60 transition-opacity hover:!opacity-100 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-60"
+            >
+              <CalendarClock className="size-3.5" />
+            </button>
+          }
+        />
       )}
       <EstimateButton id={task.id} minutes={task.estimatedMinutes} />
       <DeepWorkButton id={task.id} deepWork={task.deepWork} />
@@ -611,12 +638,17 @@ function ContainerRow({
 export function TaskItem({
   task,
   mitId,
+  freeSlots,
 }: {
   task: TaskDTO;
   mitId?: string | null;
+  /** truyền xuống để hiện nút xếp giờ (danh sách "chưa xếp giờ" ở chế độ timeline) */
+  freeSlots?: FreeSlot[];
 }) {
   if (task.subtasks && task.subtasks.length > 0) {
     return <ContainerRow task={task} mitId={mitId} />;
   }
-  return <LeafRow task={task} isMit={task.id === mitId} />;
+  return (
+    <LeafRow task={task} isMit={task.id === mitId} freeSlots={freeSlots} />
+  );
 }

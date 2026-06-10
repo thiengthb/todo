@@ -21,6 +21,7 @@ import type {
   Priority,
   ScheduleEventDTO,
   ScheduleKind,
+  SoftBlockDTO,
   TaskDTO,
 } from "@/lib/types";
 import { AddTask } from "@/components/today/add-task";
@@ -33,18 +34,27 @@ import { ScheduleStrip } from "@/components/today/schedule-strip";
 import { StreakBanner } from "@/components/today/streak-banner";
 import { PlanMomentum } from "@/components/today/plan-momentum";
 import { HabitStrip } from "@/components/today/habit-strip";
+import { CapacityBanner } from "@/components/today/capacity-banner";
+import { DayTimeline } from "@/components/today/day-timeline";
+import { ViewToggle } from "@/components/today/view-toggle";
 import { EmptyState } from "@/components/empty-state";
 import { ListTodo } from "lucide-react";
-import { blocksForDate, freeMinutes } from "@/lib/schedule";
+import {
+  blocksForDate,
+  computeFreeSlots,
+  softBlocksForDate,
+} from "@/lib/schedule";
+import { getScheduleSettings } from "@/lib/schedule-settings";
+import { toHm } from "@/lib/notify/time";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; view?: string }>;
 }
 
 export default async function DayPage({ searchParams }: PageProps) {
-  const { date: raw } = await searchParams;
+  const { date: raw, view: rawView } = await searchParams;
   const today = todayStr();
   const date = raw && isValidDateStr(raw) ? raw : today;
   // chuỗi ISO so sánh từ điển = so sánh thời gian
@@ -58,6 +68,8 @@ export default async function DayPage({ searchParams }: PageProps) {
     recentDone7,
     commitmentRows,
     eventRows,
+    softBlockRows,
+    scheduleSettings,
     activeDayRows,
     weekTaskRows,
     ratedRows,
@@ -93,9 +105,11 @@ export default async function DayPage({ searchParams }: PageProps) {
           select: { date: true, emotion: true },
         })
       : Promise.resolve([]),
-    // lịch trình (mục 14): commitment đang bật + event của ngày đang xem
+    // lịch trình (mục 14): commitment đang bật + event của ngày đang xem + khung mềm + cấu hình
     prisma.commitment.findMany({ where: { active: true } }),
     prisma.scheduleEvent.findMany({ where: { date } }),
+    prisma.softBlock.findMany({ where: { active: true } }),
+    getScheduleSettings(),
     // các tín hiệu "thông minh" — chỉ cần cho hôm nay (mục 11/12)
     // ngày "giữ lửa" → tính streak (banner nhắc khi sắp đứt)
     isToday
@@ -167,8 +181,39 @@ export default async function DayPage({ searchParams }: PageProps) {
     kind: e.kind as ScheduleKind,
     cancels: e.cancels,
   }));
-  const scheduleBlocks = blocksForDate(date, commitments, scheduleEvents);
-  const scheduleFree = freeMinutes(date, commitments, scheduleEvents);
+  const softBlocks: SoftBlockDTO[] = softBlockRows.map((s) => ({
+    id: s.id,
+    title: s.title,
+    dayOfWeek: s.dayOfWeek,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    kind: (["hoc", "lam", "khac"].includes(s.kind)
+      ? s.kind
+      : "khac") as ScheduleKind,
+    active: s.active,
+    validFrom: s.validFrom,
+    validUntil: s.validUntil,
+    weekParity: s.weekParity,
+  }));
+  const anchor = scheduleSettings.termAnchorMonday;
+  // khe trống + quỹ giờ rảnh động (mục 14) cho ngày đang xem
+  const capacity = computeFreeSlots(
+    date,
+    commitments,
+    scheduleEvents,
+    scheduleSettings,
+  );
+  const scheduleFree = capacity.capacityMin;
+  // khối hiển thị: lịch cứng + khung mềm (cho dải chip + timeline)
+  const scheduleBlocks = [
+    ...blocksForDate(date, commitments, scheduleEvents, anchor),
+    ...softBlocksForDate(date, softBlocks, scheduleEvents, anchor),
+  ].sort((a, b) => {
+    if (a.startTime === b.startTime) return 0;
+    if (a.startTime === null) return -1;
+    if (b.startTime === null) return 1;
+    return a.startTime.localeCompare(b.startTime);
+  });
 
   const dtos: TaskDTO[] = tasks.map((t) => {
     const subtasks: TaskDTO[] = t.subtasks.map((c) => ({
@@ -184,6 +229,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       estimatedMinutes: c.estimatedMinutes,
       deepWork: c.deepWork,
       actualBucket: c.actualBucket,
+      scheduledFor: c.scheduledFor ? toHm(c.scheduledFor) : null,
     }));
     const isContainer = subtasks.length > 0;
     return {
@@ -201,6 +247,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       estimatedMinutes: t.estimatedMinutes,
       deepWork: t.deepWork,
       actualBucket: t.actualBucket,
+      scheduledFor: t.scheduledFor ? toHm(t.scheduledFor) : null,
     };
   });
 
@@ -257,6 +304,23 @@ export default async function DayPage({ searchParams }: PageProps) {
         }))
     : [];
 
+  // ── Timeline (mục 14): tách việc đã xếp giờ vs chưa; chọn chế độ xem ──
+  const timelineTasks = dtos.filter((t) => !t.subtasks && t.scheduledFor);
+  const unscheduledTasks = dtos.filter((t) => t.subtasks || !t.scheduledFor);
+  // tổng ước lượng việc CHƯA xong (cho cảnh báo quá tải)
+  const plannedMin = leaves
+    .filter((t) => !t.done && t.estimatedMinutes)
+    .reduce((s, t) => s + (t.estimatedMinutes ?? 0), 0);
+  // mặc định: có dữ liệu lịch/việc-đã-xếp → timeline; quá khứ → ép list
+  const hasTimelineData = scheduleBlocks.length > 0 || timelineTasks.length > 0;
+  const view: "list" | "timeline" = isPast
+    ? "list"
+    : rawView === "list" || rawView === "timeline"
+      ? rawView
+      : hasTimelineData
+        ? "timeline"
+        : "list";
+
   return (
     <div className="py-8">
       <header className="flex items-start justify-between gap-3">
@@ -281,9 +345,48 @@ export default async function DayPage({ searchParams }: PageProps) {
       {/* Dashboard 2 cột: việc (trái) · thống kê/check-in/đề xuất (phải) */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <section aria-label="Danh sách việc" className="min-w-0">
-          <ScheduleStrip blocks={scheduleBlocks} freeMin={scheduleFree} />
+          {/* dải chip lịch chỉ ở chế độ Danh sách (timeline đã vẽ khối) */}
+          {view === "list" && (
+            <ScheduleStrip blocks={scheduleBlocks} freeMin={scheduleFree} />
+          )}
           {isToday && <HabitStrip habits={todayHabits} />}
-          {dtos.length === 0 ? (
+          {!isPast && (
+            <CapacityBanner
+              freeMin={scheduleFree}
+              slotCount={capacity.slots.length}
+              plannedMin={plannedMin}
+            />
+          )}
+          {!isPast && <ViewToggle date={date} current={view} />}
+
+          {view === "timeline" && !isPast ? (
+            <>
+              <DayTimeline
+                isToday={isToday}
+                wake={scheduleSettings.wakeTime}
+                sleep={scheduleSettings.sleepTime}
+                blocks={scheduleBlocks}
+                freeSlots={capacity.slots}
+                tasks={timelineTasks}
+                mitId={mitId}
+              />
+              {unscheduledTasks.length > 0 && (
+                <div className="mt-6">
+                  <p className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    Chưa xếp giờ ({unscheduledTasks.length})
+                  </p>
+                  {unscheduledTasks.map((t) => (
+                    <TaskItem
+                      key={t.id}
+                      task={t}
+                      mitId={mitId}
+                      freeSlots={capacity.slots}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : dtos.length === 0 ? (
             <EmptyState
               icon={ListTodo}
               title={

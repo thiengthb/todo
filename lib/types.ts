@@ -73,6 +73,8 @@ export interface TaskDTO {
   deepWork?: boolean;
   /** phản hồi thời lượng 1-chạm khi xong: "faster" | "asExpected" | "slower" */
   actualBucket?: string | null;
+  /** giờ dự kiến làm "HH:MM" (mục 14) — để đặt lên timeline; null = chưa xếp giờ */
+  scheduledFor?: string | null;
 }
 
 // ---- Kế hoạch (mục 10) ----
