@@ -46,6 +46,9 @@ RUN mkdir -p /data && chown node:node /data
 ENV DATABASE_URL="file:/data/todo.db"
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+# git-SHA của image — MCP `ping` trả về để xác minh build nào đang chạy (mục 15)
+ARG BUILD_SHA=dev
+ENV BUILD_SHA=${BUILD_SHA}
 
 USER node
 EXPOSE 3000
