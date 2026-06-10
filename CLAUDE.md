@@ -326,4 +326,46 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
   `pb-[calc(env(safe-area-inset-bottom)+5rem)]` — KHÔNG để bar đè home-indicator. Tap target ≥ ~44px
   (tab bar `min-h-12`; nút cảm ứng nhỏ nới `size-9 sm:size-7`). Giữ look trung tính (không large-title,
   không inset-grouped).
-- **shadcn:** đã thêm `sheet`, `scroll-area` (unified `radix-ui`, style radix-nova `data-open/closed`).
+- **shadcn:** đã thêm `sheet`, `scroll-area`, `switch` (unified `radix-ui`, style radix-nova `data-open/closed`).
+
+---
+
+## 13. Thông báo Discord thông minh
+
+> Đẩy app từ "mở mới thấy" sang **chủ động nhắc** qua Discord. Triết lý §11 BẤT BIẾN: thông báo phải
+> **nâng đỡ, không hối thúc, không gây lo âu** (overjustification d≈−0.34 → cấm push áp lực). Số liệu
+> do CODE tính thật; AI chỉ viết **giọng văn** (động lực / câu nói hay / mẹo), không bịa.
+
+### 13.1 Kênh & lên lịch
+
+- **Discord webhook** (một chiều, không bot/OAuth). Tầng gửi tách ở `lib/notify/discord.ts` để sau
+  dễ thêm Telegram/Slack. Webhook lưu trong DB (trang `/notifications`) hoặc fallback env `DISCORD_WEBHOOK_URL`.
+- **Cron nội bộ**: `instrumentation.ts` → `lib/notify/scheduler.ts` (node-cron, tick **mỗi phút**, so giờ
+  với cấu hình). Server always-on (Docker) nên scheduler sống cùng app, KHÔNG cần dịch vụ ngoài.
+  `serverExternalPackages: ["node-cron"]` trong `next.config.ts`. Guard `NEXT_PHASE` để không chạy lúc build.
+- **Endpoint fallback** `/api/notify/run?kind=&secret=&force=1` (POST/GET) cho scheduler ngoài / "Gửi thử".
+  Bảo vệ bằng `NOTIFY_SECRET`; chưa đặt secret = endpoint TẮT.
+
+### 13.2 Bốn loại (mỗi loại bật/tắt + giờ riêng)
+
+1. **morning** (bản tin sáng): việc hôm nay, streak, "việc chính" (MIT, dùng `lib/priority`) + động lực/quote/tip.
+2. **streak_guard**: CHỈ bắn khi `atRisk` && hôm nay chưa có việc done. Khung tích cực ("giữ thành quả"), không doạ.
+3. **random_nudge**: tối đa **1/ngày**, mốc giờ seed theo NGÀY trong cửa sổ (`lib/notify/time`), bỏ qua nếu hết việc dở.
+4. **evening** (đúc kết tối): điểm lại dịu dàng, gợi ý ghi chú; không phán xét phần chưa xong.
+
+`intensity` (minimal | balanced | active) chỉ là **preset UI** đặt nhanh các toggle; runtime CHỈ đọc toggle + giờ.
+Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi/không có key → **fallback tĩnh** (`lib/notify/fallback.ts`).
+
+### 13.3 Dữ liệu & bất biến
+
+- `NotificationSettings` (1 hàng `singleton`) + `NotificationLog` (idempotency 1/loại/ngày, lịch sử UI, để AI
+  tránh lặp câu). `runNotification(kind,{force})` (`lib/notify/run.ts`) là orchestrator chung cho cron lẫn "Gửi thử";
+  KHÔNG bao giờ ném lỗi — luôn ghi log. `force` bỏ qua enabled/giờ-yên/idempotency/gating.
+- Dữ kiện (`lib/notify/context.ts`) truy ngược DB (streak động, MIT, kế hoạch chậm, capacity); embed gắn dòng số
+  liệu thật dưới giọng văn để **minh bạch**. Prompt AI ở `lib/ai.ts` (`composeNotificationVoice`).
+
+### 13.4 UI
+
+- KHÔNG thêm tab thứ 5 (giữ quy ước 4 mục bottom bar §12). "Thông báo" = link icon ⓘ Bell ở **footer sidebar**
+  + **top-bar mobile**. Trang `/notifications` (PageHeader + form + lịch sử) theo bộ card chuẩn §12; toggle dùng
+  `components/ui/switch`. "Gửi thử" tự lưu cấu hình hiện tại trước khi bắn.

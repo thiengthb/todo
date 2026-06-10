@@ -37,6 +37,19 @@ npm run dev          # http://localhost:3000
 - **`/history`**: dải hoạt động 14 ngày (tỉ lệ hoàn thành), section "Kế hoạch sắp tới"
   và timeline "Đã qua" với progress bar + cảm xúc + note từng ngày. Click ngày nào → Day View ngày đó.
 
+## Thông báo Discord (mục 13)
+
+Nhắc chủ động qua Discord, giọng nâng đỡ (không hối thúc): **bản tin sáng**, **nhắc giữ streak**
+khi sắp đứt chuỗi, **cú hích ngẫu nhiên** làm việc, và **đúc kết tối**. Số liệu (streak, số việc,
+việc chính) do hệ thống tính thật; AI chỉ thêm động lực / câu nói hay / mẹo.
+
+- Cấu hình tại **`/notifications`**: dán Webhook URL, chọn cường độ, bật/tắt + đặt giờ từng loại,
+  giờ yên, và bấm **"Gửi thử"**. Lấy webhook: kênh Discord → ⚙ → Tích hợp → Webhook → Sao chép URL.
+- Lên lịch bằng **cron nội bộ** (`instrumentation.ts` + node-cron, tick mỗi phút) — chạy cùng server
+  always-on, không cần dịch vụ ngoài. Giờ tính theo `TZ` (prod = `Asia/Ho_Chi_Minh`).
+- Fallback gọi ngoài: `POST /api/notify/run?kind=morning&secret=$NOTIFY_SECRET` (đặt `NOTIFY_SECRET`
+  để bật; thêm `&force=1` để gửi ngay, bỏ qua điều kiện). Không có `AI_API_KEY` → vẫn chạy với nội dung tĩnh.
+
 ## Cấu trúc chính
 
 ```
@@ -64,6 +77,8 @@ Workflow: `.github/workflows/deploy-todo.yml`.
 - Secrets cần đặt trong GitHub (Settings → Secrets and variables → Actions):
   - Secret `AI_API_KEY` — key Gemini
   - Variable `AI_MODEL` (tuỳ chọn, mặc định `gemini-2.5-flash`)
+  - Secret `DISCORD_WEBHOOK_URL` (tuỳ chọn — fallback nếu chưa dán webhook ở `/notifications`)
+  - Secret `NOTIFY_SECRET` (tuỳ chọn — bật endpoint `/api/notify/run` cho scheduler ngoài)
 - Deploy tay không qua git: `AI_API_KEY=... docker compose up -d --build`
 - Backup: `docker run --rm -v todo_todo_data:/data -v $(pwd):/backup alpine cp /data/todo.db /backup/`
 
