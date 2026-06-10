@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/empty-state";
 import { formatDateVN, weekdayShortVN } from "@/lib/dates";
 import { SCHEDULE_KINDS, formatMinutes } from "@/lib/schedule";
 import {
@@ -113,12 +114,22 @@ export function WeekView({
       {/* Thanh điều hướng tuần */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon-sm" asChild aria-label="Tuần trước">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            asChild
+            aria-label="Tuần trước"
+          >
             <Link href={`/schedule?start=${prevStart}`}>
               <ChevronLeft />
             </Link>
           </Button>
-          <Button variant="outline" size="icon-sm" asChild aria-label="Tuần sau">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            asChild
+            aria-label="Tuần sau"
+          >
             <Link href={`/schedule?start=${nextStart}`}>
               <ChevronRight />
             </Link>
@@ -185,7 +196,9 @@ export function WeekView({
                     <Clock className="size-2.5 shrink-0" />
                     {blockTimeLabel(b)}
                     {b.source === "event" && (
-                      <span className="text-muted-foreground/70">· đột xuất</span>
+                      <span className="text-muted-foreground/70">
+                        · đột xuất
+                      </span>
                     )}
                   </span>
                 </button>
@@ -212,9 +225,10 @@ export function WeekView({
       </div>
 
       {/* Quản lý lịch cứng (gồm cả lịch đang tắt) */}
-      <CommitmentManager commitments={commitments} onEdit={(c) =>
-        setEditing({ kind: "edit-commitment", data: c })
-      } />
+      <CommitmentManager
+        commitments={commitments}
+        onEdit={(c) => setEditing({ kind: "edit-commitment", data: c })}
+      />
 
       <Dialog
         open={editing !== null}
@@ -251,10 +265,12 @@ function CommitmentManager({
     return (
       <section className="space-y-3">
         <h2 className="text-sm font-medium">Lịch cứng theo tuần</h2>
-        <p className="rounded-lg border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
-          Chưa có lịch cứng nào. Bấm “Thêm lịch” để khai báo lịch học/làm lặp
-          theo tuần.
-        </p>
+        <EmptyState
+          icon={CalendarOff}
+          title="Chưa có lịch cứng nào"
+          description="Bấm “Thêm lịch” để khai báo lịch học/làm lặp theo tuần — quỹ giờ rảnh sẽ được tính tự động."
+          className="py-10"
+        />
       </section>
     );
   }
@@ -360,7 +376,8 @@ function ScheduleForm({
       ? "event"
       : "commitment";
   const [type, setType] = useState<FormType>(initialType);
-  const isEdit = editing.kind === "edit-commitment" || editing.kind === "edit-event";
+  const isEdit =
+    editing.kind === "edit-commitment" || editing.kind === "edit-event";
 
   const [title, setTitle] = useState(
     editingCommitment?.title ?? editingEvent?.title ?? "",
@@ -398,16 +415,20 @@ function ScheduleForm({
     startSave(async () => {
       let res: { ok: boolean; error?: string };
       if (type === "commitment") {
-        const payload = { title, dayOfWeek, startTime: start, endTime: end, kind };
+        const payload = {
+          title,
+          dayOfWeek,
+          startTime: start,
+          endTime: end,
+          kind,
+        };
         res = editingCommitment
           ? await updateCommitment(editingCommitment.id, payload)
           : await addCommitment(payload);
       } else {
         const timed = eventMode === "timed";
         res = await addScheduleEvent({
-          title:
-            title ||
-            (eventMode === "off" ? "Nghỉ" : ""),
+          title: title || (eventMode === "off" ? "Nghỉ" : ""),
           date,
           startTime: timed ? evStart : null,
           endTime: timed ? evEnd : null,
@@ -450,7 +471,10 @@ function ScheduleForm({
         {/* chọn loại — chỉ khi thêm mới */}
         {!isEdit && (
           <div className="flex gap-1">
-            <SegBtn active={type === "commitment"} onClick={() => setType("commitment")}>
+            <SegBtn
+              active={type === "commitment"}
+              onClick={() => setType("commitment")}
+            >
               Lặp theo tuần
             </SegBtn>
             <SegBtn active={type === "event"} onClick={() => setType("event")}>
@@ -509,13 +533,22 @@ function ScheduleForm({
             </Field>
             <Field label="Kiểu">
               <div className="flex gap-1">
-                <SegBtn active={eventMode === "timed"} onClick={() => setEventMode("timed")}>
+                <SegBtn
+                  active={eventMode === "timed"}
+                  onClick={() => setEventMode("timed")}
+                >
                   Có giờ
                 </SegBtn>
-                <SegBtn active={eventMode === "allday"} onClick={() => setEventMode("allday")}>
+                <SegBtn
+                  active={eventMode === "allday"}
+                  onClick={() => setEventMode("allday")}
+                >
                   Cả ngày
                 </SegBtn>
-                <SegBtn active={eventMode === "off"} onClick={() => setEventMode("off")}>
+                <SegBtn
+                  active={eventMode === "off"}
+                  onClick={() => setEventMode("off")}
+                >
                   <CalendarOff className="size-3.5" /> Nghỉ
                 </SegBtn>
               </div>
@@ -613,7 +646,9 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <label className="text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
       {children}
     </div>
   );

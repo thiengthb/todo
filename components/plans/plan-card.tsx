@@ -47,6 +47,15 @@ export function PlanCard({
               {STATUS_LABEL[status]}
             </Badge>
           )}
+          {behind && (
+            <Badge
+              variant="outline"
+              className="shrink-0 gap-1 border-amber-300 bg-amber-50 text-[11px] font-normal text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400"
+            >
+              <AlertTriangle className="size-3" />
+              chậm {progress.behindDays}d
+            </Badge>
+          )}
         </div>
         <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
           <Target className="size-3 shrink-0" />
@@ -56,14 +65,8 @@ export function PlanCard({
           <span>
             {progress.done}/{progress.total} cột mốc
           </span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <span>{daysLeftLabel}</span>
-          {behind && (
-            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-              <AlertTriangle className="size-3" />
-              chậm {progress.behindDays}d
-            </span>
-          )}
         </div>
       </div>
 

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { computePlanProgress } from "@/lib/plan";
 import { formatDateShort } from "@/lib/dates";
 import type { Intensity, PlanStatus } from "@/lib/types";
+import { AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { BehindAlert } from "@/components/plans/behind-alert";
 import { MilestoneList } from "@/components/plans/milestone-list";
 import { PlanActions } from "@/components/plans/plan-actions";
@@ -58,15 +60,30 @@ export default async function PlanDetailPage({ params }: PageProps) {
         className="mb-0"
       />
 
-      {/* Dải thông tin tiến độ */}
-      <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="rounded-md bg-muted px-2 py-1 font-medium text-foreground">
+      {/* Trạng thái + cảnh báo chậm — badge nổi, tách khỏi dòng meta để mobile không wrap xấu */}
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <Badge variant="outline" className="font-normal">
           {STATUS_LABEL[status]}
-        </span>
+        </Badge>
+        {behind && (
+          <Badge
+            variant="outline"
+            className="gap-1 border-amber-300 bg-amber-50 font-normal text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400"
+          >
+            <AlertTriangle className="size-3" />
+            chậm {progress.behindDays}d
+          </Badge>
+        )}
+      </div>
+
+      {/* Dải thông tin: cường độ · thời hạn · còn lại */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <span>{INTENSITY_LABEL[plan.intensity as Intensity]}</span>
+        <span aria-hidden>·</span>
         <span>
           {formatDateShort(plan.startDate)} → {formatDateShort(plan.endDate)}
         </span>
+        <span aria-hidden>·</span>
         <span>
           {progress.daysLeft >= 0
             ? `còn ${progress.daysLeft}d`

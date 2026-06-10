@@ -207,71 +207,75 @@ export default async function HistoryPage() {
           </div>
 
           {streak.runs.length === 0 ? (
-          <p className="border-b border-border/70 py-6 text-center text-sm text-muted-foreground">
-            Chưa có chuỗi nào — hoàn thành 1 việc mỗi ngày để nhóm lửa.
-          </p>
-        ) : (
-          <ul>
-            {streak.runs.map((run, i) => {
-              // run mới nhất (i===0) đang chạy khi current>0
-              const isLive = i === 0 && streak.current > 0;
-              return (
-                <li
-                  key={run.start}
-                  className="flex items-center justify-between border-b border-border/70 py-3 text-sm last:border-b-0"
-                >
-                  <span className="text-muted-foreground tabular-nums">
-                    {formatDateShort(run.start)}
-                    {run.end !== run.start && ` – ${formatDateShort(run.end)}`}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {isLive && (
-                      <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                        <Flame className="size-3" />
-                        {streak.atRisk ? "đang treo" : "đang chạy"}
-                      </span>
-                    )}
-                    <span className="font-medium tabular-nums">
-                      {run.length} ngày
+            <EmptyState
+              icon={Flame}
+              title="Chưa có chuỗi nào"
+              description="Hoàn thành 1 việc mỗi ngày để nhóm lửa — lỡ một ngày vẫn được ân hạn."
+              className="py-10"
+            />
+          ) : (
+            <ul>
+              {streak.runs.map((run, i) => {
+                // run mới nhất (i===0) đang chạy khi current>0
+                const isLive = i === 0 && streak.current > 0;
+                return (
+                  <li
+                    key={run.start}
+                    className="flex items-center justify-between border-b border-border/70 py-3 text-sm last:border-b-0"
+                  >
+                    <span className="text-muted-foreground tabular-nums">
+                      {formatDateShort(run.start)}
+                      {run.end !== run.start &&
+                        ` – ${formatDateShort(run.end)}`}
                     </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+                    <span className="flex items-center gap-2">
+                      {isLive && (
+                        <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                          <Flame className="size-3" />
+                          {streak.atRisk ? "đang treo" : "đang chạy"}
+                        </span>
+                      )}
+                      <span className="font-medium tabular-nums">
+                        {run.length} ngày
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
         {/* Dải hoạt động 14 ngày */}
         <section aria-label="Hoạt động 14 ngày gần nhất">
-        <p className="mb-2 text-xs text-muted-foreground">
-          Tỉ lệ hoàn thành · 14 ngày gần nhất
-        </p>
-        <div className="flex h-12 items-end gap-1">
-          {strip.map((s) => (
-            <Link
-              key={s.date}
-              href={`/?date=${s.date}`}
-              title={`${formatDateShort(s.date)}${s.percent !== null ? ` — ${s.percent}%` : " — không có dữ liệu"}`}
-              className="flex h-full flex-1 items-end overflow-hidden rounded-sm bg-muted/50 transition-colors hover:bg-muted"
-            >
-              <div
-                className={cn(
-                  "w-full rounded-sm",
-                  s.date === today ? "bg-foreground" : "bg-foreground/35",
-                )}
-                style={{
-                  height: `${Math.max(s.percent ?? 0, s.percent !== null ? 6 : 0)}%`,
-                }}
-              />
-            </Link>
-          ))}
-        </div>
-        <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-          <span>{formatDateShort(strip[0].date)}</span>
-          <span>hôm nay</span>
-        </div>
-      </section>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Tỉ lệ hoàn thành · 14 ngày gần nhất
+          </p>
+          <div className="flex h-12 items-end gap-1">
+            {strip.map((s) => (
+              <Link
+                key={s.date}
+                href={`/?date=${s.date}`}
+                title={`${formatDateShort(s.date)}${s.percent !== null ? ` — ${s.percent}%` : " — không có dữ liệu"}`}
+                className="flex h-full flex-1 items-end overflow-hidden rounded-sm bg-muted/50 transition-colors hover:bg-muted"
+              >
+                <div
+                  className={cn(
+                    "w-full rounded-sm",
+                    s.date === today ? "bg-foreground" : "bg-foreground/35",
+                  )}
+                  style={{
+                    height: `${Math.max(s.percent ?? 0, s.percent !== null ? 6 : 0)}%`,
+                  }}
+                />
+              </Link>
+            ))}
+          </div>
+          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+            <span>{formatDateShort(strip[0].date)}</span>
+            <span>hôm nay</span>
+          </div>
+        </section>
 
         {future.length > 0 && (
           <section>

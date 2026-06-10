@@ -1,5 +1,6 @@
 import { Bell } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 import { NotificationSettingsForm } from "@/components/notifications/settings-form";
 import { getSettings } from "@/lib/notify/settings";
 import { prisma } from "@/lib/db";
@@ -52,9 +53,12 @@ export default async function NotificationsPage() {
           <h2 className="text-sm font-medium">Lịch sử gần đây</h2>
         </div>
         {logs.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
-            Chưa có thông báo nào được gửi.
-          </p>
+          <EmptyState
+            icon={Bell}
+            title="Chưa có thông báo nào được gửi"
+            description="Bật webhook và một loại thông báo ở trên — lịch sử gửi sẽ hiện ở đây."
+            className="py-10"
+          />
         ) : (
           <div className="rounded-lg border border-border/70">
             {logs.map((log, i) => (
