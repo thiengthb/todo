@@ -468,16 +468,29 @@ app lọc theo `done`/`date`, KHÔNG theo `status`):
 - `priority` (LOW/MEDIUM/HIGH/URGENT) ⇒ map `impact` (logic 80/20 của app).
 - `delete_task` = **HARD delete** (không soft-delete: task CANCELLED sẽ lọt UI vì app không lọc status).
 - Timezone: DB lưu UTC, MCP I/O ISO 8601, quy ngày theo `DEFAULT_TIMEZONE`.
+- **Date contract KHOAN DUNG** (`lib/mcp/tz.ts`): `scheduledFor`/`dueDate`/`startDate`/`targetEndDate`
+  nhận **cả** `"YYYY-MM-DD"` **lẫn** ISO 8601 đầy đủ. `coerceToInstant` đổi date-only → **nửa đêm địa
+  phương** (`localMidnightUtc`, KHÔNG phải UTC-midnight). KHÔNG dùng `z.string().datetime()` (đã bỏ — nó
+  từ chối date-only, ép Claude gửi UTC, lệch ngày). `serializeProject` trả ngày dạng `"YYYY-MM-DD"`.
+- `rangeSchema` (`get_schedule`/`get_workload_summary`): `to` tùy chọn, mặc định `= from`; ép `from ≤ to`.
+- **Bọc lỗi** (`guard()` ở `server.ts`): MỌI tool bắt `P2025` (id sai → thông báo rõ) + `ZodError` (bullet
+  dễ đọc) → trả `isError` mềm, KHÔNG ném `-32603` thô; log `tool`/`ms`/lỗi ra stderr (`docker logs todo`).
 
 ### 15.3 Schema thêm (additive, nullable — mục 15, không phá dữ liệu)
 Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`, `estimatedMinutes?`,
 `projectId?`, `tags Tag[]`. Model mới **`Project`** (generic, RIÊNG với `Plan` roadmap-AI) + **`Tag`**.
 
 ### 15.4 Tools / Resources / Prompts (`lib/mcp/server.ts`)
-- Tools: `ping`, `create_task`, `update_task`, `complete_task`, `delete_task`, `get_task`,
-  `list_tasks`, `get_schedule`, `get_workload_summary`, `bulk_create_tasks`, `create_project`,
-  `get_project`, `list_projects`, `list_habits`, `check_habit`. Description nhấn: `scheduledFor`≠`dueDate`;
-  gọi `get_schedule`/`get_workload_summary` TRƯỚC khi xếp việc.
+- Tools: `ping` (trả `{ok,time,tz,version}`, `version`=`BUILD_SHA` để soi build đang chạy), `create_task`,
+  `update_task`, `complete_task`, `delete_task`, `get_task`, `list_tasks`, `get_schedule`,
+  `get_workload_summary`, `bulk_create_tasks`, `create_project`, `get_project`, `list_projects`,
+  `list_habits`, `check_habit`. Description nhấn: `scheduledFor`≠`dueDate`; gọi `get_schedule`/
+  `get_workload_summary` TRƯỚC khi xếp việc.
+- **Plan/Milestone (mục 10 — roadmap dài hạn, KHÁC `Project` generic):** `create_plan` (kèm `milestones[]`
+  kết quả kiểm chứng được), `add_milestones`, `update_plan` (giãn deadline/đổi status — chỉ khi user đồng
+  ý), `list_plans`/`get_plan` (tiến độ ĐỘNG qua `computePlanProgress`: `progressPct`/`behindDays`/
+  `currentMilestone`/`daysLeft`), `check_milestone` (AI **chỉ gợi ý** tick, §10.8). `create_task`/
+  `bulk_create_tasks` nhận thêm `planId`/`milestoneId` → task vào /plans + được "Đề xuất ngày mai" rót.
 - **Đồng bộ với day-planner (mục 14):** `get_schedule` mỗi ngày trả `blocks` (lịch cứng đã lọc kỳ học +
   tuần chẵn/lẻ theo `ScheduleSettings.termAnchorMonday`) + `softBlocks` (khung mềm, không chiếm quỹ cứng) +
   `tasks`. `get_workload_summary` dùng `computeFreeSlots` theo `ScheduleSettings` (giờ thức/buffer/minSlot):
@@ -485,9 +498,10 @@ Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`,
   NÊN xếp việc mới), `freeSlots[]`. `create_task`/`update_task` nhận thêm `deepWork`; serialize trả thêm
   `deepWork`/`actualBucket`. Habit (mục 11) cô lập khỏi task: `list_habits` (dueToday/doneToday/streak —
   thông tin, KHÔNG điểm), `check_habit` (tick 1 ngày, idempotent).
-- Resources: `today_overview` (+ `habits`), `active_projects`. Prompts: `plan_my_day`, `plan_week`,
-  `plan_project`, `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt**
-  → mới ghi; tôn trọng `suggestedFreeMinutes` + gắn `scheduledFor` vào `freeSlots` thật.
+- Resources: `today_overview` (+ `habits`), `active_projects`, `active_plans` (tiến độ động). Prompts:
+  `plan_my_day`, `plan_week`, `plan_project` (→ `create_plan` + milestones, rót task cuốn chiếu),
+  `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt** → mới ghi;
+  tôn trọng `suggestedFreeMinutes` + gắn `scheduledFor` vào `freeSlots` thật.
 
 ### 15.5 Auth — bearer (Desktop/CLI) + OAuth 2.1 (Claude.ai web)
 `checkMcpAuth` (`lib/mcp/auth.ts`) chấp nhận **cả hai**: static bearer `MCP_AUTH_TOKEN` (Claude
@@ -504,7 +518,15 @@ không cho nhập bearer:
 - ⚠️ **Bug Anthropic (6/2026)**: claude.ai web có lúc hoàn tất OAuth nhưng không đính Bearer vào request
   MCP (401 loop). Server đã đúng chuẩn; nếu trúng bug thì chờ Anthropic sửa hoặc dùng Desktop/Cursor.
 
-### 15.6 Triển khai
-Đặt env trong compose phía server `/opt/apps/todo/docker-compose.yml`: `MCP_AUTH_TOKEN` (bắt buộc),
-`MCP_OAUTH_SECRET` (nên đặt riêng), `DEFAULT_TIMEZONE`. Connector: `https://<domain>/api/mcp`
-(Desktop/CLI kèm bearer; Claude.ai web tự chạy OAuth).
+### 15.6 Triển khai & kết nối (connector TRỰC TIẾP — KHÔNG mcp-remote)
+Env compose `/opt/apps/todo/docker-compose.yml`: `MCP_AUTH_TOKEN` (bắt buộc), `MCP_OAUTH_SECRET` (nên đặt
+riêng), `DEFAULT_TIMEZONE`. `BUILD_SHA` tự bơm qua build-arg CI (`ping` báo build). Endpoint
+`https://<domain>/api/mcp`. **Nối thẳng, BỎ `npx mcp-remote`** (nguồn lỗi launch Windows `C:\Program` +
+tự-ngắt-khi-idle):
+- **Claude Code (CLI):** `claude mcp add --transport http todo https://<domain>/api/mcp --header
+  "Authorization: Bearer <MCP_AUTH_TOKEN>"` — Streamable HTTP + header tĩnh.
+- **Claude Desktop:** Settings → Connectors → Add custom connector → URL `…/api/mcp` → chạy OAuth shim
+  (consent gate nhập `MCP_AUTH_TOKEN`). Không npx.
+- `mcp-remote` chỉ là **fallback**; nếu dùng, `command` PHẢI là `"npx"` (không để full path có khoảng trắng).
+- **Stateless** ⇒ reconnect mượt; Watchtower restart khi deploy sẽ ngắt kết nối đang mở ~vài giây
+  (in-process, §15.1) — bình thường, connector tự nối lại; so `ping.version` nếu nghi deploy giữa chừng.
