@@ -93,6 +93,9 @@ export interface CommitmentDTO {
   endTime: string;
   kind: ScheduleKind;
   active: boolean;
+  validFrom: string | null;
+  validUntil: string | null;
+  weekParity: string | null; // null | "odd" | "even"
 }
 
 /** Khung giờ mềm lặp theo tuần — time-blocking, dời được (khớp model SoftBlock) */

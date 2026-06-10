@@ -23,7 +23,10 @@ import type { Prisma } from "@prisma/client";
 export const PRIORITY = z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]);
 export const STATUS = z.enum(["TODO", "IN_PROGRESS", "DONE", "CANCELLED"]);
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Cần dạng YYYY-MM-DD");
-const isoDateTime = z.string().datetime({ offset: true }).or(z.string().datetime());
+const isoDateTime = z
+  .string()
+  .datetime({ offset: true })
+  .or(z.string().datetime());
 
 export const taskCreateSchema = z.object({
   title: z.string().min(1, "Cần title"),
@@ -58,7 +61,8 @@ function deriveFields(
 ): Prisma.TaskUncheckedCreateInput {
   const out: Record<string, unknown> = {};
   if (input.title !== undefined) out.title = input.title.trim();
-  if (input.description !== undefined) out.description = input.description || null;
+  if (input.description !== undefined)
+    out.description = input.description || null;
   if (input.estimatedMinutes !== undefined)
     out.estimatedMinutes = input.estimatedMinutes;
   if (input.projectId !== undefined) out.projectId = input.projectId || null;
@@ -163,7 +167,10 @@ export async function updateTask(id: string, raw: unknown) {
 }
 
 export async function getTask(id: string) {
-  const task = await prisma.task.findUnique({ where: { id }, include: INCLUDE });
+  const task = await prisma.task.findUnique({
+    where: { id },
+    include: INCLUDE,
+  });
   return task ? serializeTask(task) : null;
 }
 
@@ -335,6 +342,9 @@ async function loadScheduleSources(from: string, to: string) {
     endTime: c.endTime,
     kind: c.kind as ScheduleKind,
     active: c.active,
+    validFrom: c.validFrom,
+    validUntil: c.validUntil,
+    weekParity: c.weekParity,
   }));
   const events: ScheduleEventDTO[] = eventRows.map((e) => ({
     id: e.id,

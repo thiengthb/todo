@@ -85,6 +85,19 @@ export function ScheduleSettingsForm({
             className="w-24"
           />
         </Field>
+        <Field
+          label="Mốc tuần lẻ (kỳ học)"
+          hint="Thứ Hai của tuần 1 trong kỳ — dùng để xác định tuần chẵn/lẻ. Bỏ trống nếu không dùng."
+        >
+          <Input
+            type="date"
+            value={v.termAnchorMonday ?? ""}
+            onChange={(e) =>
+              setV({ ...v, termAnchorMonday: e.target.value || null })
+            }
+            className="w-40"
+          />
+        </Field>
       </div>
       <div className="flex justify-end">
         <Button size="sm" onClick={save} disabled={pending} className="gap-1.5">

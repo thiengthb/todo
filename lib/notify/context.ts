@@ -63,6 +63,9 @@ export async function buildNotificationFacts(
     endTime: c.endTime,
     kind: c.kind as ScheduleKind,
     active: c.active,
+    validFrom: c.validFrom,
+    validUntil: c.validUntil,
+    weekParity: c.weekParity,
   }));
   const scheduleEvents: ScheduleEventDTO[] = eventRows.map((e) => ({
     id: e.id,
@@ -107,7 +110,9 @@ export async function buildNotificationFacts(
     .map((p) => p.title);
 
   // capacity hôm nay nếu có check-in
-  const checkin = await prisma.dayCheckin.findUnique({ where: { date: today } });
+  const checkin = await prisma.dayCheckin.findUnique({
+    where: { date: today },
+  });
   let capacityScore: number | null = null;
   if (checkin) {
     const { computeCapacity } = await import("@/lib/capacity");

@@ -558,6 +558,19 @@ function ScheduleForm({
   const [end, setEnd] = useState(
     editingCommitment?.endTime ?? editingSoft?.endTime ?? "10:00",
   );
+  // kỳ học (mục 14) — tùy chọn, dùng chung cho commitment & soft
+  const [validFrom, setValidFrom] = useState(
+    editingCommitment?.validFrom ?? editingSoft?.validFrom ?? "",
+  );
+  const [validUntil, setValidUntil] = useState(
+    editingCommitment?.validUntil ?? editingSoft?.validUntil ?? "",
+  );
+  const [weekParity, setWeekParity] = useState<string | null>(
+    editingCommitment?.weekParity ?? editingSoft?.weekParity ?? null,
+  );
+  const [showTerm, setShowTerm] = useState(
+    !!(validFrom || validUntil || weekParity),
+  );
   // event
   const [date, setDate] = useState(
     editingEvent?.date ??
@@ -587,6 +600,9 @@ function ScheduleForm({
           startTime: start,
           endTime: end,
           kind,
+          validFrom: validFrom || null,
+          validUntil: validUntil || null,
+          weekParity,
         };
         res = editingCommitment
           ? await updateCommitment(editingCommitment.id, payload)
@@ -598,6 +614,9 @@ function ScheduleForm({
           startTime: start,
           endTime: end,
           kind,
+          validFrom: validFrom || null,
+          validUntil: validUntil || null,
+          weekParity,
         };
         res = editingSoft
           ? await updateSoftBlock(editingSoft.id, payload)
@@ -712,6 +731,74 @@ function ScheduleForm({
               onStart={setStart}
               onEnd={setEnd}
             />
+
+            {/* Kỳ học (tùy chọn): khoảng hiệu lực + tuần chẵn/lẻ */}
+            {showTerm ? (
+              <div className="space-y-3 rounded-md border border-border/70 bg-muted/30 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Kỳ học (tùy chọn)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTerm(false);
+                      setValidFrom("");
+                      setValidUntil("");
+                      setWeekParity(null);
+                    }}
+                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    Bỏ
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="date"
+                    value={validFrom}
+                    onChange={(e) => setValidFrom(e.target.value)}
+                    className="w-40"
+                    aria-label="Từ ngày"
+                  />
+                  <span className="text-muted-foreground">→</span>
+                  <Input
+                    type="date"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                    className="w-40"
+                    aria-label="Đến ngày"
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <SegBtn
+                    active={!weekParity}
+                    onClick={() => setWeekParity(null)}
+                  >
+                    Mọi tuần
+                  </SegBtn>
+                  <SegBtn
+                    active={weekParity === "odd"}
+                    onClick={() => setWeekParity("odd")}
+                  >
+                    Tuần lẻ
+                  </SegBtn>
+                  <SegBtn
+                    active={weekParity === "even"}
+                    onClick={() => setWeekParity("even")}
+                  >
+                    Tuần chẵn
+                  </SegBtn>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowTerm(true)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                + Giới hạn theo kỳ học / tuần chẵn-lẻ
+              </button>
+            )}
           </>
         ) : (
           <>

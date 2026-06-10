@@ -18,7 +18,14 @@ function revalidate() {
   revalidatePath("/");
 }
 
-export interface CommitmentInput {
+/** Field kỳ học dùng chung cho lịch cứng & khung mềm (mục 14) — tất cả tùy chọn */
+interface SemesterInput {
+  validFrom?: string | null;
+  validUntil?: string | null;
+  weekParity?: string | null;
+}
+
+export interface CommitmentInput extends SemesterInput {
   title: string;
   dayOfWeek: number;
   startTime: string;
@@ -33,6 +40,32 @@ function validTimes(start: string, end: string): boolean {
   );
 }
 
+/** Chuẩn hoá + kiểm tra field kỳ học. Trả data đã sạch hoặc lỗi. */
+function normalizeSemester(
+  i: SemesterInput,
+):
+  | {
+      ok: true;
+      data: {
+        validFrom: string | null;
+        validUntil: string | null;
+        weekParity: string | null;
+      };
+    }
+  | { ok: false; error: string } {
+  const validFrom = i.validFrom?.trim() || null;
+  const validUntil = i.validUntil?.trim() || null;
+  if (validFrom && !isValidDateStr(validFrom))
+    return { ok: false, error: "Ngày bắt đầu kỳ không hợp lệ" };
+  if (validUntil && !isValidDateStr(validUntil))
+    return { ok: false, error: "Ngày kết thúc kỳ không hợp lệ" };
+  if (validFrom && validUntil && validFrom > validUntil)
+    return { ok: false, error: "Ngày bắt đầu kỳ phải trước ngày kết thúc" };
+  const weekParity =
+    i.weekParity === "odd" || i.weekParity === "even" ? i.weekParity : null;
+  return { ok: true, data: { validFrom, validUntil, weekParity } };
+}
+
 export async function addCommitment(
   input: CommitmentInput,
 ): Promise<{ ok: boolean; error?: string }> {
@@ -42,6 +75,8 @@ export async function addCommitment(
     return { ok: false, error: "Thứ không hợp lệ" };
   if (!validTimes(input.startTime, input.endTime))
     return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+  const sem = normalizeSemester(input);
+  if (!sem.ok) return sem;
 
   await prisma.commitment.create({
     data: {
@@ -50,6 +85,7 @@ export async function addCommitment(
       startTime: input.startTime,
       endTime: input.endTime,
       kind: toKind(input.kind),
+      ...sem.data,
     },
   });
   revalidate();
@@ -64,6 +100,8 @@ export async function updateCommitment(
   if (!title) return { ok: false, error: "Cần tên lịch" };
   if (!validTimes(input.startTime, input.endTime))
     return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+  const sem = normalizeSemester(input);
+  if (!sem.ok) return sem;
 
   await prisma.commitment.update({
     where: { id },
@@ -73,6 +111,7 @@ export async function updateCommitment(
       startTime: input.startTime,
       endTime: input.endTime,
       kind: toKind(input.kind),
+      ...sem.data,
     },
   });
   revalidate();
@@ -94,7 +133,7 @@ export async function deleteCommitment(id: string): Promise<void> {
 
 /* ───────── Soft block (khung giờ mềm, mục 14) ───────── */
 
-export interface SoftBlockInput {
+export interface SoftBlockInput extends SemesterInput {
   title: string;
   dayOfWeek: number;
   startTime: string;
@@ -111,6 +150,8 @@ export async function addSoftBlock(
     return { ok: false, error: "Thứ không hợp lệ" };
   if (!validTimes(input.startTime, input.endTime))
     return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+  const sem = normalizeSemester(input);
+  if (!sem.ok) return sem;
 
   await prisma.softBlock.create({
     data: {
@@ -119,6 +160,7 @@ export async function addSoftBlock(
       startTime: input.startTime,
       endTime: input.endTime,
       kind: toKind(input.kind),
+      ...sem.data,
     },
   });
   revalidate();
@@ -133,6 +175,8 @@ export async function updateSoftBlock(
   if (!title) return { ok: false, error: "Cần tên khung giờ" };
   if (!validTimes(input.startTime, input.endTime))
     return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+  const sem = normalizeSemester(input);
+  if (!sem.ok) return sem;
 
   await prisma.softBlock.update({
     where: { id },
@@ -142,6 +186,7 @@ export async function updateSoftBlock(
       startTime: input.startTime,
       endTime: input.endTime,
       kind: toKind(input.kind),
+      ...sem.data,
     },
   });
   revalidate();

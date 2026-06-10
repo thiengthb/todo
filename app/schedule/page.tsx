@@ -73,6 +73,9 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     endTime: c.endTime,
     kind: c.kind as ScheduleKind,
     active: c.active,
+    validFrom: c.validFrom,
+    validUntil: c.validUntil,
+    weekParity: c.weekParity,
   }));
   const softBlocks: SoftBlockDTO[] = softBlockRows.map((s) => ({
     id: s.id,
@@ -104,8 +107,8 @@ export default async function SchedulePage({ searchParams }: PageProps) {
     isToday: date === today,
     // lưới hiển thị cả lịch cứng + khung mềm (soft); quỹ rảnh chỉ tính lịch cứng
     blocks: [
-      ...blocksForDate(date, commitments, events),
-      ...softBlocksForDate(date, softBlocks, events),
+      ...blocksForDate(date, commitments, events, settings.termAnchorMonday),
+      ...softBlocksForDate(date, softBlocks, events, settings.termAnchorMonday),
     ].sort(byStart),
     freeMin: computeFreeSlots(date, commitments, events, settings).capacityMin,
   }));

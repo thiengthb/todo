@@ -92,6 +92,9 @@ export async function POST(): Promise<NextResponse> {
       endTime: c.endTime,
       kind: c.kind as ScheduleKind,
       active: c.active,
+      validFrom: c.validFrom,
+      validUntil: c.validUntil,
+      weekParity: c.weekParity,
     }));
     const tomorrowEvents: ScheduleEventDTO[] = tomorrowEventRows.map((e) => ({
       id: e.id,

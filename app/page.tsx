@@ -140,6 +140,9 @@ export default async function DayPage({ searchParams }: PageProps) {
     endTime: c.endTime,
     kind: c.kind as ScheduleKind,
     active: c.active,
+    validFrom: c.validFrom,
+    validUntil: c.validUntil,
+    weekParity: c.weekParity,
   }));
   const scheduleEvents: ScheduleEventDTO[] = eventRows.map((e) => ({
     id: e.id,

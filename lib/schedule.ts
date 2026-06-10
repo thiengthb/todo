@@ -1,4 +1,5 @@
 import { hmToMinutes, minutesToHm } from "@/lib/notify/time";
+import { daysBetween, mondayOf } from "@/lib/dates";
 import type {
   CapacityResult,
   CommitmentDTO,
@@ -33,6 +34,38 @@ function toKind(k: string): ScheduleKind {
   return k === "hoc" || k === "lam" ? k : "khac";
 }
 
+/** "odd" | "even" của tuần chứa dateStr so với tuần mốc (tuần chứa anchor = "odd") */
+export function weekParityOf(
+  dateStr: string,
+  anchorMonday: string,
+): "odd" | "even" {
+  const weeks = Math.floor(
+    daysBetween(mondayOf(anchorMonday), mondayOf(dateStr)) / 7,
+  );
+  // chuẩn hoá modulo về [0,1] kể cả khi âm (ngày trước mốc)
+  return ((weeks % 2) + 2) % 2 === 0 ? "odd" : "even";
+}
+
+/** Khối lịch lặp có hiệu lực vào ngày này không (mục 14): khoảng kỳ học + tuần chẵn/lẻ */
+function recurringApplies(
+  rule: {
+    validFrom?: string | null;
+    validUntil?: string | null;
+    weekParity?: string | null;
+  },
+  dateStr: string,
+  anchorMonday?: string | null,
+): boolean {
+  // khoảng hiệu lực (so sánh chuỗi ISO = thời gian) — áp dụng kể cả khi không có anchor
+  if (rule.validFrom && dateStr < rule.validFrom) return false;
+  if (rule.validUntil && dateStr > rule.validUntil) return false;
+  // tuần chẵn/lẻ: chỉ lọc khi có cả parity lẫn mốc tuần
+  if (rule.weekParity && anchorMonday) {
+    if (weekParityOf(dateStr, anchorMonday) !== rule.weekParity) return false;
+  }
+  return true;
+}
+
 /** Sắp khối theo giờ bắt đầu; khối cả ngày (null) lên đầu */
 function byStart(a: ScheduleBlock, b: ScheduleBlock): number {
   if (a.startTime === b.startTime) return 0;
@@ -49,6 +82,7 @@ export function blocksForDate(
   dateStr: string,
   commitments: CommitmentDTO[],
   events: ScheduleEventDTO[],
+  anchorMonday?: string | null,
 ): ScheduleBlock[] {
   const dow = dayOfWeekOf(dateStr);
   const dayEvents = events.filter((e) => e.date === dateStr);
@@ -57,7 +91,12 @@ export function blocksForDate(
   const fromCommitments: ScheduleBlock[] = dayOff
     ? []
     : commitments
-        .filter((c) => c.active && c.dayOfWeek === dow)
+        .filter(
+          (c) =>
+            c.active &&
+            c.dayOfWeek === dow &&
+            recurringApplies(c, dateStr, anchorMonday),
+        )
         .map((c) => ({
           id: c.id,
           title: c.title,
@@ -121,6 +160,7 @@ export interface ScheduleConfig {
   sleepTime?: string;
   bufferMin?: number;
   minSlotMin?: number;
+  termAnchorMonday?: string | null; // mốc tuần để lọc parity (mục 14)
 }
 
 function pushSlot(
@@ -156,7 +196,12 @@ export function computeFreeSlots(
   const minSlot = Math.max(0, config?.minSlotMin ?? 0);
   const wakingMin = Math.max(0, sleep - wake);
 
-  const intervals = blocksForDate(dateStr, commitments, events)
+  const intervals = blocksForDate(
+    dateStr,
+    commitments,
+    events,
+    config?.termAnchorMonday,
+  )
     .filter((b) => b.startTime && b.endTime)
     .map((b) => {
       const s = Math.max(wake, hmToMinutes(b.startTime!) - buffer);
@@ -196,12 +241,18 @@ export function softBlocksForDate(
   dateStr: string,
   softBlocks: SoftBlockDTO[],
   events: ScheduleEventDTO[] = [],
+  anchorMonday?: string | null,
 ): ScheduleBlock[] {
   const dow = dayOfWeekOf(dateStr);
   const dayOff = events.some((e) => e.date === dateStr && e.cancels);
   if (dayOff) return [];
   return softBlocks
-    .filter((s) => s.active && s.dayOfWeek === dow)
+    .filter(
+      (s) =>
+        s.active &&
+        s.dayOfWeek === dow &&
+        recurringApplies(s, dateStr, anchorMonday),
+    )
     .map((s) => ({
       id: s.id,
       title: s.title,

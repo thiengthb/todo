@@ -104,14 +104,17 @@ model DailyNote {
 // Lịch trình (mục 14): lịch CỨNG lặp theo tuần (học, làm). KHÔNG phải Task —
 // là BỐI CẢNH nuôi bộ máy đề xuất (quỹ giờ rảnh thật), không tính vào streak/stats.
 model Commitment {
-  id        String   @id @default(cuid())
-  title     String
-  dayOfWeek Int // 0=CN .. 6=T7 (khớp Date.getDay)
-  startTime String // "HH:MM" giờ địa phương
-  endTime   String
-  kind      String   @default("khac") // "hoc" | "lam" | "khac"
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  title      String
+  dayOfWeek  Int // 0=CN .. 6=T7 (khớp Date.getDay)
+  startTime  String // "HH:MM" giờ địa phương
+  endTime    String
+  kind       String   @default("khac") // "hoc" | "lam" | "khac"
+  active     Boolean  @default(true)
+  validFrom  String? // khoảng hiệu lực kỳ học (mục 14) — tự hết hạn; null = mọi lúc
+  validUntil String?
+  weekParity String? // null = mọi tuần | "odd" | "even" (tuần chẵn/lẻ kỳ học)
+  createdAt  DateTime @default(now())
 
   @@index([dayOfWeek])
 }
