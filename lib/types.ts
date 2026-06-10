@@ -80,6 +80,39 @@ export interface DecomposeResult {
   milestones: MilestoneDraft[];
 }
 
+// ---- Thông báo Discord (mục 13) ----
+
+/** Bốn loại thông báo — khớp cột `kind` của NotificationLog */
+export type NotificationKind =
+  | "morning" // bản tin sáng
+  | "streak_guard" // nhắc giữ streak khi atRisk
+  | "random_nudge" // cú hích ngẫu nhiên làm task
+  | "evening"; // đúc kết tối
+
+/** Preset cường độ — chỉ là gợi ý UI để set nhanh các toggle bên dưới */
+export type NotificationIntensity = "minimal" | "balanced" | "active";
+
+/** Cấu hình thông báo (1 hàng, app một người dùng) — khớp model Prisma */
+export interface NotificationSettingsDTO {
+  enabled: boolean;
+  discordWebhookUrl: string;
+  intensity: NotificationIntensity;
+  morningEnabled: boolean;
+  morningTime: string;
+  streakGuardEnabled: boolean;
+  streakGuardTime: string;
+  randomNudgeEnabled: boolean;
+  eveningEnabled: boolean;
+  eveningTime: string;
+  randomWindowStart: string;
+  randomWindowEnd: string;
+  quietStart: string;
+  quietEnd: string;
+  includeMotivation: boolean;
+  includeQuote: boolean;
+  includeTip: boolean;
+}
+
 /** Tiến độ tính ĐỘNG của một plan (lib/plan.ts) — không lưu DB */
 export interface PlanProgress {
   total: number;
