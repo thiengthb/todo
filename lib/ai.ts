@@ -6,6 +6,7 @@ import type {
   MilestoneDraft,
   PlanSuggestionItem,
   Priority,
+  QueuePullItem,
   SuggestionItem,
   SuggestionResult,
 } from '@/lib/types';
@@ -79,6 +80,11 @@ export interface SuggestContext {
   }[];
   /** thói quen hôm nay (mục 11) — thông tin, KHÔNG tính vào tải task */
   habitsToday?: { title: string; doneToday: boolean }[];
+  /**
+   * Mục tiêu trong "Ấp ủ" (mục 17) — hàng đợi chưa cam kết, đã xếp theo độ hợp quỹ giờ/sức.
+   * AI chỉ gợi lấy ra LÀM khi còn dư quỹ giờ thật sau carry_over/suggested/plan. Rỗng = không gợi.
+   */
+  incubatingGoals: { id: string; title: string; note: string | null; ageDays: number }[];
 }
 
 const SYSTEM_PROMPT = `Bạn là trợ lý lập kế hoạch cá nhân. Nhiệm vụ: từ dữ liệu thật của người dùng
@@ -141,7 +147,16 @@ Nguyên tắc bắt buộc:
    "slotStart" trùng giờ lịch cứng. TỔNG "estimatedMinutes" của mọi việc ≤ "suggestedCapacityMin".
    Dùng "slowTopics"/"fastTopics" để ước lượng thời lượng sát hơn (chủ đề hay chậm → cộng giờ). Nếu
    không chắc giờ phù hợp, để "slotStart" trống (null) — KHÔNG đoán bừa.
-16. Viết toàn bộ bằng tiếng Việt.
+17. ẤP Ủ (mục 17 — "incubatingGoals": hàng đợi mục tiêu CHƯA cam kết): CHỈ gợi lấy ra làm khi NGÀY MAI
+   THẬT SỰ CÒN DƯ quỹ giờ/sức sau khi đã xếp carry_over + suggested_tasks + plan_tasks (tổng các nhóm đó
+   vẫn ≈ avgDonePerDay và ≤ suggestedCapacityMin). Nếu ngày mai đã đầy/đang chậm/sức thấp/recovery_day →
+   trả "queue_pulls" RỖNG (đừng nhồi — ấp ủ là việc thêm khi rảnh, không phải nghĩa vụ). Khi có dư: chọn
+   1–2 mục HỢP NHẤT với quỹ giờ rảnh còn lại (việc lớn cho khe dài + sức tốt; việc nhỏ cho khe ngắn/mệt),
+   lấy "goalId" + "title" NGUYÊN VĂN từ incubatingGoals. "suggestApproach" = gợi ý CỠ: "task" nếu làm gọn
+   trong một buổi, "plan" nếu là mục tiêu nhiều bước/dài hạn (nên lập lộ trình). NẾU thấy ≥2 mục cùng CHỦ ĐỀ,
+   có thể gộp gợi ý thành một "plan" và nói rõ trong reason. reason ngắn, truy về quỹ giờ rảnh + (nếu có)
+   chủ đề. TUYỆT ĐỐI không bịa goalId ngoài danh sách. Không có incubatingGoals → "queue_pulls" rỗng.
+18. Viết toàn bộ bằng tiếng Việt.
 
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
@@ -183,6 +198,18 @@ const PLAN_ITEM_SCHEMA = {
   required: ['title', 'priority', 'reason', 'planId'],
 } as const;
 
+// gợi ý lấy mục tiêu "Ấp ủ" ra làm (mục 17) — kèm gợi ý cỡ task/plan
+const QUEUE_PULL_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    goalId: { type: 'STRING' },
+    title: { type: 'STRING' },
+    suggestApproach: { type: 'STRING', enum: ['task', 'plan'] },
+    reason: { type: 'STRING' },
+  },
+  required: ['goalId', 'title', 'suggestApproach', 'reason'],
+} as const;
+
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -190,9 +217,17 @@ const RESPONSE_SCHEMA = {
     carry_over: { type: 'ARRAY', items: ITEM_SCHEMA },
     suggested_tasks: { type: 'ARRAY', items: ITEM_SCHEMA },
     plan_tasks: { type: 'ARRAY', items: PLAN_ITEM_SCHEMA },
+    queue_pulls: { type: 'ARRAY', items: QUEUE_PULL_SCHEMA },
     recovery_day: { type: 'BOOLEAN' },
   },
-  required: ['capacity_note', 'carry_over', 'suggested_tasks', 'plan_tasks', 'recovery_day'],
+  required: [
+    'capacity_note',
+    'carry_over',
+    'suggested_tasks',
+    'plan_tasks',
+    'queue_pulls',
+    'recovery_day',
+  ],
 } as const;
 
 /** Bỏ ```json fences nếu model lỡ thêm */
@@ -284,11 +319,37 @@ function parseResult(raw: string): SuggestionResult {
       .filter((x): x is PlanSuggestionItem => x !== null);
   };
 
+  // queue_pulls (mục 17): gợi ý lấy mục tiêu Ấp ủ ra làm — server còn lọc goalId thật
+  const parseQueuePulls = (): QueuePullItem[] => {
+    const arr = obj.queue_pulls;
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((it): QueuePullItem | null => {
+        const item = it as Record<string, unknown>;
+        if (
+          typeof item?.goalId !== 'string' ||
+          typeof item?.title !== 'string' ||
+          typeof item?.reason !== 'string'
+        ) {
+          return null;
+        }
+        const approach = item.suggestApproach === 'plan' ? 'plan' : 'task';
+        return {
+          goalId: item.goalId,
+          title: item.title,
+          suggestApproach: approach,
+          reason: item.reason,
+        };
+      })
+      .filter((x): x is QueuePullItem => x !== null);
+  };
+
   return {
     capacity_note: obj.capacity_note,
     carry_over: parseItems('carry_over'),
     suggested_tasks: parseItems('suggested_tasks'),
     plan_tasks: parsePlanItems(),
+    queue_pulls: parseQueuePulls(),
     plan_alerts: [], // server điền sau (số liệu động, không để model bịa)
     recovery_day: obj.recovery_day === true,
   };
@@ -358,7 +419,7 @@ export async function suggestTomorrow(ctx: SuggestContext): Promise<SuggestionRe
 
 /** Dữ kiện THẬT (code lắp từ DB) để AI bám vào, KHÔNG tự bịa số liệu */
 export interface NotificationFacts {
-  kind: 'morning' | 'streak_guard' | 'random_nudge' | 'evening';
+  kind: 'morning' | 'streak_guard' | 'random_nudge' | 'evening' | 'queue_nudge';
   /** chuỗi giữ lửa hiện tại (ngày) */
   streakCurrent: number;
   /** chuỗi đang nguy hiểm (hôm nay chưa làm việc nào) */
@@ -378,6 +439,14 @@ export interface NotificationFacts {
   todaySchedule: string[];
   /** phút rảnh hôm nay sau lịch cứng (mục 14) */
   freeMinutesToday: number;
+  /** số mục tiêu đang trong "Ấp ủ" (mục 17) */
+  incubatingCount: number;
+  /** mục tiêu "Ấp ủ" hợp nhất để gợi lấy ra làm — null nếu không có */
+  topIncubatingGoal: string | null;
+  /** id của topIncubatingGoal (nội bộ — để đặt cooldown lastNudgedAt sau khi gửi) */
+  topIncubatingGoalId: string | null;
+  /** gợi ý cỡ cho topIncubatingGoal: "task" | "plan" — null nếu không có */
+  topIncubatingApproach: 'task' | 'plan' | null;
 }
 
 export interface ComposeNotificationInput {
@@ -416,6 +485,11 @@ Quy tắc nội dung:
    - "random_nudge": một cú hích NHẸ, thân thiện, gợi ý thử bắt tay vào một việc đang dở (dùng sampleUndone/mitTitle).
      Nếu không còn việc dở, khen ngợi và bảo cứ nghỉ ngơi.
    - "evening": đúc kết dịu dàng những gì làm được hôm nay, gợi ý ghi chú lại, không phán xét phần chưa xong.
+   - "queue_nudge": người dùng đang có quỹ giờ rảnh ("freeMinutesToday"). Gợi ý NHẸ NHÀNG dạng CƠ HỘI (KHÔNG
+     phải nghĩa vụ) rằng có thể lấy một điều đang "ấp ủ" ra làm — dùng "topIncubatingGoal" nếu có. Khung
+     "đang rảnh, thử bắt đầu một chút", TUYỆT ĐỐI không hối thúc, không kể tội việc chưa làm. Nếu
+     "topIncubatingApproach" = "plan", có thể gợi ý biến nó thành một kế hoạch nhỏ. Không có topIncubatingGoal
+     → khích lệ nhẹ ngó qua mục "Ấp ủ".
 3. "message" ngắn (≤ 3 câu), tiếng Việt tự nhiên, ấm áp, có thể dùng 0–1 emoji nhẹ nhàng (không lạm dụng).
 4. "quote": nếu include.quote = true, cho MỘT câu nói hay/danh ngôn ngắn phù hợp tinh thần (kèm tác giả nếu có).
    Nếu false → null. KHÔNG trùng với các câu trong "recentMessages".

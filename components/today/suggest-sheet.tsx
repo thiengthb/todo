@@ -10,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  Sprout,
   Target,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -25,8 +26,11 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { tomorrowStr } from '@/lib/dates';
 import { addTomorrowTask } from '@/app/actions';
-import type { Priority, SuggestionItem, SuggestionResult } from '@/lib/types';
+import { promoteGoalToTask } from '@/app/incubating/actions';
+import { CreatePlanDialog } from '@/components/plans/create-plan-dialog';
+import type { Priority, QueuePullItem, SuggestionItem, SuggestionResult } from '@/lib/types';
 
 const PRIORITY_LABEL: Record<Priority, string> = {
   high: 'cao',
@@ -133,6 +137,87 @@ function SuggestionRow({
   );
 }
 
+/** Một gợi ý lấy mục tiêu "Ấp ủ" ra làm (mục 17) — kéo thành việc hoặc nâng thành kế hoạch */
+function QueuePullRow({ item }: { item: QueuePullItem }) {
+  const [added, setAdded] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const isPlan = item.suggestApproach === 'plan';
+
+  function pullToTomorrow() {
+    startTransition(async () => {
+      await promoteGoalToTask(item.goalId, { date: tomorrowStr() });
+      setAdded(true);
+    });
+  }
+
+  const planTrigger = (variant: 'default' | 'ghost') => (
+    <CreatePlanDialog
+      goalId={item.goalId}
+      defaultTitle={item.title}
+      defaultGoal={item.title}
+      trigger={
+        <Button
+          variant={variant}
+          size="sm"
+          className={cn('gap-1', variant === 'ghost' && 'text-muted-foreground')}
+        >
+          <Target className="size-3.5" /> Kế hoạch
+        </Button>
+      }
+    />
+  );
+
+  const tomorrowBtn = (variant: 'default' | 'ghost') => (
+    <Button
+      variant={variant}
+      size="sm"
+      onClick={pullToTomorrow}
+      disabled={pending}
+      className={cn('gap-1', variant === 'ghost' && 'text-muted-foreground')}
+    >
+      {pending ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : (
+        <>
+          <Plus className="size-3.5" /> Ngày mai
+        </>
+      )}
+    </Button>
+  );
+
+  return (
+    <div className="flex items-start gap-3 border-b border-border/70 py-3 last:border-b-0">
+      <Badge variant="outline" className="mt-0.5 shrink-0 text-[11px] font-normal">
+        {isPlan ? 'kế hoạch' : 'việc'}
+      </Badge>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{item.title}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{item.reason}</p>
+      </div>
+      {added ? (
+        <Button variant="outline" size="sm" disabled className="shrink-0">
+          <Check className="size-3.5" /> Đã thêm
+        </Button>
+      ) : (
+        // nút chính theo gợi ý cỡ; nút phụ là ngõ còn lại
+        <div className="flex shrink-0 flex-col gap-1">
+          {isPlan ? (
+            <>
+              {planTrigger('default')}
+              {tomorrowBtn('ghost')}
+            </>
+          ) : (
+            <>
+              {tomorrowBtn('default')}
+              {planTrigger('ghost')}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h3 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -171,7 +256,8 @@ export function SuggestSheet() {
     result &&
     result.carry_over.length === 0 &&
     result.suggested_tasks.length === 0 &&
-    result.plan_tasks.length === 0;
+    result.plan_tasks.length === 0 &&
+    result.queue_pulls.length === 0;
 
   return (
     <Sheet
@@ -283,6 +369,20 @@ export function SuggestSheet() {
                           milestoneId: item.milestoneId,
                         }}
                       />
+                    ))}
+                  </section>
+                )}
+
+                {result.queue_pulls.length > 0 && (
+                  <section>
+                    <SectionTitle>
+                      <Sprout className="size-3" /> Từ Ấp ủ
+                    </SectionTitle>
+                    <p className="mb-1 text-[11px] text-muted-foreground">
+                      Ngày mai còn dư chỗ — lấy một điều bạn đang ấp ủ ra làm?
+                    </p>
+                    {result.queue_pulls.map((item, i) => (
+                      <QueuePullRow key={`q-${i}`} item={item} />
                     ))}
                   </section>
                 )}

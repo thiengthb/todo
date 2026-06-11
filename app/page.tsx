@@ -7,6 +7,8 @@ import { computeStreaks } from '@/lib/streak';
 import { computeVelocity } from '@/lib/velocity';
 import { computeDifficultyHints } from '@/lib/difficulty';
 import { computePlanProgress } from '@/lib/plan';
+import { computeCapacity } from '@/lib/capacity';
+import { estimateGoalSize, rankGoalsForNudge } from '@/lib/queue';
 import { habitDueOn } from '@/lib/habits';
 import type {
   CommitmentDTO,
@@ -26,6 +28,7 @@ import { TaskItem } from '@/components/today/task-item';
 import { ScheduleStrip } from '@/components/today/schedule-strip';
 import { StreakBanner } from '@/components/today/streak-banner';
 import { PlanMomentum } from '@/components/today/plan-momentum';
+import { IncubatingNudge } from '@/components/today/incubating-nudge';
 import { HabitStrip } from '@/components/today/habit-strip';
 import { FocusBar } from '@/components/today/focus-bar';
 import { DayTimeline } from '@/components/today/day-timeline';
@@ -64,6 +67,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     activePlanRows,
     habitRows,
     habitCheckRows,
+    incubatingGoalRows,
   ] = await Promise.all([
     // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
     prisma.task.findMany({
@@ -141,6 +145,8 @@ export default async function DayPage({ searchParams }: PageProps) {
           select: { habitId: true },
         })
       : Promise.resolve([]),
+    // mục tiêu "Ấp ủ" còn trong hàng đợi (mục 17) — để gợi lấy ra khi rảnh
+    isToday ? prisma.goal.findMany({ where: { status: 'incubating' } }) : Promise.resolve([]),
   ]);
 
   // dải lịch cứng của ngày đang xem (read-only) + quỹ giờ rảnh động
@@ -279,6 +285,33 @@ export default async function DayPage({ searchParams }: PageProps) {
         }))
     : [];
 
+  // Ấp ủ (mục 17): khi quỹ giờ rảnh cao & còn mục trong hàng đợi → gợi nhẹ lấy 1 điều ra làm
+  const nudgeCapacity = isToday
+    ? computeCapacity(
+        checkin
+          ? {
+              energy: checkin.energy,
+              mood: checkin.mood,
+              stress: checkin.stress,
+              sleepHours: checkin.sleepHours,
+            }
+          : null,
+      )
+    : null;
+  const rankedGoals = isToday
+    ? rankGoalsForNudge(incubatingGoalRows, capacity.slots, nudgeCapacity, today)
+    : [];
+  const topNudgeGoal =
+    rankedGoals.length > 0 && scheduleFree >= 90
+      ? {
+          id: rankedGoals[0].id,
+          title: rankedGoals[0].title,
+          approach: (estimateGoalSize(rankedGoals[0]) === 'large' ? 'plan' : 'task') as
+            | 'task'
+            | 'plan',
+        }
+      : null;
+
   // ── Timeline (mục 14): tách việc đã xếp giờ vs chưa; chọn chế độ xem ──
   const timelineTasks = dtos.filter((t) => !t.subtasks && t.scheduledFor);
   const unscheduledTasks = dtos.filter((t) => t.subtasks || !t.scheduledFor);
@@ -409,6 +442,13 @@ export default async function DayPage({ searchParams }: PageProps) {
             />
           )}
           {isToday && planMomentum.length > 0 && <PlanMomentum plans={planMomentum} />}
+          {topNudgeGoal && (
+            <IncubatingNudge
+              goal={topNudgeGoal}
+              moreCount={rankedGoals.length - 1}
+              freeMin={scheduleFree}
+            />
+          )}
           {isToday && <SuggestSheet />}
         </aside>
       </div>

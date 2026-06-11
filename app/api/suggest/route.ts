@@ -5,6 +5,7 @@ import { daysBetween, delayDays, toDateStr, todayStr, tomorrowStr } from '@/lib/
 import { computePlanProgress } from '@/lib/plan';
 import { computeDifficultyHints } from '@/lib/difficulty';
 import { computeCapacity } from '@/lib/capacity';
+import { goalAgeDays, rankGoalsForNudge } from '@/lib/queue';
 import {
   blocksForDate,
   computeFreeSlots,
@@ -57,6 +58,7 @@ export async function POST(): Promise<NextResponse> {
       scheduleSettings,
       habitRows,
       habitCheckRows,
+      incubatingGoalRows,
     ] = await Promise.all([
       prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
       // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
@@ -91,6 +93,8 @@ export async function POST(): Promise<NextResponse> {
         where: { date: today },
         select: { habitId: true },
       }),
+      // mục tiêu "Ấp ủ" còn trong hàng đợi (mục 17) — để gợi lấy ra khi rảnh
+      prisma.goal.findMany({ where: { status: 'incubating' } }),
     ]);
 
     // Lịch cứng ngày mai → quỹ giờ rảnh thật (mục 14)
@@ -191,6 +195,28 @@ export async function POST(): Promise<NextResponse> {
       };
     });
 
+    // sức/ngày suy động (mục 11) — dùng cho cả ctx lẫn xếp thứ tự mục tiêu Ấp ủ
+    const capacityScore = computeCapacity(
+      checkin
+        ? {
+            energy: checkin.energy,
+            mood: checkin.mood,
+            stress: checkin.stress,
+            sleepHours: checkin.sleepHours,
+          }
+        : null,
+    );
+
+    // Ấp ủ (mục 17): xếp theo độ hợp quỹ giờ rảnh + sức ngày mai (loại mục đang snooze); cap 8 cho gọn
+    const incubatingGoals = rankGoalsForNudge(
+      incubatingGoalRows,
+      capacity.slots,
+      capacityScore,
+      today,
+    )
+      .slice(0, 8)
+      .map((g) => ({ id: g.id, title: g.title, note: g.note, ageDays: goalAgeDays(g, today) }));
+
     const ctx: SuggestContext = {
       today,
       tomorrow,
@@ -216,16 +242,7 @@ export async function POST(): Promise<NextResponse> {
             sleepHours: checkin.sleepHours,
           }
         : null,
-      capacityScore: computeCapacity(
-        checkin
-          ? {
-              energy: checkin.energy,
-              mood: checkin.mood,
-              stress: checkin.stress,
-              sleepHours: checkin.sleepHours,
-            }
-          : null,
-      ),
+      capacityScore,
       // lịch cứng ngày mai (mục 14) → AI hiệu chỉnh khối lượng theo quỹ giờ rảnh
       tomorrowSchedule: tomorrowBlocks.map((b) => ({
         title: b.title,
@@ -242,6 +259,7 @@ export async function POST(): Promise<NextResponse> {
         endTime: b.endTime,
       })),
       habitsToday,
+      incubatingGoals,
     };
 
     const result = await suggestTomorrow(ctx);
@@ -263,6 +281,10 @@ export async function POST(): Promise<NextResponse> {
     // Chỉ giữ plan_task có planId hợp lệ (tránh model bịa id)
     const validPlanIds = new Set(plans.map((p) => p.id));
     result.plan_tasks = result.plan_tasks.filter((t) => validPlanIds.has(t.planId));
+
+    // TRUST BOUNDARY (mục 17): chỉ giữ queue_pull trỏ đúng mục tiêu còn trong hàng đợi (tránh bịa goalId)
+    const validGoalIds = new Set(incubatingGoalRows.map((g) => g.id));
+    result.queue_pulls = result.queue_pulls.filter((q) => validGoalIds.has(q.goalId));
 
     // Cảnh báo chậm: tính ĐỘNG ở server, không để model bịa số (mục 10.4)
     result.plan_alerts = plans
