@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
-import { decomposePlan, type DecomposeInput } from "@/lib/ai";
-import { daysBetween, isValidDateStr } from "@/lib/dates";
-import type { Intensity } from "@/lib/types";
+import { NextResponse } from 'next/server';
+import { decomposePlan, type DecomposeInput } from '@/lib/ai';
+import { daysBetween, isValidDateStr } from '@/lib/dates';
+import type { Intensity } from '@/lib/types';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-const INTENSITIES: readonly Intensity[] = ["nhẹ", "vừa", "dồn"];
+const INTENSITIES: readonly Intensity[] = ['nhẹ', 'vừa', 'dồn'];
 
 /** Decompose mục tiêu → roadmap milestone (mục 10.7). Không lưu DB — chỉ trả nháp để xem trước. */
 export async function POST(req: Request): Promise<NextResponse> {
@@ -22,21 +22,17 @@ export async function POST(req: Request): Promise<NextResponse> {
     const goal = body.goal?.trim();
     const { startDate, endDate } = body;
 
-    if (!title) return bad("Thiếu tiêu đề kế hoạch");
-    if (!goal) return bad("Thiếu mục tiêu kế hoạch");
-    if (!startDate || !isValidDateStr(startDate))
-      return bad("Ngày bắt đầu không hợp lệ");
-    if (!endDate || !isValidDateStr(endDate))
-      return bad("Ngày kết thúc không hợp lệ");
+    if (!title) return bad('Thiếu tiêu đề kế hoạch');
+    if (!goal) return bad('Thiếu mục tiêu kế hoạch');
+    if (!startDate || !isValidDateStr(startDate)) return bad('Ngày bắt đầu không hợp lệ');
+    if (!endDate || !isValidDateStr(endDate)) return bad('Ngày kết thúc không hợp lệ');
 
     const durationDays = daysBetween(startDate, endDate);
-    if (durationDays < 1) return bad("Ngày kết thúc phải sau ngày bắt đầu");
+    if (durationDays < 1) return bad('Ngày kết thúc phải sau ngày bắt đầu');
 
-    const intensity: Intensity = INTENSITIES.includes(
-      body.intensity as Intensity,
-    )
+    const intensity: Intensity = INTENSITIES.includes(body.intensity as Intensity)
       ? (body.intensity as Intensity)
-      : "vừa";
+      : 'vừa';
 
     const input: DecomposeInput = {
       title,
@@ -50,7 +46,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const result = await decomposePlan(input);
     return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Lỗi không xác định";
+    const message = err instanceof Error ? err.message : 'Lỗi không xác định';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

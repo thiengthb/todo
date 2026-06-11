@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { GripVertical, Loader2, Plus, Sparkles, X } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { GripVertical, Loader2, Plus, Sparkles, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,20 +12,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { InfoHint } from "@/components/info-hint";
-import { IconTooltip } from "@/components/icon-tooltip";
-import { cn } from "@/lib/utils";
-import { addDays, todayStr } from "@/lib/dates";
-import { createPlan } from "@/app/actions";
-import type { DecomposeResult, Intensity, MilestoneDraft } from "@/lib/types";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { InfoHint } from '@/components/info-hint';
+import { IconTooltip } from '@/components/icon-tooltip';
+import { cn } from '@/lib/utils';
+import { addDays, todayStr } from '@/lib/dates';
+import { createPlan } from '@/app/actions';
+import type { DecomposeResult, Intensity, MilestoneDraft } from '@/lib/types';
 
 const INTENSITIES: { value: Intensity; label: string; hint: string }[] = [
-  { value: "nhẹ", label: "Nhẹ", hint: "ít mốc, mỗi mốc nhỏ" },
-  { value: "vừa", label: "Vừa", hint: "cân bằng" },
-  { value: "dồn", label: "Dồn", hint: "nhiều mốc, dày hơn" },
+  { value: 'nhẹ', label: 'Nhẹ', hint: 'ít mốc, mỗi mốc nhỏ' },
+  { value: 'vừa', label: 'Vừa', hint: 'cân bằng' },
+  { value: 'dồn', label: 'Dồn', hint: 'nhiều mốc, dày hơn' },
 ];
 
 const DURATIONS = [14, 30, 60, 90];
@@ -34,11 +34,11 @@ export function CreatePlanDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const [title, setTitle] = useState("");
-  const [goal, setGoal] = useState("");
+  const [title, setTitle] = useState('');
+  const [goal, setGoal] = useState('');
   const [startDate, setStartDate] = useState(todayStr());
   const [duration, setDuration] = useState(30);
-  const [intensity, setIntensity] = useState<Intensity>("vừa");
+  const [intensity, setIntensity] = useState<Intensity>('vừa');
 
   const [milestones, setMilestones] = useState<MilestoneDraft[] | null>(null);
   const [decomposing, setDecomposing] = useState(false);
@@ -47,33 +47,31 @@ export function CreatePlanDialog() {
   const endDate = addDays(startDate, duration);
 
   function reset() {
-    setTitle("");
-    setGoal("");
+    setTitle('');
+    setGoal('');
     setStartDate(todayStr());
     setDuration(30);
-    setIntensity("vừa");
+    setIntensity('vừa');
     setMilestones(null);
   }
 
   async function decompose() {
     if (!title.trim() || !goal.trim()) {
-      toast.error("Cần tiêu đề và mục tiêu trước khi tạo lộ trình");
+      toast.error('Cần tiêu đề và mục tiêu trước khi tạo lộ trình');
       return;
     }
     setDecomposing(true);
     try {
-      const res = await fetch("/api/plan/decompose", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/plan/decompose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, goal, startDate, endDate, intensity }),
       });
       const data = (await res.json()) as DecomposeResult & { error?: string };
       if (!res.ok) throw new Error(data.error ?? `Lỗi ${res.status}`);
       setMilestones(data.milestones);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Không tạo được lộ trình",
-      );
+      toast.error(err instanceof Error ? err.message : 'Không tạo được lộ trình');
     } finally {
       setDecomposing(false);
     }
@@ -83,7 +81,7 @@ export function CreatePlanDialog() {
     if (!milestones) return;
     const clean = milestones.filter((m) => m.title.trim());
     if (clean.length === 0) {
-      toast.error("Cần ít nhất một cột mốc");
+      toast.error('Cần ít nhất một cột mốc');
       return;
     }
     startSave(async () => {
@@ -96,14 +94,12 @@ export function CreatePlanDialog() {
           intensity,
           milestones: clean,
         });
-        toast.success("Đã tạo kế hoạch");
+        toast.success('Đã tạo kế hoạch');
         setOpen(false);
         reset();
         router.push(`/plans/${id}`);
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Không lưu được kế hoạch",
-        );
+        toast.error(err instanceof Error ? err.message : 'Không lưu được kế hoạch');
       }
     });
   }
@@ -116,16 +112,14 @@ export function CreatePlanDialog() {
 
   function removeMilestone(i: number) {
     setMilestones((prev) =>
-      prev
-        ? prev.filter((_, j) => j !== i).map((m, j) => ({ ...m, order: j + 1 }))
-        : prev,
+      prev ? prev.filter((_, j) => j !== i).map((m, j) => ({ ...m, order: j + 1 })) : prev,
     );
   }
 
   function addMilestone() {
     setMilestones((prev) => [
       ...(prev ?? []),
-      { title: "", order: (prev?.length ?? 0) + 1, targetDate: null },
+      { title: '', order: (prev?.length ?? 0) + 1, targetDate: null },
     ]);
   }
 
@@ -146,23 +140,21 @@ export function CreatePlanDialog() {
         <DialogHeader>
           <DialogTitle>Kế hoạch mới</DialogTitle>
           <DialogDescription>
-            Đặt mục tiêu dài hạn — AI chia thành lộ trình cột mốc, mỗi ngày rót
-            việc theo tốc độ thật của bạn.
+            Đặt mục tiêu dài hạn — AI chia thành lộ trình cột mốc, mỗi ngày rót việc theo tốc độ
+            thật của bạn.
           </DialogDescription>
         </DialogHeader>
 
         <div
           className={cn(
-            "max-h-[72vh] space-y-4 overflow-y-auto pr-1",
+            'max-h-[72vh] space-y-4 overflow-y-auto pr-1',
             milestones &&
-              "sm:grid sm:grid-cols-2 sm:gap-5 sm:space-y-0 sm:overflow-visible sm:pr-0",
+              'sm:grid sm:grid-cols-2 sm:gap-5 sm:space-y-0 sm:overflow-visible sm:pr-0',
           )}
         >
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Tên kế hoạch
-              </label>
+              <label className="text-xs font-medium text-muted-foreground">Tên kế hoạch</label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -184,9 +176,7 @@ export function CreatePlanDialog() {
 
             <div className="flex flex-wrap gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Bắt đầu
-                </label>
+                <label className="text-xs font-medium text-muted-foreground">Bắt đầu</label>
                 <Input
                   type="date"
                   value={startDate}
@@ -195,16 +185,14 @@ export function CreatePlanDialog() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Kéo dài
-                </label>
+                <label className="text-xs font-medium text-muted-foreground">Kéo dài</label>
                 <div className="flex gap-1">
                   {DURATIONS.map((d) => (
                     <Button
                       key={d}
                       type="button"
                       size="sm"
-                      variant={duration === d ? "default" : "outline"}
+                      variant={duration === d ? 'default' : 'outline'}
                       onClick={() => setDuration(d)}
                     >
                       {d}d
@@ -218,13 +206,10 @@ export function CreatePlanDialog() {
               <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 Cường độ
                 <InfoHint label="Cường độ là gì?">
-                  Quyết định lộ trình dày hay thưa:{" "}
-                  <strong className="font-medium text-foreground">nhẹ</strong> =
-                  ít cột mốc, mỗi mốc nhỏ;{" "}
-                  <strong className="font-medium text-foreground">dồn</strong> =
-                  nhiều cột mốc, dày hơn;{" "}
-                  <strong className="font-medium text-foreground">vừa</strong> ở
-                  giữa.
+                  Quyết định lộ trình dày hay thưa:{' '}
+                  <strong className="font-medium text-foreground">nhẹ</strong> = ít cột mốc, mỗi mốc
+                  nhỏ; <strong className="font-medium text-foreground">dồn</strong> = nhiều cột mốc,
+                  dày hơn; <strong className="font-medium text-foreground">vừa</strong> ở giữa.
                 </InfoHint>
               </span>
               <div className="flex gap-1">
@@ -233,7 +218,7 @@ export function CreatePlanDialog() {
                     <Button
                       type="button"
                       size="sm"
-                      variant={intensity === it.value ? "default" : "outline"}
+                      variant={intensity === it.value ? 'default' : 'outline'}
                       onClick={() => setIntensity(it.value)}
                       className="flex-1"
                     >
@@ -287,11 +272,7 @@ export function CreatePlanDialog() {
 
         <div className="flex justify-end gap-2 pt-1">
           {!milestones ? (
-            <Button
-              onClick={decompose}
-              disabled={decomposing}
-              className="gap-2"
-            >
+            <Button onClick={decompose} disabled={decomposing} className="gap-2">
               {decomposing ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -305,10 +286,7 @@ export function CreatePlanDialog() {
                 variant="ghost"
                 onClick={decompose}
                 disabled={decomposing}
-                className={cn(
-                  "gap-2 text-muted-foreground",
-                  decomposing && "opacity-70",
-                )}
+                className={cn('gap-2 text-muted-foreground', decomposing && 'opacity-70')}
               >
                 {decomposing ? (
                   <Loader2 className="size-4 animate-spin" />

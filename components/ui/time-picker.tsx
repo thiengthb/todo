@@ -1,16 +1,12 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { isValidHm, minutesToHm } from "@/lib/notify/time";
+import * as React from 'react';
+import { Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { isValidHm, minutesToHm } from '@/lib/notify/time';
 
 /**
  * TimePicker dùng CHUNG toàn app (mục giao diện) — Input gõ tay + Popover các mốc giờ (mặc định 15′).
@@ -39,12 +35,12 @@ export function TimePicker({
     return out;
   }, [step]);
 
-  const invalid = value !== "" && !isValidHm(value);
+  const invalid = value !== '' && !isValidHm(value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <div className={cn("relative", className)}>
+        <div className={cn('relative', className)}>
           <Clock className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
@@ -77,8 +73,8 @@ export function TimePicker({
                   setOpen(false);
                 }}
                 className={cn(
-                  "rounded-md px-2 py-1.5 text-left text-sm tabular-nums transition-colors hover:bg-muted",
-                  value === opt && "bg-muted font-medium",
+                  'rounded-md px-2 py-1.5 text-left text-sm tabular-nums transition-colors hover:bg-muted',
+                  value === opt && 'bg-muted font-medium',
                 )}
               >
                 {opt}

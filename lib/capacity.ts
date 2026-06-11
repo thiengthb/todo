@@ -18,11 +18,7 @@ export interface DayCheckinLite {
  */
 export function computeCapacity(c: DayCheckinLite | null): number | null {
   if (!c) return null;
-  const hasAny =
-    c.energy != null ||
-    c.mood != null ||
-    c.stress != null ||
-    c.sleepHours != null;
+  const hasAny = c.energy != null || c.mood != null || c.stress != null || c.sleepHours != null;
   if (!hasAny) return null;
 
   let score = 50;

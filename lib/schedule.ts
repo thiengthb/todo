@@ -1,5 +1,5 @@
-import { hmToMinutes, minutesToHm } from "@/lib/notify/time";
-import { daysBetween, mondayOf } from "@/lib/dates";
+import { hmToMinutes, minutesToHm } from '@/lib/notify/time';
+import { daysBetween, mondayOf } from '@/lib/dates';
 import type {
   CapacityResult,
   CommitmentDTO,
@@ -8,7 +8,7 @@ import type {
   ScheduleEventDTO,
   ScheduleKind,
   SoftBlockDTO,
-} from "@/lib/types";
+} from '@/lib/types';
 
 /**
  * Lịch trình (mục 14) — tính ĐỘNG, không lưu cứng (giống delay/streak/progress).
@@ -16,14 +16,14 @@ import type {
  */
 
 export const SCHEDULE_KINDS: { value: ScheduleKind; label: string }[] = [
-  { value: "hoc", label: "Học" },
-  { value: "lam", label: "Làm" },
-  { value: "khac", label: "Khác" },
+  { value: 'hoc', label: 'Học' },
+  { value: 'lam', label: 'Làm' },
+  { value: 'khac', label: 'Khác' },
 ];
 
 /** Giờ thức mặc định 07:00–23:00 (dùng làm fallback khi chưa có ScheduleSettings) */
-export const WAKING_START = "07:00";
-export const WAKING_END = "23:00";
+export const WAKING_START = '07:00';
+export const WAKING_END = '23:00';
 
 /** 0=CN..6=T7 của một chuỗi ngày "YYYY-MM-DD" (giờ địa phương) */
 export function dayOfWeekOf(dateStr: string): number {
@@ -31,19 +31,14 @@ export function dayOfWeekOf(dateStr: string): number {
 }
 
 function toKind(k: string): ScheduleKind {
-  return k === "hoc" || k === "lam" ? k : "khac";
+  return k === 'hoc' || k === 'lam' ? k : 'khac';
 }
 
 /** "odd" | "even" của tuần chứa dateStr so với tuần mốc (tuần chứa anchor = "odd") */
-export function weekParityOf(
-  dateStr: string,
-  anchorMonday: string,
-): "odd" | "even" {
-  const weeks = Math.floor(
-    daysBetween(mondayOf(anchorMonday), mondayOf(dateStr)) / 7,
-  );
+export function weekParityOf(dateStr: string, anchorMonday: string): 'odd' | 'even' {
+  const weeks = Math.floor(daysBetween(mondayOf(anchorMonday), mondayOf(dateStr)) / 7);
   // chuẩn hoá modulo về [0,1] kể cả khi âm (ngày trước mốc)
-  return ((weeks % 2) + 2) % 2 === 0 ? "odd" : "even";
+  return ((weeks % 2) + 2) % 2 === 0 ? 'odd' : 'even';
 }
 
 /** Khối lịch lặp có hiệu lực vào ngày này không (mục 14): khoảng kỳ học + tuần chẵn/lẻ */
@@ -92,10 +87,7 @@ export function blocksForDate(
     ? []
     : commitments
         .filter(
-          (c) =>
-            c.active &&
-            c.dayOfWeek === dow &&
-            recurringApplies(c, dateStr, anchorMonday),
+          (c) => c.active && c.dayOfWeek === dow && recurringApplies(c, dateStr, anchorMonday),
         )
         .map((c) => ({
           id: c.id,
@@ -103,7 +95,7 @@ export function blocksForDate(
           startTime: c.startTime,
           endTime: c.endTime,
           kind: toKind(c.kind),
-          source: "commitment" as const,
+          source: 'commitment' as const,
         }));
 
   const fromEvents: ScheduleBlock[] = dayEvents
@@ -114,16 +106,14 @@ export function blocksForDate(
       startTime: e.startTime,
       endTime: e.endTime,
       kind: toKind(e.kind),
-      source: "event" as const,
+      source: 'event' as const,
     }));
 
   return [...fromCommitments, ...fromEvents].sort(byStart);
 }
 
 /** Gộp các khoảng [start,end) chồng nhau → danh sách rời nhau, tăng dần. Dùng chung. */
-function mergeIntervals(
-  intervals: readonly (readonly [number, number])[],
-): [number, number][] {
+function mergeIntervals(intervals: readonly (readonly [number, number])[]): [number, number][] {
   const sorted = intervals
     .filter(([s, e]) => e > s)
     .slice()
@@ -163,12 +153,7 @@ export interface ScheduleConfig {
   termAnchorMonday?: string | null; // mốc tuần để lọc parity (mục 14)
 }
 
-function pushSlot(
-  out: FreeSlot[],
-  start: number,
-  end: number,
-  minSlot: number,
-) {
+function pushSlot(out: FreeSlot[], start: number, end: number, minSlot: number) {
   const dur = end - start;
   if (dur <= 0 || dur < minSlot) return;
   out.push({
@@ -196,12 +181,7 @@ export function computeFreeSlots(
   const minSlot = Math.max(0, config?.minSlotMin ?? 0);
   const wakingMin = Math.max(0, sleep - wake);
 
-  const intervals = blocksForDate(
-    dateStr,
-    commitments,
-    events,
-    config?.termAnchorMonday,
-  )
+  const intervals = blocksForDate(dateStr, commitments, events, config?.termAnchorMonday)
     .filter((b) => b.startTime && b.endTime)
     .map((b) => {
       const s = Math.max(wake, hmToMinutes(b.startTime!) - buffer);
@@ -247,19 +227,14 @@ export function softBlocksForDate(
   const dayOff = events.some((e) => e.date === dateStr && e.cancels);
   if (dayOff) return [];
   return softBlocks
-    .filter(
-      (s) =>
-        s.active &&
-        s.dayOfWeek === dow &&
-        recurringApplies(s, dateStr, anchorMonday),
-    )
+    .filter((s) => s.active && s.dayOfWeek === dow && recurringApplies(s, dateStr, anchorMonday))
     .map((s) => ({
       id: s.id,
       title: s.title,
       startTime: s.startTime,
       endTime: s.endTime,
       kind: toKind(s.kind),
-      source: "soft" as const,
+      source: 'soft' as const,
     }))
     .sort(byStart);
 }
@@ -268,10 +243,7 @@ export function softBlocksForDate(
  * Tổng phút khung mềm GIAO với khe rảnh (mục 14) — "softLoad". Đại diện thời gian người
  * dùng đã chủ ý dành cho khung tập trung → giảm "quỹ gợi ý" của AI (không đụng quỹ cứng).
  */
-export function softLoadMinutes(
-  slots: FreeSlot[],
-  softBlocks: ScheduleBlock[],
-): number {
+export function softLoadMinutes(slots: FreeSlot[], softBlocks: ScheduleBlock[]): number {
   const soft = softBlocks
     .filter((b) => b.startTime && b.endTime)
     .map((b) => [hmToMinutes(b.startTime!), hmToMinutes(b.endTime!)] as const);
@@ -294,5 +266,5 @@ export function formatMinutes(min: number): string {
   const m = min % 60;
   if (h === 0) return `${m} phút`;
   if (m === 0) return `${h}h`;
-  return `${h}h${String(m).padStart(2, "0")}`;
+  return `${h}h${String(m).padStart(2, '0')}`;
 }

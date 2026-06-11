@@ -1,4 +1,4 @@
-import { PageHeaderSkeleton, GridSkeleton } from "@/components/skeletons";
+import { PageHeaderSkeleton, GridSkeleton } from '@/components/skeletons';
 
 /** Skeleton trang Kế hoạch — lưới thẻ plan. */
 export default function Loading() {

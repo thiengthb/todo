@@ -41,7 +41,7 @@ export async function sendDiscord(
   message: DiscordMessage,
 ): Promise<SendResult> {
   if (!webhookUrl) {
-    return { ok: false, status: 0, error: "Chưa cấu hình webhook Discord" };
+    return { ok: false, status: 0, error: 'Chưa cấu hình webhook Discord' };
   }
 
   const body: DiscordMessage = {
@@ -55,12 +55,12 @@ export async function sendDiscord(
 
   try {
     const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
+      const text = await res.text().catch(() => '');
       return {
         ok: false,
         status: res.status,
@@ -72,7 +72,7 @@ export async function sendDiscord(
     return {
       ok: false,
       status: 0,
-      error: err instanceof Error ? err.message : "Lỗi mạng khi gửi Discord",
+      error: err instanceof Error ? err.message : 'Lỗi mạng khi gửi Discord',
     };
   }
 }

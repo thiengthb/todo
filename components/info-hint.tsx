@@ -1,13 +1,9 @@
-"use client";
+'use client';
 
-import { type ReactNode } from "react";
-import { Info } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { type ReactNode } from 'react';
+import { Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 /**
  * Icon ⓘ mở Popover khi BẤM/CHẠM (mục giao diện) — thay các đoạn mô tả dài để bớt ngợp.
@@ -16,14 +12,14 @@ import { cn } from "@/lib/utils";
  */
 export function InfoHint({
   children,
-  label = "Giải thích",
+  label = 'Giải thích',
   className,
-  side = "top",
+  side = 'top',
 }: {
   children: ReactNode;
   label?: string;
   className?: string;
-  side?: "top" | "right" | "bottom" | "left";
+  side?: 'top' | 'right' | 'bottom' | 'left';
 }) {
   return (
     <Popover>
@@ -32,7 +28,7 @@ export function InfoHint({
           type="button"
           aria-label={label}
           className={cn(
-            "inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:text-foreground",
+            'inline-flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:text-foreground',
             className,
           )}
         >

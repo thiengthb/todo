@@ -1,5 +1,5 @@
-import { PageHeaderSkeleton } from "@/components/skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeaderSkeleton } from '@/components/skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Skeleton trang Lịch tuần — khối lưới giờ cao. */
 export default function Loading() {

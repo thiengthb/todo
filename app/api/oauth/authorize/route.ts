@@ -1,14 +1,14 @@
-import { oauthKey, signCode } from "@/lib/mcp/oauth";
+import { oauthKey, signCode } from '@/lib/mcp/oauth';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 function esc(s: string): string {
   return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 interface AuthParams {
@@ -22,12 +22,12 @@ interface AuthParams {
 
 function readParams(sp: URLSearchParams): AuthParams {
   return {
-    responseType: sp.get("response_type") ?? "",
-    redirectUri: sp.get("redirect_uri") ?? "",
-    codeChallenge: sp.get("code_challenge") ?? "",
-    codeChallengeMethod: sp.get("code_challenge_method") ?? "",
-    state: sp.get("state") ?? "",
-    scope: sp.get("scope") ?? "todo",
+    responseType: sp.get('response_type') ?? '',
+    redirectUri: sp.get('redirect_uri') ?? '',
+    codeChallenge: sp.get('code_challenge') ?? '',
+    codeChallengeMethod: sp.get('code_challenge_method') ?? '',
+    state: sp.get('state') ?? '',
+    scope: sp.get('scope') ?? 'todo',
   };
 }
 
@@ -35,8 +35,8 @@ function invalid(p: AuthParams, error: string): Response {
   // có redirect_uri hợp lệ → trả lỗi theo OAuth; không thì 400 thuần
   if (/^https?:\/\//.test(p.redirectUri)) {
     const u = new URL(p.redirectUri);
-    u.searchParams.set("error", error);
-    if (p.state) u.searchParams.set("state", p.state);
+    u.searchParams.set('error', error);
+    if (p.state) u.searchParams.set('state', p.state);
     return Response.redirect(u.toString(), 302);
   }
   return new Response(`OAuth error: ${error}`, { status: 400 });
@@ -52,7 +52,7 @@ function consentPage(p: AuthParams, err?: string): Response {
     scope: p.scope,
   })
     .map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`)
-    .join("");
+    .join('');
   const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Cho phép kết nối — Smart Todo MCP</title>
@@ -70,24 +70,23 @@ function consentPage(p: AuthParams, err?: string): Response {
 <form method="POST">${hidden}
 <label for="secret">MCP token</label>
 <input id="secret" name="secret" type="password" autocomplete="off" autofocus required>
-${err ? `<p class="err">${esc(err)}</p>` : ""}
+${err ? `<p class="err">${esc(err)}</p>` : ''}
 <button type="submit">Cho phép</button>
 </form></div></body></html>`;
   return new Response(html, {
     status: err ? 401 : 200,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 }
 
 export function GET(req: Request): Response {
   const p = readParams(new URL(req.url).searchParams);
   if (!process.env.MCP_AUTH_TOKEN || !oauthKey()) {
-    return new Response("OAuth chưa bật (thiếu MCP_AUTH_TOKEN)", { status: 403 });
+    return new Response('OAuth chưa bật (thiếu MCP_AUTH_TOKEN)', { status: 403 });
   }
-  if (p.responseType !== "code") return invalid(p, "unsupported_response_type");
-  if (!p.codeChallenge || p.codeChallengeMethod !== "S256")
-    return invalid(p, "invalid_request"); // bắt buộc PKCE S256
-  if (!/^https?:\/\//.test(p.redirectUri)) return invalid(p, "invalid_request");
+  if (p.responseType !== 'code') return invalid(p, 'unsupported_response_type');
+  if (!p.codeChallenge || p.codeChallengeMethod !== 'S256') return invalid(p, 'invalid_request'); // bắt buộc PKCE S256
+  if (!/^https?:\/\//.test(p.redirectUri)) return invalid(p, 'invalid_request');
   return consentPage(p);
 }
 
@@ -95,30 +94,30 @@ export async function POST(req: Request): Promise<Response> {
   const key = oauthKey();
   const consentToken = process.env.MCP_AUTH_TOKEN;
   if (!consentToken || !key) {
-    return new Response("OAuth chưa bật", { status: 403 });
+    return new Response('OAuth chưa bật', { status: 403 });
   }
   const form = await req.formData();
   const p: AuthParams = {
-    responseType: String(form.get("response_type") ?? ""),
-    redirectUri: String(form.get("redirect_uri") ?? ""),
-    codeChallenge: String(form.get("code_challenge") ?? ""),
-    codeChallengeMethod: String(form.get("code_challenge_method") ?? ""),
-    state: String(form.get("state") ?? ""),
-    scope: String(form.get("scope") ?? "todo"),
+    responseType: String(form.get('response_type') ?? ''),
+    redirectUri: String(form.get('redirect_uri') ?? ''),
+    codeChallenge: String(form.get('code_challenge') ?? ''),
+    codeChallengeMethod: String(form.get('code_challenge_method') ?? ''),
+    state: String(form.get('state') ?? ''),
+    scope: String(form.get('scope') ?? 'todo'),
   };
-  const secret = String(form.get("secret") ?? "");
+  const secret = String(form.get('secret') ?? '');
   if (secret !== consentToken) {
-    return consentPage(p, "MCP token không đúng. Thử lại.");
+    return consentPage(p, 'MCP token không đúng. Thử lại.');
   }
   if (!/^https?:\/\//.test(p.redirectUri) || !p.codeChallenge) {
-    return invalid(p, "invalid_request");
+    return invalid(p, 'invalid_request');
   }
   const code = await signCode(key, {
     codeChallenge: p.codeChallenge,
     redirectUri: p.redirectUri,
   });
   const u = new URL(p.redirectUri);
-  u.searchParams.set("code", code);
-  if (p.state) u.searchParams.set("state", p.state);
+  u.searchParams.set('code', code);
+  if (p.state) u.searchParams.set('state', p.state);
   return Response.redirect(u.toString(), 302);
 }

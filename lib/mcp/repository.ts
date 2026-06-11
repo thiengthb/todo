@@ -1,29 +1,24 @@
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { daysBetween, addDays } from "@/lib/dates";
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { daysBetween, addDays } from '@/lib/dates';
 import {
   blocksForDate,
   busyMinutes,
   computeFreeSlots,
   softBlocksForDate,
   softLoadMinutes,
-} from "@/lib/schedule";
-import { getScheduleSettings } from "@/lib/schedule-settings";
-import { computeHabitStatus } from "@/lib/habits";
-import {
-  coerceToInstant,
-  isDateOrIso,
-  localDay,
-  todayLocal,
-} from "@/lib/mcp/tz";
+} from '@/lib/schedule';
+import { getScheduleSettings } from '@/lib/schedule-settings';
+import { computeHabitStatus } from '@/lib/habits';
+import { coerceToInstant, isDateOrIso, localDay, todayLocal } from '@/lib/mcp/tz';
 import type {
   CommitmentDTO,
   Priority,
   ScheduleEventDTO,
   ScheduleKind,
   SoftBlockDTO,
-} from "@/lib/types";
-import type { Prisma } from "@prisma/client";
+} from '@/lib/types';
+import type { Prisma } from '@prisma/client';
 
 /**
  * Data layer cho MCP (mục 15) — đóng gói MỌI thao tác DB, zod-validate, tái dùng lib/*.
@@ -34,18 +29,14 @@ import type { Prisma } from "@prisma/client";
  */
 
 // ---------- enums & schema ----------
-export const PRIORITY = z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]);
-export const STATUS = z.enum(["TODO", "IN_PROGRESS", "DONE", "CANCELLED"]);
-export const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Cần dạng YYYY-MM-DD");
+export const PRIORITY = z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
+export const STATUS = z.enum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED']);
+export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Cần dạng YYYY-MM-DD');
 // KHOAN DUNG: nhận cả ngày "YYYY-MM-DD" lẫn ISO 8601 đầy đủ (coerce ở deriveFields/createProject).
-const flexibleDate = z
-  .string()
-  .refine(isDateOrIso, "Cần ngày YYYY-MM-DD hoặc thời điểm ISO 8601");
+const flexibleDate = z.string().refine(isDateOrIso, 'Cần ngày YYYY-MM-DD hoặc thời điểm ISO 8601');
 
 export const taskCreateSchema = z.object({
-  title: z.string().min(1, "Cần title"),
+  title: z.string().min(1, 'Cần title'),
   description: z.string().optional(),
   date: isoDate.optional(),
   scheduledFor: flexibleDate.optional(),
@@ -68,10 +59,10 @@ export type TaskUpdateInput = z.infer<typeof taskUpdateSchema>;
 
 // ---------- mapping helpers ----------
 const PRIORITY_TO_IMPACT: Record<string, Priority> = {
-  LOW: "low",
-  MEDIUM: "medium",
-  HIGH: "high",
-  URGENT: "high",
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  URGENT: 'high',
 };
 
 /** Suy các field DB từ input chung cho create/update (đồng bộ done/date/impact). */
@@ -80,14 +71,11 @@ function deriveFields(
 ): Prisma.TaskUncheckedCreateInput {
   const out: Record<string, unknown> = {};
   if (input.title !== undefined) out.title = input.title.trim();
-  if (input.description !== undefined)
-    out.description = input.description || null;
-  if (input.estimatedMinutes !== undefined)
-    out.estimatedMinutes = input.estimatedMinutes;
+  if (input.description !== undefined) out.description = input.description || null;
+  if (input.estimatedMinutes !== undefined) out.estimatedMinutes = input.estimatedMinutes;
   if (input.deepWork !== undefined) out.deepWork = input.deepWork;
   if (input.planId !== undefined) out.planId = input.planId || null;
-  if (input.milestoneId !== undefined)
-    out.milestoneId = input.milestoneId || null;
+  if (input.milestoneId !== undefined) out.milestoneId = input.milestoneId || null;
   if (input.dueDate !== undefined) out.dueDate = coerceToInstant(input.dueDate);
 
   // scheduledFor ⇒ đồng bộ date
@@ -108,8 +96,8 @@ function deriveFields(
   const status = input.status;
   const done = input.done;
   if (status !== undefined || done !== undefined) {
-    const isDone = status === "DONE" || done === true;
-    out.status = status ?? (isDone ? "DONE" : "TODO");
+    const isDone = status === 'DONE' || done === true;
+    out.status = status ?? (isDone ? 'DONE' : 'TODO');
     out.done = isDone;
     out.completedAt = isDone ? new Date() : null;
   }
@@ -138,7 +126,7 @@ export function serializeTask(t: TaskWithRel) {
     id: t.id,
     title: t.title,
     description: t.description,
-    status: t.status ?? (t.done ? "DONE" : "TODO"),
+    status: t.status ?? (t.done ? 'DONE' : 'TODO'),
     done: t.done,
     priority: t.priority,
     impact: t.impact,
@@ -164,7 +152,7 @@ export async function createTask(raw: unknown) {
   const base = deriveFields(input);
   if (base.date === undefined) base.date = todayLocal(); // luôn có date cho UI app
   if (base.status === undefined) {
-    base.status = "TODO";
+    base.status = 'TODO';
     base.done = false;
   }
   const task = await prisma.task.create({
@@ -199,7 +187,7 @@ export async function getTask(id: string) {
 export async function completeTask(id: string) {
   const task = await prisma.task.update({
     where: { id },
-    data: { done: true, completedAt: new Date(), status: "DONE" },
+    data: { done: true, completedAt: new Date(), status: 'DONE' },
     include: INCLUDE,
   });
   return serializeTask(task);
@@ -218,7 +206,7 @@ export async function bulkCreateTasks(rawList: unknown) {
       const base = deriveFields(input);
       if (base.date === undefined) base.date = todayLocal();
       if (base.status === undefined) {
-        base.status = "TODO";
+        base.status = 'TODO';
         base.done = false;
       }
       return prisma.task.create({
@@ -258,7 +246,7 @@ export async function listTasks(raw: unknown) {
   const tasks = await prisma.task.findMany({
     where,
     include: INCLUDE,
-    orderBy: [{ date: "asc" }, { scheduledFor: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ date: 'asc' }, { scheduledFor: 'asc' }, { createdAt: 'asc' }],
     take: f.limit ?? 100,
   });
   return tasks.map(serializeTask);
@@ -322,7 +310,7 @@ export const rangeSchema = z.object({ from: isoDate, to: isoDate.optional() });
 function normalizeRange(raw: unknown): { from: string; to: string } {
   const { from, to } = rangeSchema.parse(raw);
   const end = to ?? from;
-  if (from > end) throw new Error("`from` phải ≤ `to` (định dạng YYYY-MM-DD).");
+  if (from > end) throw new Error('`from` phải ≤ `to` (định dạng YYYY-MM-DD).');
   return { from, to: end };
 }
 
@@ -336,7 +324,7 @@ export async function getScheduleRange(raw: unknown) {
   const tasks = await prisma.task.findMany({
     where: { date: { gte: from, lte: to } },
     include: INCLUDE,
-    orderBy: [{ date: "asc" }, { scheduledFor: "asc" }],
+    orderBy: [{ date: 'asc' }, { scheduledFor: 'asc' }],
   });
   const days = [];
   for (const date of eachDay(from, to)) {
@@ -373,27 +361,14 @@ export async function getWorkloadSummary(raw: unknown) {
   const days = [];
   for (const date of eachDay(from, to)) {
     const dayTasks = tasks.filter((t) => t.date === date);
-    const blocks = blocksForDate(
-      date,
-      commitments,
-      events,
-      settings.termAnchorMonday,
-    );
+    const blocks = blocksForDate(date, commitments, events, settings.termAnchorMonday);
     const cap = computeFreeSlots(date, commitments, events, config);
-    const softToday = softBlocksForDate(
-      date,
-      softBlocks,
-      events,
-      settings.termAnchorMonday,
-    );
+    const softToday = softBlocksForDate(date, softBlocks, events, settings.termAnchorMonday);
     const softLoad = softLoadMinutes(cap.slots, softToday);
     days.push({
       date,
       taskCount: dayTasks.length,
-      totalEstimatedMinutes: dayTasks.reduce(
-        (s, t) => s + (t.estimatedMinutes ?? 0),
-        0,
-      ),
+      totalEstimatedMinutes: dayTasks.reduce((s, t) => s + (t.estimatedMinutes ?? 0), 0),
       committedMinutes: busyMinutes(blocks), // lịch cứng (học/làm), không kể buffer
       freeMinutes: cap.capacityMin, // quỹ rảnh thật theo ScheduleSettings (đã trừ buffer)
       softLoadMinutes: softLoad, // thời gian đã chủ ý dành cho khung mềm
@@ -410,7 +385,7 @@ export async function listHabits() {
   const habits = await prisma.habit.findMany({
     where: { active: true },
     include: { checks: { select: { date: true } } },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: 'asc' },
   });
   return habits.map((h) => {
     const status = computeHabitStatus(

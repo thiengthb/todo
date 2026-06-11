@@ -1,6 +1,6 @@
-import { type ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { InfoHint } from "@/components/info-hint";
+import { type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import { InfoHint } from '@/components/info-hint';
 
 /**
  * Field dùng chung cho MỌI form (mục giao diện): nhãn + control + hint/info.
@@ -23,19 +23,15 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div className={cn('flex flex-col gap-1.5', className)}>
       <span className="flex items-center gap-1 text-xs text-muted-foreground">
         {label}
         {info && (
-          <InfoHint label={typeof label === "string" ? label : "Giải thích"}>
-            {info}
-          </InfoHint>
+          <InfoHint label={typeof label === 'string' ? label : 'Giải thích'}>{info}</InfoHint>
         )}
       </span>
       {children}
-      {hint && (
-        <span className="text-[11px] text-muted-foreground/80">{hint}</span>
-      )}
+      {hint && <span className="text-[11px] text-muted-foreground/80">{hint}</span>}
     </div>
   );
 }

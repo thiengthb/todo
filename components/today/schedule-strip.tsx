@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { CalendarDays, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { ScheduleBlock, ScheduleKind } from "@/lib/types";
+import Link from 'next/link';
+import { CalendarDays, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { ScheduleBlock, ScheduleKind } from '@/lib/types';
 
 const KIND_BORDER: Record<ScheduleKind, string> = {
-  hoc: "border-l-sky-400/70",
-  lam: "border-l-violet-400/70",
-  khac: "border-l-border",
+  hoc: 'border-l-sky-400/70',
+  lam: 'border-l-violet-400/70',
+  khac: 'border-l-border',
 };
 
 /**
@@ -34,15 +34,13 @@ export function ScheduleStrip({ blocks }: { blocks: ScheduleBlock[] }) {
           <span
             key={`${b.source}-${b.id}`}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border border-l-2 border-border/60 bg-muted/40 px-2 py-1 text-xs",
+              'inline-flex items-center gap-1.5 rounded-md border border-l-2 border-border/60 bg-muted/40 px-2 py-1 text-xs',
               KIND_BORDER[b.kind],
             )}
           >
             <Clock className="size-3 shrink-0 text-muted-foreground" />
             <span className="text-muted-foreground tabular-nums">
-              {b.startTime && b.endTime
-                ? `${b.startTime}–${b.endTime}`
-                : "Cả ngày"}
+              {b.startTime && b.endTime ? `${b.startTime}–${b.endTime}` : 'Cả ngày'}
             </span>
             <span className="font-medium">{b.title}</span>
           </span>

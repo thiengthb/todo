@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useRef, useState, useTransition } from "react";
-import { Plus } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
-import { InfoHint } from "@/components/info-hint";
-import { saveNote } from "@/app/actions";
+import { useRef, useState, useTransition } from 'react';
+import { Plus } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { InfoHint } from '@/components/info-hint';
+import { saveNote } from '@/app/actions';
 
 /**
  * Ghi chú cuối ngày (mục giao diện, đại tu 2026-06) — progressive disclosure: khi chưa có ghi chú
@@ -12,7 +12,7 @@ import { saveNote } from "@/app/actions";
  */
 export function NoteBox({ initialNote }: { initialNote: string }) {
   const [note, setNote] = useState(initialNote);
-  const [open, setOpen] = useState(initialNote.trim() !== "");
+  const [open, setOpen] = useState(initialNote.trim() !== '');
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const lastSaved = useRef(initialNote);
@@ -42,21 +42,17 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
   return (
     <div>
       <div className="mb-2 flex items-center gap-1.5">
-        <label
-          htmlFor="daily-note"
-          className="text-sm font-medium text-foreground"
-        >
+        <label htmlFor="daily-note" className="text-sm font-medium text-foreground">
           Hôm nay của bạn thế nào?
         </label>
         <InfoHint label="Ghi chú để làm gì?">
-          Tùy chọn. AI sẽ đọc ghi chú này khi đề xuất việc cho ngày mai — cứ
-          viết tự nhiên.
+          Tùy chọn. AI sẽ đọc ghi chú này khi đề xuất việc cho ngày mai — cứ viết tự nhiên.
         </InfoHint>
       </div>
       <Textarea
         id="daily-note"
         value={note}
-        autoFocus={initialNote.trim() === ""}
+        autoFocus={initialNote.trim() === ''}
         onChange={(e) => setNote(e.target.value)}
         onBlur={persist}
         placeholder="VD: chiều nay hơi đuối vì họp nhiều, nhưng xong được việc khó nhất..."
@@ -64,11 +60,7 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
         className="resize-none border-border/70 shadow-none"
       />
       <p className="mt-1.5 h-4 text-xs text-muted-foreground">
-        {pending
-          ? "Đang lưu..."
-          : savedAt
-            ? "Đã lưu ✓"
-            : "Tự lưu khi rời ô nhập"}
+        {pending ? 'Đang lưu...' : savedAt ? 'Đã lưu ✓' : 'Tự lưu khi rời ô nhập'}
       </p>
     </div>
   );

@@ -1,17 +1,13 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { formatMinutes } from "@/lib/schedule";
-import { hmToMinutes } from "@/lib/notify/time";
-import { scheduleTaskAt } from "@/app/actions";
-import type { FreeSlot } from "@/lib/types";
+import { useState, useTransition } from 'react';
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { formatMinutes } from '@/lib/schedule';
+import { hmToMinutes } from '@/lib/notify/time';
+import { scheduleTaskAt } from '@/app/actions';
+import type { FreeSlot } from '@/lib/types';
 
 /**
  * Primitive xếp một việc vào khe giờ (mục 14) — Popover liệt kê khe rảnh 1-chạm.
@@ -32,7 +28,7 @@ export function SlotPicker({
   hasSlot?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [manual, setManual] = useState("");
+  const [manual, setManual] = useState('');
   const [, startTransition] = useTransition();
 
   function pick(hm: string | null) {
@@ -44,9 +40,7 @@ export function SlotPicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent align="end" className="w-60 p-1.5">
-        <p className="mb-1.5 px-1 text-xs text-muted-foreground">
-          Xếp vào khe trống
-        </p>
+        <p className="mb-1.5 px-1 text-xs text-muted-foreground">Xếp vào khe trống</p>
         <div className="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
           {freeSlots.length === 0 && (
             <p className="px-1 py-2 text-xs text-muted-foreground/70">
@@ -54,8 +48,7 @@ export function SlotPicker({
             </p>
           )}
           {freeSlots.map((s) => {
-            const tooShort =
-              estimatedMinutes != null && s.durationMin < estimatedMinutes;
+            const tooShort = estimatedMinutes != null && s.durationMin < estimatedMinutes;
             return (
               <button
                 key={s.start}
@@ -63,10 +56,8 @@ export function SlotPicker({
                 disabled={tooShort}
                 onClick={() => pick(s.start)}
                 className={cn(
-                  "flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-                  tooShort
-                    ? "cursor-not-allowed text-muted-foreground/40"
-                    : "hover:bg-muted",
+                  'flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors',
+                  tooShort ? 'cursor-not-allowed text-muted-foreground/40' : 'hover:bg-muted',
                 )}
               >
                 <span className="tabular-nums">
@@ -74,7 +65,7 @@ export function SlotPicker({
                 </span>
                 <span className="text-[11px] text-muted-foreground">
                   rảnh {formatMinutes(s.durationMin)}
-                  {tooShort && " · ngắn"}
+                  {tooShort && ' · ngắn'}
                 </span>
               </button>
             );

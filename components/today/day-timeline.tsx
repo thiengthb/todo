@@ -1,26 +1,21 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useTransition } from "react";
-import { Brain, Check, Clock, Lock, Move, Star } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { hmToMinutes, minutesToHm } from "@/lib/notify/time";
-import { toggleTask } from "@/app/actions";
-import { SlotPicker } from "@/components/today/slot-picker";
-import { EmptyState } from "@/components/empty-state";
-import type {
-  FreeSlot,
-  ScheduleBlock,
-  ScheduleKind,
-  TaskDTO,
-} from "@/lib/types";
+import { useEffect, useState, useTransition } from 'react';
+import { Brain, Check, Clock, Lock, Move, Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { hmToMinutes, minutesToHm } from '@/lib/notify/time';
+import { toggleTask } from '@/app/actions';
+import { SlotPicker } from '@/components/today/slot-picker';
+import { EmptyState } from '@/components/empty-state';
+import type { FreeSlot, ScheduleBlock, ScheduleKind, TaskDTO } from '@/lib/types';
 
 const PX_PER_MIN = 0.75;
 const MIN_CARD_MIN = 36; // chiều cao tối thiểu một thẻ (≈ tap target)
 
 const KIND_BORDER: Record<ScheduleKind, string> = {
-  hoc: "border-l-sky-400/70",
-  lam: "border-l-violet-400/70",
-  khac: "border-l-border",
+  hoc: 'border-l-sky-400/70',
+  lam: 'border-l-violet-400/70',
+  khac: 'border-l-border',
 };
 
 /**
@@ -86,7 +81,7 @@ export function DayTimeline({
           style={{ top: top(h * 60) }}
         >
           <span className="-mt-2 w-9 shrink-0 text-[10px] text-muted-foreground/70 tabular-nums">
-            {String(h).padStart(2, "0")}:00
+            {String(h).padStart(2, '0')}:00
           </span>
           <div className="mt-0 h-px flex-1 bg-border/40" />
         </div>
@@ -102,9 +97,7 @@ export function DayTimeline({
             className="absolute right-0 left-10 rounded-md bg-muted/20"
             style={{ top: t, height: h }}
           >
-            <span className="px-2 py-0.5 text-[10px] text-muted-foreground/50">
-              rảnh
-            </span>
+            <span className="px-2 py-0.5 text-[10px] text-muted-foreground/50">rảnh</span>
           </div>
         );
       })}
@@ -118,15 +111,15 @@ export function DayTimeline({
             18,
             (hmToMinutes(b.endTime!) - hmToMinutes(b.startTime!)) * PX_PER_MIN,
           );
-          const soft = b.source === "soft";
+          const soft = b.source === 'soft';
           return (
             <div
               key={`${b.source}-${b.id}`}
               className={cn(
-                "absolute right-0 left-10 overflow-hidden rounded-md border border-l-2 px-2 py-1",
+                'absolute right-0 left-10 overflow-hidden rounded-md border border-l-2 px-2 py-1',
                 soft
-                  ? "border-dashed border-border/60 bg-transparent"
-                  : "border-border/60 bg-muted/50",
+                  ? 'border-dashed border-border/60 bg-transparent'
+                  : 'border-border/60 bg-muted/50',
                 KIND_BORDER[b.kind],
               )}
               style={{ top: t, height: h }}
@@ -190,20 +183,20 @@ function ScheduledCard({
   return (
     <div
       className={cn(
-        "group absolute right-0 left-10 z-[5] flex items-start gap-1.5 overflow-hidden rounded-md border bg-background px-2 py-1 shadow-sm transition-colors",
-        task.done ? "border-border/70" : "border-foreground/30",
+        'group absolute right-0 left-10 z-[5] flex items-start gap-1.5 overflow-hidden rounded-md border bg-background px-2 py-1 shadow-sm transition-colors',
+        task.done ? 'border-border/70' : 'border-foreground/30',
       )}
       style={{ top, height: h }}
     >
       <button
         type="button"
-        aria-label={task.done ? "Đánh dấu chưa xong" : "Đánh dấu đã xong"}
+        aria-label={task.done ? 'Đánh dấu chưa xong' : 'Đánh dấu đã xong'}
         onClick={() => startTransition(() => toggleTask(task.id, !task.done))}
         className={cn(
-          "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors",
+          'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors',
           task.done
-            ? "border-foreground bg-foreground text-background"
-            : "border-muted-foreground/50 hover:border-foreground",
+            ? 'border-foreground bg-foreground text-background'
+            : 'border-muted-foreground/50 hover:border-foreground',
         )}
       >
         {task.done && <Check className="size-2.5" strokeWidth={3} />}
@@ -214,22 +207,16 @@ function ScheduledCard({
         freeSlots={freeSlots}
         hasSlot
         trigger={
-          <button
-            type="button"
-            className="min-w-0 flex-1 text-left"
-            aria-label="Đổi giờ"
-          >
+          <button type="button" className="min-w-0 flex-1 text-left" aria-label="Đổi giờ">
             <span className="flex items-center gap-1">
               {isMit && !task.done && (
                 <Star className="size-3 shrink-0 fill-amber-400 text-amber-500" />
               )}
-              {task.deepWork && (
-                <Brain className="size-3 shrink-0 text-muted-foreground" />
-              )}
+              {task.deepWork && <Brain className="size-3 shrink-0 text-muted-foreground" />}
               <span
                 className={cn(
-                  "truncate text-xs font-medium",
-                  task.done && "text-muted-foreground line-through",
+                  'truncate text-xs font-medium',
+                  task.done && 'text-muted-foreground line-through',
                 )}
               >
                 {task.title}
@@ -238,7 +225,7 @@ function ScheduledCard({
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground tabular-nums">
               <Clock className="size-2.5" />
               {task.scheduledFor}
-              {task.estimatedMinutes ? ` · ${task.estimatedMinutes}′` : ""}
+              {task.estimatedMinutes ? ` · ${task.estimatedMinutes}′` : ''}
             </span>
           </button>
         }

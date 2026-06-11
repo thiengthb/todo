@@ -1,27 +1,17 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
-import { Loader2, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
-import { EmptyState } from "@/components/empty-state";
-import { InfoHint } from "@/components/info-hint";
-import { weekdayShortVN } from "@/lib/dates";
-import {
-  addHabit,
-  deleteHabit,
-  setHabitActive,
-  updateHabit,
-} from "@/app/habits/actions";
+import { useState, useTransition } from 'react';
+import { Loader2, Pencil, Plus, Repeat, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/empty-state';
+import { InfoHint } from '@/components/info-hint';
+import { weekdayShortVN } from '@/lib/dates';
+import { addHabit, deleteHabit, setHabitActive, updateHabit } from '@/app/habits/actions';
 
 export interface HabitRow {
   id: string;
@@ -34,15 +24,15 @@ export interface HabitRow {
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 function daysLabel(csv: string | null): string {
-  if (!csv) return "Hằng ngày";
-  const set = new Set(csv.split(",").map(Number));
+  if (!csv) return 'Hằng ngày';
+  const set = new Set(csv.split(',').map(Number));
   return WEEK_ORDER.filter((d) => set.has(d))
     .map((d) => weekdayShortVN(d))
-    .join(" · ");
+    .join(' · ');
 }
 
 export function HabitManager({ habits }: { habits: HabitRow[] }) {
-  const [editing, setEditing] = useState<HabitRow | "new" | null>(null);
+  const [editing, setEditing] = useState<HabitRow | 'new' | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -52,16 +42,14 @@ export function HabitManager({ habits }: { habits: HabitRow[] }) {
         <Repeat className="size-4 text-muted-foreground" />
         Thói quen
         {habits.length > 0 && (
-          <span className="font-normal text-muted-foreground">
-            ({habits.length})
-          </span>
+          <span className="font-normal text-muted-foreground">({habits.length})</span>
         )}
         <InfoHint label="Thói quen là gì?">
-          Hành vi lặp lại bạn muốn duy trì (uống nước, thiền…). Tick 1 chạm mỗi
-          ngày. Không điểm số — chỉ phản chiếu chuỗi để bạn thấy đà.
+          Hành vi lặp lại bạn muốn duy trì (uống nước, thiền…). Tick 1 chạm mỗi ngày. Không điểm số
+          — chỉ phản chiếu chuỗi để bạn thấy đà.
         </InfoHint>
       </h2>
-      <Button variant="outline" size="sm" onClick={() => setEditing("new")}>
+      <Button variant="outline" size="sm" onClick={() => setEditing('new')}>
         <Plus /> Thêm thói quen
       </Button>
     </div>
@@ -83,9 +71,9 @@ export function HabitManager({ habits }: { habits: HabitRow[] }) {
             <div
               key={h.id}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
-                i < habits.length - 1 && "border-b border-border/70",
-                !h.active && "opacity-50",
+                'flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40',
+                i < habits.length - 1 && 'border-b border-border/70',
+                !h.active && 'opacity-50',
               )}
             >
               <span className="min-w-0 flex-1 truncate text-sm">{h.title}</span>
@@ -124,7 +112,7 @@ export function HabitManager({ habits }: { habits: HabitRow[] }) {
                   setPendingId(h.id);
                   startTransition(async () => {
                     await deleteHabit(h.id);
-                    toast.success("Đã xoá thói quen");
+                    toast.success('Đã xoá thói quen');
                     setPendingId(null);
                   });
                 }}
@@ -137,15 +125,12 @@ export function HabitManager({ habits }: { habits: HabitRow[] }) {
         </div>
       )}
 
-      <Dialog
-        open={editing !== null}
-        onOpenChange={(o) => !o && setEditing(null)}
-      >
+      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
           {editing && (
             <HabitForm
-              key={editing === "new" ? "new" : editing.id}
-              initial={editing === "new" ? null : editing}
+              key={editing === 'new' ? 'new' : editing.id}
+              initial={editing === 'new' ? null : editing}
               onClose={() => setEditing(null)}
             />
           )}
@@ -155,18 +140,10 @@ export function HabitManager({ habits }: { habits: HabitRow[] }) {
   );
 }
 
-function HabitForm({
-  initial,
-  onClose,
-}: {
-  initial: HabitRow | null;
-  onClose: () => void;
-}) {
-  const [title, setTitle] = useState(initial?.title ?? "");
+function HabitForm({ initial, onClose }: { initial: HabitRow | null; onClose: () => void }) {
+  const [title, setTitle] = useState(initial?.title ?? '');
   const [days, setDays] = useState<Set<number>>(
-    new Set(
-      initial?.daysOfWeek ? initial.daysOfWeek.split(",").map(Number) : [],
-    ),
+    new Set(initial?.daysOfWeek ? initial.daysOfWeek.split(',').map(Number) : []),
   );
   const [saving, startSave] = useTransition();
 
@@ -180,17 +157,16 @@ function HabitForm({
   }
 
   function submit() {
-    const csv =
-      days.size === 0 ? null : WEEK_ORDER.filter((d) => days.has(d)).join(",");
+    const csv = days.size === 0 ? null : WEEK_ORDER.filter((d) => days.has(d)).join(',');
     startSave(async () => {
       const res = initial
         ? await updateHabit(initial.id, { title, daysOfWeek: csv })
         : await addHabit({ title, daysOfWeek: csv });
       if (res.ok) {
-        toast.success(initial ? "Đã cập nhật" : "Đã thêm");
+        toast.success(initial ? 'Đã cập nhật' : 'Đã thêm');
         onClose();
       } else {
-        toast.error(res.error ?? "Không lưu được");
+        toast.error(res.error ?? 'Không lưu được');
       }
     });
   }
@@ -198,15 +174,11 @@ function HabitForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>
-          {initial ? "Sửa thói quen" : "Thêm thói quen"}
-        </DialogTitle>
+        <DialogTitle>{initial ? 'Sửa thói quen' : 'Thêm thói quen'}</DialogTitle>
       </DialogHeader>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            Tên thói quen
-          </label>
+          <label className="text-xs font-medium text-muted-foreground">Tên thói quen</label>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -216,8 +188,7 @@ function HabitForm({
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">
-            Ngày trong tuần{" "}
-            <span className="font-normal">(bỏ trống = hằng ngày)</span>
+            Ngày trong tuần <span className="font-normal">(bỏ trống = hằng ngày)</span>
           </label>
           <div className="flex flex-wrap gap-1">
             {WEEK_ORDER.map((d) => (
@@ -225,7 +196,7 @@ function HabitForm({
                 key={d}
                 type="button"
                 size="sm"
-                variant={days.has(d) ? "default" : "outline"}
+                variant={days.has(d) ? 'default' : 'outline'}
                 onClick={() => toggleDay(d)}
               >
                 {weekdayShortVN(d)}
@@ -240,7 +211,7 @@ function HabitForm({
         </Button>
         <Button onClick={submit} disabled={saving}>
           {saving && <Loader2 className="animate-spin" />}
-          {initial ? "Lưu" : "Thêm"}
+          {initial ? 'Lưu' : 'Thêm'}
         </Button>
       </div>
     </>

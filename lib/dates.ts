@@ -1,8 +1,8 @@
 /** Định dạng Date → "YYYY-MM-DD" theo giờ địa phương (không dùng UTC để khỏi lệch ngày) */
 export function toDateStr(d: Date): string {
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -34,10 +34,10 @@ export function delayDays(task: { carriedFrom: string | null; createdAt: Date })
 
 /** "Thứ Bảy, 7 tháng 6" — hiển thị tiêu đề ngày */
 export function formatDateVN(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("vi-VN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
   });
 }
 
@@ -51,19 +51,19 @@ export function addDays(dateStr: string, n: number): string {
 /** Nhãn thân thiện: Hôm nay / Ngày mai / Hôm qua / thứ trong tuần */
 export function dayLabel(dateStr: string): string {
   const diff = daysBetween(todayStr(), dateStr);
-  if (diff === 0) return "Hôm nay";
-  if (diff === 1) return "Ngày mai";
-  if (diff === -1) return "Hôm qua";
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("vi-VN", {
-    weekday: "long",
+  if (diff === 0) return 'Hôm nay';
+  if (diff === 1) return 'Ngày mai';
+  if (diff === -1) return 'Hôm qua';
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('vi-VN', {
+    weekday: 'long',
   });
 }
 
 /** "06/06" — dạng ngắn cho dòng timeline */
 export function formatDateShort(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
   });
 }
 
@@ -72,7 +72,7 @@ export function isValidDateStr(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(`${s}T00:00:00`).getTime());
 }
 
-const WEEKDAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 /** Nhãn thứ ngắn tiếng Việt: CN, T2..T7 */
 export function weekdayShortVN(dayOfWeek: number): string {

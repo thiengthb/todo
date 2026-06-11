@@ -1,7 +1,7 @@
-import { getOrigin, jsonCors, CORS_HEADERS } from "@/lib/mcp/oauth";
+import { getOrigin, jsonCors, CORS_HEADERS } from '@/lib/mcp/oauth';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // RFC 9728 — Protected Resource Metadata: chỉ ra Authorization Server cho /api/mcp
 export function GET(req: Request): Response {
@@ -9,7 +9,7 @@ export function GET(req: Request): Response {
   return jsonCors({
     resource: `${o}/api/mcp`,
     authorization_servers: [o],
-    bearer_methods_supported: ["header"],
+    bearer_methods_supported: ['header'],
   });
 }
 

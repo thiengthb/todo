@@ -1,22 +1,17 @@
-"use server";
+'use server';
 
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { addDays, isValidDateStr, todayStr, tomorrowStr } from "@/lib/dates";
-import { isValidHm } from "@/lib/notify/time";
-import type {
-  Emotion,
-  Intensity,
-  MilestoneDraft,
-  PlanStatus,
-} from "@/lib/types";
+import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/db';
+import { addDays, isValidDateStr, todayStr, tomorrowStr } from '@/lib/dates';
+import { isValidHm } from '@/lib/notify/time';
+import type { Emotion, Intensity, MilestoneDraft, PlanStatus } from '@/lib/types';
 
 export async function addTask(title: string, date?: string): Promise<void> {
   const t = title.trim();
   if (!t) return;
   const d = date && isValidDateStr(date) ? date : todayStr();
   await prisma.task.create({ data: { title: t, date: d } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 export async function toggleTask(id: string, done: boolean): Promise<void> {
@@ -30,7 +25,7 @@ export async function toggleTask(id: string, done: boolean): Promise<void> {
     },
   });
   // "layout" để chip streak trên thanh menu (render ở root layout) cập nhật theo
-  revalidatePath("/", "layout");
+  revalidatePath('/', 'layout');
 }
 
 export async function setEmotion(id: string, emotion: Emotion): Promise<void> {
@@ -42,73 +37,58 @@ export async function setEmotion(id: string, emotion: Emotion): Promise<void> {
     // chạm lại cảm xúc đang chọn = bỏ chọn
     data: { emotion: task.emotion === emotion ? null : emotion },
   });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 export async function deleteTask(id: string): Promise<void> {
   await prisma.task.delete({ where: { id } });
   // xoá task done có thể làm đứt streak → revalidate cả layout cho chip trên menu
-  revalidatePath("/", "layout");
+  revalidatePath('/', 'layout');
 }
 
 /** Đặt/xoá gợi ý "khi nào/ở đâu" (implementation intention, mục 11) */
 export async function setCue(id: string, cue: string): Promise<void> {
   const c = cue.trim();
   await prisma.task.update({ where: { id }, data: { cue: c || null } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 /** Đặt mức tác động 80/20 (mục 11). null = bỏ đánh dấu. */
 export async function setImpact(
   id: string,
-  impact: "high" | "medium" | "low" | null,
+  impact: 'high' | 'medium' | 'low' | null,
 ): Promise<void> {
   await prisma.task.update({ where: { id }, data: { impact } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
-export type SlipReason =
-  | "tired"
-  | "too_hard"
-  | "no_time"
-  | "unclear"
-  | "deprioritized";
+export type SlipReason = 'tired' | 'too_hard' | 'no_time' | 'unclear' | 'deprioritized';
 
 /** Ghi lý do trượt 1 chạm (mục 11) — AI học để chia nhỏ / giảm tải. null = bỏ. */
-export async function setSlipReason(
-  id: string,
-  reason: SlipReason | null,
-): Promise<void> {
+export async function setSlipReason(id: string, reason: SlipReason | null): Promise<void> {
   await prisma.task.update({ where: { id }, data: { slipReason: reason } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 /** Ước lượng thời lượng (phút) — null = bỏ. AI dùng để khớp khe giờ + tính quá tải (mục 14). */
-export async function setEstimate(
-  id: string,
-  minutes: number | null,
-): Promise<void> {
-  const m =
-    minutes != null && minutes > 0 ? Math.min(600, Math.round(minutes)) : null;
+export async function setEstimate(id: string, minutes: number | null): Promise<void> {
+  const m = minutes != null && minutes > 0 ? Math.min(600, Math.round(minutes)) : null;
   await prisma.task.update({ where: { id }, data: { estimatedMinutes: m } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 /** Cờ "việc cần tập trung sâu" → AI ưu tiên khe sáng (mục 14). */
 export async function setDeepWork(id: string, value: boolean): Promise<void> {
   await prisma.task.update({ where: { id }, data: { deepWork: value } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
-export type ActualBucket = "faster" | "asExpected" | "slower";
+export type ActualBucket = 'faster' | 'asExpected' | 'slower';
 
 /** Phản hồi thời lượng 1-chạm khi xong (mục 14) — AI hiệu chỉnh ước lượng. null = bỏ. */
-export async function setActualBucket(
-  id: string,
-  bucket: ActualBucket | null,
-): Promise<void> {
+export async function setActualBucket(id: string, bucket: ActualBucket | null): Promise<void> {
   await prisma.task.update({ where: { id }, data: { actualBucket: bucket } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 /**
@@ -140,7 +120,7 @@ export async function addTomorrowTask(
   if (isCarryOver) {
     const origin = await prisma.task.findFirst({
       where: { title: t, done: false, date: { lte: todayStr() } },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
     });
     if (origin) carriedFrom = origin.carriedFrom ?? origin.date;
   }
@@ -186,23 +166,19 @@ export async function addTomorrowTask(
       })),
     });
   }
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 /** Xếp một việc đã có vào khe giờ (mục 14): set scheduledFor theo `date` của task. null = bỏ giờ. */
-export async function scheduleTaskAt(
-  id: string,
-  hm: string | null,
-): Promise<void> {
+export async function scheduleTaskAt(id: string, hm: string | null): Promise<void> {
   const task = await prisma.task.findUnique({
     where: { id },
     select: { date: true },
   });
   if (!task) return;
-  const scheduledFor =
-    hm && isValidHm(hm) ? new Date(`${task.date}T${hm}:00`) : null;
+  const scheduledFor = hm && isValidHm(hm) ? new Date(`${task.date}T${hm}:00`) : null;
   await prisma.task.update({ where: { id }, data: { scheduledFor } });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 /** Check-in Personal OS (mục 11) — tất cả tùy chọn; null xoá field đó. Upsert theo ngày hôm nay. */
@@ -224,7 +200,7 @@ export async function upsertCheckin(input: {
     create: { date, ...data },
     update: data,
   });
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 export async function saveNote(note: string): Promise<void> {
@@ -240,7 +216,7 @@ export async function saveNote(note: string): Promise<void> {
       update: { note: trimmed },
     });
   }
-  revalidatePath("/");
+  revalidatePath('/');
 }
 
 // ---- Kế hoạch (mục 10) ----
@@ -258,9 +234,9 @@ export interface CreatePlanInput {
 export async function createPlan(input: CreatePlanInput): Promise<string> {
   const title = input.title.trim();
   const goal = input.goal.trim();
-  if (!title || !goal) throw new Error("Thiếu tiêu đề hoặc mục tiêu");
+  if (!title || !goal) throw new Error('Thiếu tiêu đề hoặc mục tiêu');
   if (!isValidDateStr(input.startDate) || !isValidDateStr(input.endDate)) {
-    throw new Error("Ngày không hợp lệ");
+    throw new Error('Ngày không hợp lệ');
   }
 
   const milestones = input.milestones
@@ -270,8 +246,7 @@ export async function createPlan(input: CreatePlanInput): Promise<string> {
     .map((m, i) => ({
       title: m.title,
       order: i + 1,
-      targetDate:
-        m.targetDate && isValidDateStr(m.targetDate) ? m.targetDate : null,
+      targetDate: m.targetDate && isValidDateStr(m.targetDate) ? m.targetDate : null,
     }));
 
   const plan = await prisma.plan.create({
@@ -284,65 +259,53 @@ export async function createPlan(input: CreatePlanInput): Promise<string> {
       milestones: { create: milestones },
     },
   });
-  revalidatePath("/plans");
+  revalidatePath('/plans');
   return plan.id;
 }
 
-export async function toggleMilestone(
-  id: string,
-  done: boolean,
-): Promise<void> {
+export async function toggleMilestone(id: string, done: boolean): Promise<void> {
   await prisma.milestone.update({ where: { id }, data: { done } });
-  revalidatePath("/plans");
+  revalidatePath('/plans');
 }
 
 /** Bỏ một cột mốc (lựa chọn "bỏ bớt milestone" khi chậm, mục 10.4) */
 export async function deleteMilestone(id: string): Promise<void> {
   await prisma.milestone.delete({ where: { id } });
-  revalidatePath("/plans");
+  revalidatePath('/plans');
 }
 
 /** Thêm một cột mốc vào cuối roadmap */
-export async function addMilestone(
-  planId: string,
-  title: string,
-): Promise<void> {
+export async function addMilestone(planId: string, title: string): Promise<void> {
   const t = title.trim();
   if (!t) return;
   const last = await prisma.milestone.findFirst({
     where: { planId },
-    orderBy: { order: "desc" },
+    orderBy: { order: 'desc' },
   });
   await prisma.milestone.create({
     data: { planId, title: t, order: (last?.order ?? 0) + 1 },
   });
-  revalidatePath("/plans");
+  revalidatePath('/plans');
 }
 
-export async function setPlanStatus(
-  id: string,
-  status: PlanStatus,
-): Promise<void> {
+export async function setPlanStatus(id: string, status: PlanStatus): Promise<void> {
   await prisma.plan.update({ where: { id }, data: { status } });
-  revalidatePath("/plans");
+  revalidatePath('/plans');
 }
 
 /** Giãn deadline plan thêm n ngày (lựa chọn khi chậm tiến độ, mục 10.4) */
-export async function extendPlanDeadline(
-  id: string,
-  days: number,
-): Promise<void> {
+export async function extendPlanDeadline(id: string, days: number): Promise<void> {
   const plan = await prisma.plan.findUnique({ where: { id } });
   if (!plan) return;
   await prisma.plan.update({
     where: { id },
     data: { endDate: addDays(plan.endDate, Math.max(1, days)) },
   });
-  revalidatePath("/plans");
+  revalidatePath('/plans');
 }
 
 export async function deletePlan(id: string): Promise<void> {
   // gỡ liên kết ở task trước (onDelete: SetNull lo phần này, nhưng làm rõ ý định)
   await prisma.plan.delete({ where: { id } });
-  revalidatePath("/plans");
+  revalidatePath('/plans');
 }

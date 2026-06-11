@@ -1,38 +1,28 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import {
-  suggestTomorrow,
-  type ActivePlanContext,
-  type SuggestContext,
-} from "@/lib/ai";
-import {
-  daysBetween,
-  delayDays,
-  toDateStr,
-  todayStr,
-  tomorrowStr,
-} from "@/lib/dates";
-import { computePlanProgress } from "@/lib/plan";
-import { computeDifficultyHints } from "@/lib/difficulty";
-import { computeCapacity } from "@/lib/capacity";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { suggestTomorrow, type ActivePlanContext, type SuggestContext } from '@/lib/ai';
+import { daysBetween, delayDays, toDateStr, todayStr, tomorrowStr } from '@/lib/dates';
+import { computePlanProgress } from '@/lib/plan';
+import { computeDifficultyHints } from '@/lib/difficulty';
+import { computeCapacity } from '@/lib/capacity';
 import {
   blocksForDate,
   computeFreeSlots,
   softBlocksForDate,
   softLoadMinutes,
-} from "@/lib/schedule";
-import { getScheduleSettings } from "@/lib/schedule-settings";
-import { habitDueOn } from "@/lib/habits";
-import { hmToMinutes } from "@/lib/notify/time";
+} from '@/lib/schedule';
+import { getScheduleSettings } from '@/lib/schedule-settings';
+import { habitDueOn } from '@/lib/habits';
+import { hmToMinutes } from '@/lib/notify/time';
 import type {
   CommitmentDTO,
   PlanAlert,
   ScheduleEventDTO,
   ScheduleKind,
   SoftBlockDTO,
-} from "@/lib/types";
+} from '@/lib/types';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 // task "container" (có ≥1 con) là nhóm, không tính vào stats/tốc độ thật (mục 11)
 const NOT_CONTAINER = { subtasks: { none: {} } };
@@ -72,7 +62,7 @@ export async function POST(): Promise<NextResponse> {
       // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
       prisma.task.findMany({
         where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: 'asc' },
       }),
       prisma.task.findMany({
         where: { date: { gte: weekAgoStr, lt: today }, ...NOT_CONTAINER },
@@ -88,8 +78,8 @@ export async function POST(): Promise<NextResponse> {
       }),
       prisma.dailyNote.findUnique({ where: { date: today } }),
       prisma.plan.findMany({
-        where: { status: "active" },
-        include: { milestones: { orderBy: { order: "asc" } } },
+        where: { status: 'active' },
+        include: { milestones: { orderBy: { order: 'asc' } } },
       }),
       prisma.dayCheckin.findUnique({ where: { date: today } }),
       prisma.commitment.findMany({ where: { active: true } }),
@@ -131,35 +121,18 @@ export async function POST(): Promise<NextResponse> {
       dayOfWeek: s.dayOfWeek,
       startTime: s.startTime,
       endTime: s.endTime,
-      kind: (["hoc", "lam", "khac"].includes(s.kind)
-        ? s.kind
-        : "khac") as ScheduleKind,
+      kind: (['hoc', 'lam', 'khac'].includes(s.kind) ? s.kind : 'khac') as ScheduleKind,
       active: s.active,
       validFrom: s.validFrom,
       validUntil: s.validUntil,
       weekParity: s.weekParity,
     }));
     const anchor = scheduleSettings.termAnchorMonday;
-    const tomorrowBlocks = blocksForDate(
-      tomorrow,
-      commitments,
-      tomorrowEvents,
-      anchor,
-    );
+    const tomorrowBlocks = blocksForDate(tomorrow, commitments, tomorrowEvents, anchor);
     // khe trống + quỹ giờ ngày mai (mục 14)
-    const capacity = computeFreeSlots(
-      tomorrow,
-      commitments,
-      tomorrowEvents,
-      scheduleSettings,
-    );
+    const capacity = computeFreeSlots(tomorrow, commitments, tomorrowEvents, scheduleSettings);
     // khung mềm ngày mai → giảm "quỹ gợi ý" + làm preferred windows cho AI
-    const tomorrowSoft = softBlocksForDate(
-      tomorrow,
-      softBlocks,
-      tomorrowEvents,
-      anchor,
-    );
+    const tomorrowSoft = softBlocksForDate(tomorrow, softBlocks, tomorrowEvents, anchor);
     const suggestedCapacityMin = Math.max(
       0,
       capacity.capacityMin - softLoadMinutes(capacity.slots, tomorrowSoft),
@@ -184,15 +157,10 @@ export async function POST(): Promise<NextResponse> {
         ? {
             avgDonePerDay:
               Math.round(
-                ([...byDate.values()].reduce((s, d) => s + d.done, 0) /
-                  daysWithData) *
-                  10,
+                ([...byDate.values()].reduce((s, d) => s + d.done, 0) / daysWithData) * 10,
               ) / 10,
             avgPercent: Math.round(
-              ([...byDate.values()].reduce(
-                (s, d) => s + (d.total ? d.done / d.total : 0),
-                0,
-              ) /
+              ([...byDate.values()].reduce((s, d) => s + (d.total ? d.done / d.total : 0), 0) /
                 daysWithData) *
                 100,
             ),
@@ -237,9 +205,7 @@ export async function POST(): Promise<NextResponse> {
       note: note?.note ?? null,
       activePlans,
       // reference class độ khó (mục 11): cap ~40 mục gần nhất cho gọn prompt
-      recentDone: ratedTasks
-        .slice(-40)
-        .map((t) => ({ title: t.title, emotion: t.emotion })),
+      recentDone: ratedTasks.slice(-40).map((t) => ({ title: t.title, emotion: t.emotion })),
       difficultyHints: computeDifficultyHints(ratedTasks),
       // Personal OS (mục 11): check-in hôm nay + capacity động
       todayCheckin: checkin
@@ -290,19 +256,13 @@ export async function POST(): Promise<NextResponse> {
       const t = hmToMinutes(hm);
       return slotRanges.some(([s, e]) => t >= s && t < e);
     };
-    for (const item of [
-      ...result.carry_over,
-      ...result.suggested_tasks,
-      ...result.plan_tasks,
-    ]) {
+    for (const item of [...result.carry_over, ...result.suggested_tasks, ...result.plan_tasks]) {
       if (item.slotStart && !slotOk(item.slotStart)) item.slotStart = undefined;
     }
 
     // Chỉ giữ plan_task có planId hợp lệ (tránh model bịa id)
     const validPlanIds = new Set(plans.map((p) => p.id));
-    result.plan_tasks = result.plan_tasks.filter((t) =>
-      validPlanIds.has(t.planId),
-    );
+    result.plan_tasks = result.plan_tasks.filter((t) => validPlanIds.has(t.planId));
 
     // Cảnh báo chậm: tính ĐỘNG ở server, không để model bịa số (mục 10.4)
     result.plan_alerts = plans
@@ -315,8 +275,8 @@ export async function POST(): Promise<NextResponse> {
           behindDays: prog.behindDays,
           options: [
             `Giãn deadline thêm ~${prog.behindDays} ngày`,
-            "Bỏ bớt một cột mốc chưa quan trọng",
-            "Giữ nguyên và tăng tốc",
+            'Bỏ bớt một cột mốc chưa quan trọng',
+            'Giữ nguyên và tăng tốc',
           ],
         };
       })
@@ -324,7 +284,7 @@ export async function POST(): Promise<NextResponse> {
 
     return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Lỗi không xác định";
+    const message = err instanceof Error ? err.message : 'Lỗi không xác định';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 /**
  * Hiện dần (fade + trượt lên) khi phần tử vào viewport — motion thuần CSS, không thêm lib.
@@ -41,8 +41,8 @@ export function Reveal({
       ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
       className={cn(
-        "transition-all duration-700 ease-out motion-reduce:transition-none",
-        shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
+        'transition-all duration-700 ease-out motion-reduce:transition-none',
+        shown ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0',
         className,
       )}
     >

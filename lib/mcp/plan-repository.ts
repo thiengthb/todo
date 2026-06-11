@@ -1,9 +1,9 @@
-import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { computePlanProgress, sortMilestones } from "@/lib/plan";
-import { todayLocal } from "@/lib/mcp/tz";
-import { INCLUDE, isoDate, serializeTask } from "@/lib/mcp/repository";
-import type { Prisma } from "@prisma/client";
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { computePlanProgress, sortMilestones } from '@/lib/plan';
+import { todayLocal } from '@/lib/mcp/tz';
+import { INCLUDE, isoDate, serializeTask } from '@/lib/mcp/repository';
+import type { Prisma } from '@prisma/client';
 
 /**
  * Data layer Plan/Milestone cho MCP (mục 10 + 15) — roadmap dài hạn cuốn chiếu.
@@ -12,8 +12,8 @@ import type { Prisma } from "@prisma/client";
  * BẤT BIẾN §10.8: AI chỉ GỢI Ý tick milestone; người dùng tự xác nhận.
  */
 
-const PLAN_STATUS = z.enum(["active", "paused", "done", "archived"]);
-const INTENSITY = z.enum(["nhẹ", "vừa", "dồn"]);
+const PLAN_STATUS = z.enum(['active', 'paused', 'done', 'archived']);
+const INTENSITY = z.enum(['nhẹ', 'vừa', 'dồn']);
 
 const milestoneInputSchema = z.object({
   title: z.string().min(1),
@@ -54,10 +54,7 @@ export const planListSchema = z.object({ status: PLAN_STATUS.optional() });
 type PlanWithMs = Prisma.PlanGetPayload<{ include: { milestones: true } }>;
 
 /** Serialize plan + tiến độ động (progressPct/behindDays/currentMilestone/daysLeft). */
-function serializePlan(
-  plan: PlanWithMs,
-  tasks?: ReturnType<typeof serializeTask>[],
-) {
+function serializePlan(plan: PlanWithMs, tasks?: ReturnType<typeof serializeTask>[]) {
   const milestones = sortMilestones(plan.milestones);
   const progress = computePlanProgress(
     { startDate: plan.startDate, endDate: plan.endDate },
@@ -86,7 +83,7 @@ function serializePlan(
 
 export async function createPlan(raw: unknown) {
   const p = planCreateSchema.parse(raw);
-  if (p.startDate > p.endDate) throw new Error("startDate phải ≤ endDate.");
+  if (p.startDate > p.endDate) throw new Error('startDate phải ≤ endDate.');
   const ms = (p.milestones ?? []).map((m, i) => ({
     title: m.title.trim(),
     order: m.order ?? i + 1,
@@ -98,8 +95,8 @@ export async function createPlan(raw: unknown) {
       goal: p.goal.trim(),
       startDate: p.startDate,
       endDate: p.endDate,
-      intensity: p.intensity ?? "vừa",
-      status: "active",
+      intensity: p.intensity ?? 'vừa',
+      status: 'active',
       milestones: ms.length ? { create: ms } : undefined,
     },
     include: { milestones: true },
@@ -113,7 +110,7 @@ export async function addMilestones(raw: unknown) {
   await prisma.plan.findUniqueOrThrow({ where: { id: planId } });
   const last = await prisma.milestone.findFirst({
     where: { planId },
-    orderBy: { order: "desc" },
+    orderBy: { order: 'desc' },
     select: { order: true },
   });
   let next = (last?.order ?? 0) + 1;
@@ -131,7 +128,7 @@ export async function addMilestones(raw: unknown) {
 export async function updatePlan(id: string, raw: unknown) {
   const patch = planUpdateSchema.parse(raw);
   if (patch.startDate && patch.endDate && patch.startDate > patch.endDate) {
-    throw new Error("startDate phải ≤ endDate.");
+    throw new Error('startDate phải ≤ endDate.');
   }
   const plan = await prisma.plan.update({
     where: { id },
@@ -163,7 +160,7 @@ export async function listPlans(raw: unknown) {
   const { status } = planListSchema.parse(raw ?? {});
   const plans = await prisma.plan.findMany({
     where: status ? { status } : {},
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     include: { milestones: true },
   });
   return plans.map((p) => serializePlan(p));
@@ -178,7 +175,7 @@ export async function getPlan(id: string) {
   const tasks = await prisma.task.findMany({
     where: { planId: id },
     include: INCLUDE,
-    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
   });
   return serializePlan(plan, tasks.map(serializeTask));
 }

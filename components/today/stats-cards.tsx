@@ -1,4 +1,4 @@
-import { InfoHint } from "@/components/info-hint";
+import { InfoHint } from '@/components/info-hint';
 
 /** Vòng % bằng conic-gradient — cùng pattern Ring của plan-momentum, không cần lib. */
 function ProgressRing({ pct, label }: { pct: number; label: string }) {
@@ -49,28 +49,26 @@ export function StatsCards({
           <p className="text-xs text-muted-foreground">
             {remaining > 0 ? (
               <>
-                Còn <span className="tabular-nums">{remaining}</span> việc chưa
-                xong
+                Còn <span className="tabular-nums">{remaining}</span> việc chưa xong
               </>
             ) : total > 0 ? (
-              "Trọn vẹn cả ngày 🎉"
+              'Trọn vẹn cả ngày 🎉'
             ) : (
-              "Chưa có việc nào"
+              'Chưa có việc nào'
             )}
           </p>
           {/* tốc độ thật — minh bạch con số AI dùng để hiệu chỉnh số lượng đề xuất (mục 6/11) */}
           {velocity && (
             <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              Tốc độ thật ≈{" "}
+              Tốc độ thật ≈{' '}
               <span className="font-medium tabular-nums text-foreground">
                 {velocity.avgDonePerDay}
-              </span>{" "}
+              </span>{' '}
               việc/ngày
               <InfoHint label="Tốc độ thật là gì?">
-                Trung bình số việc bạn xong mỗi ngày-có-làm trong ~7 ngày gần
-                đây (dựa trên {velocity.daysWithData} ngày có dữ liệu). AI hiệu
-                chỉnh số lượng đề xuất theo con số này — bám tốc độ thật, không
-                theo mong muốn.
+                Trung bình số việc bạn xong mỗi ngày-có-làm trong ~7 ngày gần đây (dựa trên{' '}
+                {velocity.daysWithData} ngày có dữ liệu). AI hiệu chỉnh số lượng đề xuất theo con số
+                này — bám tốc độ thật, không theo mong muốn.
               </InfoHint>
             </p>
           )}

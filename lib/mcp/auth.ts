@@ -1,4 +1,4 @@
-import { getOrigin, oauthKey, verifyJwt } from "@/lib/mcp/oauth";
+import { getOrigin, oauthKey, verifyJwt } from '@/lib/mcp/oauth';
 
 /**
  * Bảo vệ endpoint MCP (mục 15). Chấp nhận:
@@ -11,28 +11,25 @@ export async function checkMcpAuth(req: Request): Promise<Response | null> {
   const staticToken = process.env.MCP_AUTH_TOKEN;
   const key = oauthKey();
   if (!staticToken && !key) {
-    return Response.json(
-      { error: "MCP tắt: chưa đặt MCP_AUTH_TOKEN" },
-      { status: 403 },
-    );
+    return Response.json({ error: 'MCP tắt: chưa đặt MCP_AUTH_TOKEN' }, { status: 403 });
   }
 
-  const header = req.headers.get("authorization") ?? "";
-  const bearer = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  const header = req.headers.get('authorization') ?? '';
+  const bearer = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
   if (bearer) {
     if (staticToken && bearer === staticToken) return null; // bearer tĩnh
     if (key) {
       const payload = await verifyJwt(key, bearer);
-      if (payload?.typ === "access") return null; // OAuth access token
+      if (payload?.typ === 'access') return null; // OAuth access token
     }
   }
 
   const origin = getOrigin(req);
-  return new Response(JSON.stringify({ error: "unauthorized" }), {
+  return new Response(JSON.stringify({ error: 'unauthorized' }), {
     status: 401,
     headers: {
-      "Content-Type": "application/json",
-      "WWW-Authenticate": `Bearer error="invalid_token", resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
+      'Content-Type': 'application/json',
+      'WWW-Authenticate': `Bearer error="invalid_token", resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
     },
   });
 }

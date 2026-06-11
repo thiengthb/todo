@@ -1,5 +1,5 @@
-import { daysBetween, todayStr } from "./dates";
-import type { PlanProgress } from "./types";
+import { daysBetween, todayStr } from './dates';
+import type { PlanProgress } from './types';
 
 /** Một milestone tối thiểu để tính tiến độ */
 interface MilestoneLite {
@@ -28,21 +28,14 @@ export function computePlanProgress(
 
   const totalDays = Math.max(1, daysBetween(plan.startDate, plan.endDate));
   // thời gian đã trôi, kẹp trong [0, totalDays] để không vượt biên khi quá/chưa tới hạn
-  const elapsed = Math.min(
-    totalDays,
-    Math.max(0, daysBetween(plan.startDate, today)),
-  );
+  const elapsed = Math.min(totalDays, Math.max(0, daysBetween(plan.startDate, today)));
   const expectedFraction = elapsed / totalDays;
   const actualFraction = total === 0 ? 0 : done / total;
-  const behindDays = Math.round(
-    (expectedFraction - actualFraction) * totalDays,
-  );
+  const behindDays = Math.round((expectedFraction - actualFraction) * totalDays);
 
   const daysLeft = daysBetween(today, plan.endDate);
 
-  const current = [...milestones]
-    .filter((m) => !m.done)
-    .sort((a, b) => a.order - b.order)[0];
+  const current = [...milestones].filter((m) => !m.done).sort((a, b) => a.order - b.order)[0];
 
   return {
     total,

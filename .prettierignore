@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+coverage
+.next
+*.db
+*.db-shm
+*.db-wal
+package-lock.json
+pnpm-lock.yaml

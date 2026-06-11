@@ -1,5 +1,5 @@
-import { PageHeaderSkeleton, CardSkeleton } from "@/components/skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeaderSkeleton, CardSkeleton } from '@/components/skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Skeleton trang Thông báo (tab + form). */
 export default function Loading() {

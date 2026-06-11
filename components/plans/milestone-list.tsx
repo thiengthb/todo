@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
-import { Check, Plus, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { formatDateShort } from "@/lib/dates";
-import { addMilestone, deleteMilestone, toggleMilestone } from "@/app/actions";
+import { useState, useTransition } from 'react';
+import { Check, Plus, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { formatDateShort } from '@/lib/dates';
+import { addMilestone, deleteMilestone, toggleMilestone } from '@/app/actions';
 
 export interface MilestoneRow {
   id: string;
@@ -24,7 +24,7 @@ export function MilestoneList({
 }) {
   const [, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState('');
 
   function submitNew() {
     const t = draft.trim();
@@ -32,7 +32,7 @@ export function MilestoneList({
       setAdding(false);
       return;
     }
-    setDraft("");
+    setDraft('');
     setAdding(false);
     startTransition(() => addMilestone(planId, t));
   }
@@ -46,25 +46,20 @@ export function MilestoneList({
         >
           <button
             type="button"
-            aria-label={m.done ? "Bỏ đánh dấu xong" : "Đánh dấu xong cột mốc"}
-            onClick={() =>
-              startTransition(() => toggleMilestone(m.id, !m.done))
-            }
+            aria-label={m.done ? 'Bỏ đánh dấu xong' : 'Đánh dấu xong cột mốc'}
+            onClick={() => startTransition(() => toggleMilestone(m.id, !m.done))}
             className={cn(
-              "flex size-[18px] shrink-0 items-center justify-center rounded-full border transition-colors",
+              'flex size-[18px] shrink-0 items-center justify-center rounded-full border transition-colors',
               m.done
-                ? "border-foreground bg-foreground text-background"
-                : "border-muted-foreground/50 hover:border-foreground",
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-muted-foreground/50 hover:border-foreground',
             )}
           >
             {m.done && <Check className="size-3" strokeWidth={3} />}
           </button>
 
           <span
-            className={cn(
-              "min-w-0 flex-1 text-sm",
-              m.done && "text-muted-foreground line-through",
-            )}
+            className={cn('min-w-0 flex-1 text-sm', m.done && 'text-muted-foreground line-through')}
           >
             {m.title}
           </span>
@@ -94,9 +89,9 @@ export function MilestoneList({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") submitNew();
-              if (e.key === "Escape") {
-                setDraft("");
+              if (e.key === 'Enter') submitNew();
+              if (e.key === 'Escape') {
+                setDraft('');
                 setAdding(false);
               }
             }}

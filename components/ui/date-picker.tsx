@@ -1,18 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { isValidDateStr, toDateStr } from "@/lib/dates";
+import * as React from 'react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { isValidDateStr, toDateStr } from '@/lib/dates';
 
 /**
  * DatePicker dùng CHUNG toàn app (mục giao diện) — Popover + shadcn Calendar.
@@ -21,7 +17,7 @@ import { isValidDateStr, toDateStr } from "@/lib/dates";
 export function DatePicker({
   value,
   onChange,
-  placeholder = "Chọn ngày",
+  placeholder = 'Chọn ngày',
   className,
   disabled,
   clearable = false,
@@ -35,8 +31,7 @@ export function DatePicker({
   clearable?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
-  const selected =
-    value && isValidDateStr(value) ? new Date(`${value}T00:00:00`) : undefined;
+  const selected = value && isValidDateStr(value) ? new Date(`${value}T00:00:00`) : undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -46,14 +41,14 @@ export function DatePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "w-full justify-start gap-2 font-normal",
-            !selected && "text-muted-foreground",
+            'w-full justify-start gap-2 font-normal',
+            !selected && 'text-muted-foreground',
             className,
           )}
         >
           <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate">
-            {selected ? format(selected, "dd/MM/yyyy") : placeholder}
+            {selected ? format(selected, 'dd/MM/yyyy') : placeholder}
           </span>
         </Button>
       </PopoverTrigger>

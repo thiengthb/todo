@@ -1,11 +1,7 @@
-"use client";
+'use client';
 
-import { type ReactNode } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { type ReactNode } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /**
  * Tooltip read-only cho nút-icon — dùng CHUNG toàn app (mục giao diện), thay mọi `title=`.
@@ -13,11 +9,11 @@ import {
  */
 export function IconTooltip({
   label,
-  side = "top",
+  side = 'top',
   children,
 }: {
   label: ReactNode;
-  side?: "top" | "right" | "bottom" | "left";
+  side?: 'top' | 'right' | 'bottom' | 'left';
   children: ReactNode;
 }) {
   return (

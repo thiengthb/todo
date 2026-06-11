@@ -1,5 +1,5 @@
-import { hmToMinutes } from "@/lib/notify/time";
-import type { ScheduleBlock } from "@/lib/types";
+import { hmToMinutes } from '@/lib/notify/time';
+import type { ScheduleBlock } from '@/lib/types';
 
 /**
  * Helper thuần cho lưới lịch tuần kéo-thả (mục 14, đại tu 2026-06) — không React, dễ test.
@@ -30,11 +30,7 @@ export function durationToHeightPx(startMin: number, endMin: number): number {
 }
 
 /** Cột ngày (0..6) từ toạ độ X, dựa trên rect của vùng 7 cột (không gồm trục giờ) */
-export function columnIndexFromX(
-  clientX: number,
-  lanesLeft: number,
-  lanesWidth: number,
-): number {
+export function columnIndexFromX(clientX: number, lanesLeft: number, lanesWidth: number): number {
   const colWidth = lanesWidth / 7;
   return Math.max(0, Math.min(6, Math.floor((clientX - lanesLeft) / colWidth)));
 }
@@ -51,9 +47,7 @@ export interface LaidOut {
  */
 export function layoutOverlaps(blocks: ScheduleBlock[]): LaidOut[] {
   const timed = blocks.filter((b) => b.startTime && b.endTime);
-  const sorted = [...timed].sort(
-    (a, b) => hmToMinutes(a.startTime!) - hmToMinutes(b.startTime!),
-  );
+  const sorted = [...timed].sort((a, b) => hmToMinutes(a.startTime!) - hmToMinutes(b.startTime!));
 
   const result: LaidOut[] = [];
   let cluster: ScheduleBlock[] = [];

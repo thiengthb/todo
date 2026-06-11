@@ -1,4 +1,4 @@
-import type { TaskDTO } from "./types";
+import type { TaskDTO } from './types';
 
 const IMPACT_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 

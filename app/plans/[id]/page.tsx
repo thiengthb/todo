@@ -1,28 +1,28 @@
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { computePlanProgress } from "@/lib/plan";
-import { formatDateShort } from "@/lib/dates";
-import type { Intensity, PlanStatus } from "@/lib/types";
-import { AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { BehindAlert } from "@/components/plans/behind-alert";
-import { MilestoneList } from "@/components/plans/milestone-list";
-import { PlanActions } from "@/components/plans/plan-actions";
-import { PageHeader } from "@/components/page-header";
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/db';
+import { computePlanProgress } from '@/lib/plan';
+import { formatDateShort } from '@/lib/dates';
+import type { Intensity, PlanStatus } from '@/lib/types';
+import { AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { BehindAlert } from '@/components/plans/behind-alert';
+import { MilestoneList } from '@/components/plans/milestone-list';
+import { PlanActions } from '@/components/plans/plan-actions';
+import { PageHeader } from '@/components/page-header';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 const STATUS_LABEL: Record<PlanStatus, string> = {
-  active: "Đang chạy",
-  paused: "Tạm dừng",
-  done: "Hoàn thành",
-  archived: "Lưu trữ",
+  active: 'Đang chạy',
+  paused: 'Tạm dừng',
+  done: 'Hoàn thành',
+  archived: 'Lưu trữ',
 };
 
 const INTENSITY_LABEL: Record<Intensity, string> = {
-  nhẹ: "Cường độ nhẹ",
-  vừa: "Cường độ vừa",
-  dồn: "Cường độ dồn",
+  nhẹ: 'Cường độ nhẹ',
+  vừa: 'Cường độ vừa',
+  dồn: 'Cường độ dồn',
 };
 
 interface PageProps {
@@ -34,7 +34,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
   const plan = await prisma.plan.findUnique({
     where: { id },
     include: {
-      milestones: { orderBy: { order: "asc" } },
+      milestones: { orderBy: { order: 'asc' } },
       // bỏ task "container" (đã chia nhỏ) khỏi đếm tiến độ việc (mục 11)
       tasks: {
         where: { subtasks: { none: {} } },
@@ -47,7 +47,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
   const status = plan.status as PlanStatus;
   const progress = computePlanProgress(plan, plan.milestones);
   const tasksDone = plan.tasks.filter((t) => t.done).length;
-  const behind = status === "active" && progress.behindDays >= 1;
+  const behind = status === 'active' && progress.behindDays >= 1;
 
   return (
     <div className="py-8">
@@ -85,9 +85,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
         </span>
         <span aria-hidden>·</span>
         <span>
-          {progress.daysLeft >= 0
-            ? `còn ${progress.daysLeft}d`
-            : `quá hạn ${-progress.daysLeft}d`}
+          {progress.daysLeft >= 0 ? `còn ${progress.daysLeft}d` : `quá hạn ${-progress.daysLeft}d`}
         </span>
       </div>
 
@@ -97,9 +95,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
           <span className="font-medium">
             {progress.done}/{progress.total} cột mốc
           </span>
-          <span className="text-muted-foreground tabular-nums">
-            {progress.progressPct}%
-          </span>
+          <span className="text-muted-foreground tabular-nums">{progress.progressPct}%</span>
         </div>
         <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div

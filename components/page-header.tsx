@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { type ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { InfoHint } from "@/components/info-hint";
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
+import { type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import { InfoHint } from '@/components/info-hint';
 
 interface PageHeaderProps {
   /** Dòng nhỏ phía trên tiêu đề (eyebrow) */
@@ -33,12 +33,12 @@ export function PageHeader({
   info,
   action,
   backHref,
-  backLabel = "Quay lại",
+  backLabel = 'Quay lại',
   titleClassName,
   className,
 }: PageHeaderProps) {
   return (
-    <header className={cn("mb-8", className)}>
+    <header className={cn('mb-8', className)}>
       {backHref && (
         <Link
           href={backHref}
@@ -49,31 +49,19 @@ export function PageHeader({
       )}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          {eyebrow && (
-            <p className="text-sm text-muted-foreground">{eyebrow}</p>
-          )}
+          {eyebrow && <p className="text-sm text-muted-foreground">{eyebrow}</p>}
           <div className="mt-1 flex items-center gap-1.5">
-            <h1
-              className={cn(
-                "text-xl font-semibold tracking-tight sm:text-2xl",
-                titleClassName,
-              )}
-            >
+            <h1 className={cn('text-xl font-semibold tracking-tight sm:text-2xl', titleClassName)}>
               {title}
             </h1>
             {info && (
-              <InfoHint
-                label={typeof title === "string" ? title : "Giải thích"}
-                side="bottom"
-              >
+              <InfoHint label={typeof title === 'string' ? title : 'Giải thích'} side="bottom">
                 {info}
               </InfoHint>
             )}
           </div>
           {description && (
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {description}
-            </p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
           )}
         </div>
         {action && <div className="shrink-0">{action}</div>}

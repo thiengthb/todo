@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { AlertTriangle, Target } from "lucide-react";
+import Link from 'next/link';
+import { AlertTriangle, Target } from 'lucide-react';
 
 export interface PlanMomentumItem {
   id: string;
@@ -39,12 +39,10 @@ export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
           >
             <Ring pct={p.progressPct} />
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 truncate text-xs font-medium">
-                {p.title}
-              </p>
+              <p className="flex items-center gap-1.5 truncate text-xs font-medium">{p.title}</p>
               <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
                 <Target className="size-3 shrink-0" />
-                {p.currentMilestone ?? "Đã xong mọi cột mốc"}
+                {p.currentMilestone ?? 'Đã xong mọi cột mốc'}
               </p>
             </div>
             {p.behindDays >= 1 && (
@@ -56,11 +54,7 @@ export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
           </Link>
         ))}
       </div>
-      {extra > 0 && (
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          +{extra} kế hoạch nữa
-        </p>
-      )}
+      {extra > 0 && <p className="mt-2 text-[11px] text-muted-foreground">+{extra} kế hoạch nữa</p>}
     </div>
   );
 }

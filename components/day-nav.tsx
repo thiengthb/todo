@@ -1,18 +1,14 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { vi } from "react-day-picker/locale";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { addDays, toDateStr } from "@/lib/dates";
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { vi } from 'react-day-picker/locale';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { addDays, toDateStr } from '@/lib/dates';
 
 interface DayNavProps {
   /** ngày đang xem, "YYYY-MM-DD" */
@@ -27,18 +23,13 @@ export function DayNav({ date, today }: DayNavProps) {
   const selected = new Date(`${date}T00:00:00`);
 
   function go(d: string) {
-    router.push(d === today ? "/" : `/?date=${d}`);
+    router.push(d === today ? '/' : `/?date=${d}`);
   }
 
   return (
     <nav className="flex shrink-0 items-center gap-0.5" aria-label="Điều hướng ngày">
       {date !== today && (
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-        >
+        <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
           <Link href="/">Về hôm nay</Link>
         </Button>
       )}

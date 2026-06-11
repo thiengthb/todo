@@ -1,8 +1,4 @@
-import {
-  PageHeaderSkeleton,
-  ListSkeleton,
-  CardSkeleton,
-} from "@/components/skeletons";
+import { PageHeaderSkeleton, ListSkeleton, CardSkeleton } from '@/components/skeletons';
 
 /** Skeleton trang Nhịp sống — thói quen + cấu hình giờ. */
 export default function Loading() {

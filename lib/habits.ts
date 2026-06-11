@@ -1,5 +1,5 @@
-import { addDays } from "@/lib/dates";
-import type { HabitDTO, HabitStatus } from "@/lib/types";
+import { addDays } from '@/lib/dates';
+import type { HabitDTO, HabitStatus } from '@/lib/types';
 
 /** 0=CN..6=T7 của một chuỗi ngày "YYYY-MM-DD" (giờ địa phương) */
 function dowOf(dateStr: string): number {
@@ -7,13 +7,10 @@ function dowOf(dateStr: string): number {
 }
 
 /** Thói quen có "đến hạn" vào ngày này không (daysOfWeek null = hằng ngày) */
-export function habitDueOn(
-  habit: Pick<HabitDTO, "daysOfWeek">,
-  dateStr: string,
-): boolean {
+export function habitDueOn(habit: Pick<HabitDTO, 'daysOfWeek'>, dateStr: string): boolean {
   if (!habit.daysOfWeek) return true;
   const days = habit.daysOfWeek
-    .split(",")
+    .split(',')
     .map((s) => Number(s.trim()))
     .filter((n) => Number.isInteger(n));
   return days.includes(dowOf(dateStr));
@@ -25,7 +22,7 @@ export function habitDueOn(
  * làm đứt (ân hạn nhẹ — chỉ là feedback thông tin, không phải điểm số).
  */
 export function computeHabitStatus(
-  habit: Pick<HabitDTO, "daysOfWeek">,
+  habit: Pick<HabitDTO, 'daysOfWeek'>,
   checkedDates: string[],
   today: string,
 ): HabitStatus {

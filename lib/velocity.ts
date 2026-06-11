@@ -12,9 +12,7 @@ export interface Velocity {
   daysWithData: number;
 }
 
-export function computeVelocity(
-  tasks: { date: string; done: boolean }[],
-): Velocity | null {
+export function computeVelocity(tasks: { date: string; done: boolean }[]): Velocity | null {
   const byDate = new Map<string, number>();
   let totalDone = 0;
   for (const t of tasks) {

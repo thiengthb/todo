@@ -310,7 +310,7 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
 - **Bộ card chuẩn (BẮT BUỘC, hết "lệch"):** khối nổi = `rounded-lg border border-border/70 p-4`
   (KHÔNG `<Card>` ring, KHÔNG `rounded-xl`/`p-6` rải rác, KHÔNG `border-input`). Hàng danh sách =
   `flex items-center gap-3 border-b border-border/70 py-3 last:border-b-0` + `hover:bg-muted/40
-  transition-colors` nếu bấm/tương tác được. Section cách nhau `space-y-10`; trang mở đầu `py-8`.
+transition-colors` nếu bấm/tương tác được. Section cách nhau `space-y-10`; trang mở đầu `py-8`.
 - **Mô tả dài → `components/info-hint.tsx`** (icon ⓘ mở Popover khi chạm — KHÔNG tooltip-hover, để hợp
   cảm ứng + a11y). Giữ nhãn thao tác hiển thị; chỉ giấu phần _giải thích khái niệm_.
 - **Luồng tham chiếu (không-chặn) dùng Sheet**, không modal cuộn dài: "Đề xuất ngày mai" =
@@ -409,7 +409,7 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
   `termAnchorMonday`) qua `lib/schedule-settings.ts`.
 - Hàm lõi: `blocksForDate(date, commitments, events, anchorMonday?)` (lọc validity luôn + parity khi có
   anchor), `softBlocksForDate`, `computeFreeSlots(date, …, config)` → **danh sách khe trống** `{start,end,
-  durationMin}` + `capacityMin` (nới buffer, kẹp giờ thức, bỏ khe < minSlot). `freeMinutes` = wrapper
+durationMin}` + `capacityMin` (nới buffer, kẹp giờ thức, bỏ khe < minSlot). `freeMinutes` = wrapper
   tương thích ngược (buffer 0). KHÔNG dùng `rrule` (lặp tuần + odd/even đủ).
 
 ### 14.2 Học thời lượng/năng lượng (mục 11 mở rộng)
@@ -448,9 +448,11 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
 
 > Cho Claude (Claude.ai / Desktop / Cursor / VS Code) lập kế hoạch trực tiếp trên dữ liệu app qua
 > **Model Context Protocol**. BẤT BIẾN: **logic AI ở phía Claude, không ở server** — server chỉ CRUD
-> + cung cấp ngữ cảnh (lịch, workload, deadline). Single-user, không auth user.
+>
+> - cung cấp ngữ cảnh (lịch, workload, deadline). Single-user, không auth user.
 
 ### 15.1 Kiến trúc — chạy TRONG app Next
+
 - Route **`app/api/[transport]/route.ts`** dùng `mcp-handler` (`createMcpHandler`, `basePath:"/api"`,
   `disableSse:true` → Streamable HTTP **stateless**, không cần Redis). Endpoint: `…/api/mcp`.
 - **Cùng tiến trình** với app → chung `lib/db` Prisma + mọi `lib/*` helper; **1 process ghi SQLite**;
@@ -460,9 +462,11 @@ Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi
   token = endpoint tắt 403).
 
 ### 15.2 Data layer — `lib/mcp/repository.ts` (zod-validate, tái dùng `lib/*`)
+
 CRUD task/project + `listTasks`, `getScheduleRange`, `getWorkloadSummary` (tái dùng
 `lib/schedule.blocksForDate/busyMinutes/freeMinutes`, `lib/streak`). **Quy tắc đồng bộ BẮT BUỘC** (vì
 app lọc theo `done`/`date`, KHÔNG theo `status`):
+
 - set `scheduledFor` ⇒ set `date` = ngày địa phương (`lib/mcp/tz`, `DEFAULT_TIMEZONE`).
 - `status=DONE`/`completeTask` ⇒ `done=true`+`completedAt`; status khác ⇒ `done=false`.
 - `priority` (LOW/MEDIUM/HIGH/URGENT) ⇒ map `impact` (logic 80/20 của app).
@@ -477,12 +481,14 @@ app lọc theo `done`/`date`, KHÔNG theo `status`):
   dễ đọc) → trả `isError` mềm, KHÔNG ném `-32603` thô; log `tool`/`ms`/lỗi ra stderr (`docker logs todo`).
 
 ### 15.3 Schema thêm (additive, nullable — mục 15, không phá dữ liệu)
+
 Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`, `estimatedMinutes?`,
 `tags Tag[]`. Model **`Tag`** (m-n). ⚠️ Model **`Project`** vẫn còn trong DB nhưng **ĐÃ GỠ khỏi MCP**
 (deprecated): gây lẫn với `Plan` (§10) và không có trang UI → mọi mục tiêu nhiều bước dùng **Plan**.
 KHÔNG thêm lại `create_project`/`projectId` vào MCP.
 
 ### 15.4 Tools / Resources / Prompts (`lib/mcp/server.ts`)
+
 - Tools: `ping` (trả `{ok,time,tz,version}`, `version`=`BUILD_SHA` để soi build đang chạy), `create_task`,
   `update_task`, `complete_task`, `delete_task`, `get_task`, `list_tasks`, `get_schedule`,
   `get_workload_summary`, `bulk_create_tasks`, `list_habits`, `check_habit`. (KHÔNG có tool Project —
@@ -508,12 +514,14 @@ KHÔNG thêm lại `create_project`/`projectId` vào MCP.
   tôn trọng `suggestedFreeMinutes` + gắn `scheduledFor` vào `freeSlots` thật.
 
 ### 15.5 Auth — bearer (Desktop/CLI) + OAuth 2.1 (Claude.ai web)
+
 `checkMcpAuth` (`lib/mcp/auth.ts`) chấp nhận **cả hai**: static bearer `MCP_AUTH_TOKEN` (Claude
 Desktop/Cursor/VS Code) **và** OAuth access JWT. 401 kèm `WWW-Authenticate: …resource_metadata=…`
 để Claude.ai tự khởi động OAuth discovery.
 
 **OAuth shim STATELESS** (`lib/mcp/oauth.ts` + `app/api/oauth/*`) — Claude.ai web chỉ hỗ trợ OAuth,
 không cho nhập bearer:
+
 - code/access/refresh đều là **JWT ký HMAC** (`jose`, khoá `MCP_OAUTH_SECRET` ?? `MCP_AUTH_TOKEN`) →
   KHÔNG cần bảng DB. PKCE **S256 bắt buộc**. Client công khai (DCR `/register` cấp `client_id`, không secret).
 - **Consent gate** ở `/api/oauth/authorize`: chủ nhân nhập `MCP_AUTH_TOKEN` để xác nhận → cấp code.
@@ -523,12 +531,14 @@ không cho nhập bearer:
   MCP (401 loop). Server đã đúng chuẩn; nếu trúng bug thì chờ Anthropic sửa hoặc dùng Desktop/Cursor.
 
 ### 15.6 Triển khai & kết nối (connector TRỰC TIẾP — KHÔNG mcp-remote)
+
 Env compose `/opt/apps/todo/docker-compose.yml`: `MCP_AUTH_TOKEN` (bắt buộc), `MCP_OAUTH_SECRET` (nên đặt
 riêng), `DEFAULT_TIMEZONE`. `BUILD_SHA` tự bơm qua build-arg CI (`ping` báo build). Endpoint
 `https://<domain>/api/mcp`. **Nối thẳng, BỎ `npx mcp-remote`** (nguồn lỗi launch Windows `C:\Program` +
 tự-ngắt-khi-idle):
+
 - **Claude Code (CLI):** `claude mcp add --transport http todo https://<domain>/api/mcp --header
-  "Authorization: Bearer <MCP_AUTH_TOKEN>"` — Streamable HTTP + header tĩnh.
+"Authorization: Bearer <MCP_AUTH_TOKEN>"` — Streamable HTTP + header tĩnh.
 - **Claude Desktop:** Settings → Connectors → Add custom connector → URL `…/api/mcp` → chạy OAuth shim
   (consent gate nhập `MCP_AUTH_TOKEN`). Không npx.
 - `mcp-remote` chỉ là **fallback**; nếu dùng, `command` PHẢI là `"npx"` (không để full path có khoảng trắng).
@@ -543,22 +553,24 @@ tự-ngắt-khi-idle):
 > thật để (a) đặt nhãn UI, (b) viết mô tả tool/prompt MCP sao cho AI map đúng. Lý do ra đời: AI tạo "kế
 > hoạch" qua MCP nhưng dữ liệu rải vào cả Lịch sử lẫn Kế hoạch, và `Project` (MCP) thì vô hình.
 
-| Tab | Route | Vai trò DUY NHẤT |
-|-----|-------|------------------|
-| Hôm nay | `/` | Thực thi **trong ngày**: việc hôm nay, tiêu điểm, đề xuất ngày mai. |
-| Lịch tuần | `/schedule` | **Lịch CỨNG lặp tuần** (học/làm) + khung tập trung → quỹ giờ thật. KHÔNG phải todo. |
-| **Kế hoạch** | `/plans` | **MỤC TIÊU DÀI HẠN**: roadmap + cột mốc + tiến độ (`Plan`/`Milestone`). **Nơi DUY NHẤT** mang nghĩa "kế hoạch"; chỗ xem tổng quan một kế hoạch (`/plans/[id]`). |
-| Nhịp sống | `/routines` | Thói quen lặp + giờ thức/ngủ + quỹ giờ. |
-| Lịch sử | `/history` | **Nhìn lại**: ngày đã qua, streak, tỉ lệ + "Việc sắp tới". **KHÔNG dùng từ "kế hoạch"** ở đây. |
-| Thông báo / Hướng dẫn | `/notifications`, `/guide` | Hệ thống. |
+| Tab                   | Route                      | Vai trò DUY NHẤT                                                                                                                                                |
+| --------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hôm nay               | `/`                        | Thực thi **trong ngày**: việc hôm nay, tiêu điểm, đề xuất ngày mai.                                                                                             |
+| Lịch tuần             | `/schedule`                | **Lịch CỨNG lặp tuần** (học/làm) + khung tập trung → quỹ giờ thật. KHÔNG phải todo.                                                                             |
+| **Kế hoạch**          | `/plans`                   | **MỤC TIÊU DÀI HẠN**: roadmap + cột mốc + tiến độ (`Plan`/`Milestone`). **Nơi DUY NHẤT** mang nghĩa "kế hoạch"; chỗ xem tổng quan một kế hoạch (`/plans/[id]`). |
+| Nhịp sống             | `/routines`                | Thói quen lặp + giờ thức/ngủ + quỹ giờ.                                                                                                                         |
+| Lịch sử               | `/history`                 | **Nhìn lại**: ngày đã qua, streak, tỉ lệ + "Việc sắp tới". **KHÔNG dùng từ "kế hoạch"** ở đây.                                                                  |
+| Thông báo / Hướng dẫn | `/notifications`, `/guide` | Hệ thống.                                                                                                                                                       |
 
 **Quy ước tên (BẮT BUỘC):**
+
 - "Kế hoạch" = **chỉ** trang `/plans` (mục tiêu dài hạn). Trang khác KHÔNG được dùng từ này (Lịch sử dùng
   "Việc sắp tới", không "Kế hoạch sắp tới").
 - "Việc/task" = đơn vị hằng ngày (có `date`/`scheduledFor`) → Hôm nay/Lịch sử. "Lịch" = `Commitment`/
   `SoftBlock` lặp tuần (KHÔNG phải task) → Lịch tuần.
 
 **Map MCP/AI (để không hiểu sai):**
+
 - Mục tiêu nhiều bước / dài hạn → **Plan** (`create_plan` + milestones). KHÔNG có Project (đã gỡ, §15.3).
 - Việc của một ngày → `create_task`/`bulk_create_tasks` (ngày cụ thể). Lịch cứng → `get_schedule` (đọc
   bối cảnh, không tạo task). Tạo Plan xong **KHÔNG tự đẻ task** (§10.8) — task rót cuốn chiếu.

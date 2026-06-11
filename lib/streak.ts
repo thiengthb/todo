@@ -1,4 +1,4 @@
-import { daysBetween } from "./dates";
+import { daysBetween } from './dates';
 
 /** Một chuỗi giữ lửa: các ngày hoạt động liên tiếp nhau */
 export interface StreakRun {
@@ -27,10 +27,7 @@ export interface StreakSummary {
  * tiếp mới đứt. `length` đếm số ngày hoạt động thật (không tính ngày đóng băng), khớp
  * bằng chứng (Lally): bỏ 1 ngày không hại sự tự động hoá, nhưng cần kindness không phạt.
  */
-export function computeStreaks(
-  activeDays: string[],
-  today: string,
-): StreakSummary {
+export function computeStreaks(activeDays: string[], today: string): StreakSummary {
   // unique, bỏ ngày tương lai (không tính vào chuỗi), sort tăng dần
   const days = [...new Set(activeDays)].filter((d) => d <= today).sort();
   if (days.length === 0) {

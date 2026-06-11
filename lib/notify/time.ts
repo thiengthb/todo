@@ -12,9 +12,7 @@ export function hmToMinutes(hm: string): number {
 
 /** Date → "HH:MM" giờ địa phương */
 export function toHm(d: Date): string {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(
-    d.getMinutes(),
-  ).padStart(2, "0")}`;
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 /** Phút-từ-nửa-đêm → "HH:MM" (đảo của hmToMinutes). Kẹp trong [0, 1439]. */
@@ -22,7 +20,7 @@ export function minutesToHm(min: number): string {
   const clamped = Math.max(0, Math.min(1439, Math.round(min)));
   const h = Math.floor(clamped / 60);
   const m = clamped % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 /** "HH:MM" hợp lệ? */
@@ -39,11 +37,7 @@ export function minutesOfDay(d: Date): number {
  * nowMin có nằm trong [start, end) không — XỬ LÝ vắt qua nửa đêm.
  * VD quiet 22:00→07:00: 23:30 và 06:00 đều nằm trong.
  */
-export function isWithinWindow(
-  nowMin: number,
-  startHm: string,
-  endHm: string,
-): boolean {
+export function isWithinWindow(nowMin: number, startHm: string, endHm: string): boolean {
   const s = hmToMinutes(startHm);
   const e = hmToMinutes(endHm);
   if (s < 0 || e < 0) return false;
@@ -66,8 +60,7 @@ export function randomNudgeTargetMinute(
   if (s < 0 || e < 0) return -1;
   if (e <= s) e = s + 60; // cửa sổ tối thiểu 1 giờ nếu cấu hình lạ
   let h = 0;
-  for (let i = 0; i < dateStr.length; i++)
-    h = (h * 31 + dateStr.charCodeAt(i)) | 0;
+  for (let i = 0; i < dateStr.length; i++) h = (h * 31 + dateStr.charCodeAt(i)) | 0;
   const span = e - s;
   return s + (Math.abs(h) % span);
 }

@@ -1,5 +1,5 @@
-import { PageHeaderSkeleton, ListSkeleton } from "@/components/skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeaderSkeleton, ListSkeleton } from '@/components/skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Skeleton trang Lịch sử — streak + dải hoạt động + danh sách ngày. */
 export default function Loading() {

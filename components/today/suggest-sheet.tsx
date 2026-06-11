@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useTransition } from "react";
+import { useState, useTransition } from 'react';
 import {
   AlertTriangle,
   Check,
@@ -11,9 +11,9 @@ import {
   RefreshCw,
   Sparkles,
   Target,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
@@ -21,24 +21,24 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { addTomorrowTask } from "@/app/actions";
-import type { Priority, SuggestionItem, SuggestionResult } from "@/lib/types";
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { addTomorrowTask } from '@/app/actions';
+import type { Priority, SuggestionItem, SuggestionResult } from '@/lib/types';
 
 const PRIORITY_LABEL: Record<Priority, string> = {
-  high: "cao",
-  medium: "vừa",
-  low: "nhẹ",
+  high: 'cao',
+  medium: 'vừa',
+  low: 'nhẹ',
 };
 
 const PRIORITY_CLASS: Record<Priority, string> = {
-  high: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400",
+  high: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400',
   medium:
-    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400",
-  low: "border-border bg-muted text-muted-foreground",
+    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400',
+  low: 'border-border bg-muted text-muted-foreground',
 };
 
 function SuggestionRow({
@@ -57,10 +57,7 @@ function SuggestionRow({
     <div className="flex items-start gap-3 border-b border-border/70 py-3 last:border-b-0">
       <Badge
         variant="outline"
-        className={cn(
-          "mt-0.5 shrink-0 text-[11px] font-normal",
-          PRIORITY_CLASS[item.priority],
-        )}
+        className={cn('mt-0.5 shrink-0 text-[11px] font-normal', PRIORITY_CLASS[item.priority])}
       >
         {PRIORITY_LABEL[item.priority]}
       </Badge>
@@ -77,9 +74,9 @@ function SuggestionRow({
           <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
             <Clock className="size-3 shrink-0" />
             {item.slotStart && `gợi ý lúc ${item.slotStart}`}
-            {item.slotStart && item.estimatedMinutes && " · "}
+            {item.slotStart && item.estimatedMinutes && ' · '}
             {item.estimatedMinutes && `~${item.estimatedMinutes}′`}
-            {item.deepWork && " · tập trung sâu"}
+            {item.deepWork && ' · tập trung sâu'}
           </p>
         )}
         {item.subtasks && item.subtasks.length > 0 && (
@@ -159,12 +156,12 @@ export function SuggestSheet() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch("/api/suggest", { method: "POST" });
+      const res = await fetch('/api/suggest', { method: 'POST' });
       const data = (await res.json()) as SuggestionResult & { error?: string };
       if (!res.ok) throw new Error(data.error ?? `Lỗi ${res.status}`);
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi không xác định");
+      setError(err instanceof Error ? err.message : 'Lỗi không xác định');
     } finally {
       setLoading(false);
     }
@@ -190,17 +187,13 @@ export function SuggestSheet() {
           Đề xuất todo cho ngày mai
         </Button>
       </SheetTrigger>
-      <SheetContent
-        side="right"
-        className="flex flex-col gap-0 p-0 sm:max-w-xl"
-      >
+      <SheetContent side="right" className="flex flex-col gap-0 p-0 sm:max-w-xl">
         <SheetHeader className="border-b border-border/70 px-5 py-4">
           <SheetTitle className="flex items-center gap-2">
             <Sparkles className="size-4" /> Đề xuất cho ngày mai
           </SheetTitle>
           <SheetDescription>
-            Dựa trên việc đã xong, việc còn dở, cảm xúc và tốc độ thực tế của
-            bạn.
+            Dựa trên việc đã xong, việc còn dở, cảm xúc và tốc độ thực tế của bạn.
           </SheetDescription>
         </SheetHeader>
 
@@ -232,9 +225,8 @@ export function SuggestSheet() {
                   <div className="flex items-start gap-2 rounded-md border border-emerald-300 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/40">
                     <HeartPulse className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                     <p className="text-xs leading-relaxed text-emerald-700 dark:text-emerald-400">
-                      Hôm nay nên là <strong>ngày phục hồi</strong> — sức đang
-                      thấp, chỉ làm vài việc thật nhẹ để giữ nhịp. Nghỉ ngơi
-                      cũng là một phần của kỷ luật.
+                      Hôm nay nên là <strong>ngày phục hồi</strong> — sức đang thấp, chỉ làm vài
+                      việc thật nhẹ để giữ nhịp. Nghỉ ngơi cũng là một phần của kỷ luật.
                     </p>
                   </div>
                 )}
@@ -253,8 +245,7 @@ export function SuggestSheet() {
                       {a.planTitle} đang chậm ~{a.behindDays} ngày
                     </p>
                     <p className="mt-1 text-[11px] text-amber-700/80 dark:text-amber-400/80">
-                      Mở trang kế hoạch để giãn deadline, bỏ bớt cột mốc, hoặc
-                      tăng tốc.
+                      Mở trang kế hoạch để giãn deadline, bỏ bớt cột mốc, hoặc tăng tốc.
                     </p>
                   </div>
                 ))}
@@ -272,11 +263,7 @@ export function SuggestSheet() {
                   <section>
                     <SectionTitle>Việc mới đề xuất</SectionTitle>
                     {result.suggested_tasks.map((item, i) => (
-                      <SuggestionRow
-                        key={`s-${i}`}
-                        item={item}
-                        isCarryOver={false}
-                      />
+                      <SuggestionRow key={`s-${i}`} item={item} isCarryOver={false} />
                     ))}
                   </section>
                 )}
@@ -312,12 +299,7 @@ export function SuggestSheet() {
 
         {result && (
           <div className="border-t border-border/70 px-5 py-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={generate}
-              className="text-muted-foreground"
-            >
+            <Button variant="ghost" size="sm" onClick={generate} className="text-muted-foreground">
               <RefreshCw className="size-3.5" /> Tạo lại đề xuất
             </Button>
           </div>

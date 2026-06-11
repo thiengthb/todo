@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, type ReactNode } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState, type ReactNode } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Bell,
   BookOpen,
@@ -15,72 +15,61 @@ import {
   Repeat,
   Target,
   type LucideIcon,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { StreakChip, type StreakProps } from "@/components/streak-chip";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { StreakChip, type StreakProps } from '@/components/streak-chip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
 /** Điều hướng chính desktop — 7 mục, nhóm nhẹ bằng divider (mục giao diện, đại tu 2026-06). */
 const NAV_GROUPS: NavItem[][] = [
   [
-    { href: "/", label: "Hôm nay", icon: Home },
-    { href: "/schedule", label: "Lịch tuần", icon: CalendarDays },
-    { href: "/plans", label: "Kế hoạch", icon: Target },
-    { href: "/routines", label: "Nhịp sống", icon: Repeat },
+    { href: '/', label: 'Hôm nay', icon: Home },
+    { href: '/schedule', label: 'Lịch tuần', icon: CalendarDays },
+    { href: '/plans', label: 'Kế hoạch', icon: Target },
+    { href: '/routines', label: 'Nhịp sống', icon: Repeat },
   ],
-  [{ href: "/history", label: "Lịch sử", icon: History }],
+  [{ href: '/history', label: 'Lịch sử', icon: History }],
   [
-    { href: "/notifications", label: "Thông báo", icon: Bell },
-    { href: "/guide", label: "Hướng dẫn", icon: BookOpen },
+    { href: '/notifications', label: 'Thông báo', icon: Bell },
+    { href: '/guide', label: 'Hướng dẫn', icon: BookOpen },
   ],
 ];
 
 /** 5 tab bottom bar mobile — các điểm đến dùng hằng ngày (mục giao diện). */
 const MOBILE_TABS: NavItem[] = [
-  { href: "/", label: "Hôm nay", icon: Home },
-  { href: "/schedule", label: "Lịch", icon: CalendarDays },
-  { href: "/plans", label: "Kế hoạch", icon: Target },
-  { href: "/routines", label: "Nhịp sống", icon: Repeat },
-  { href: "/history", label: "Lịch sử", icon: History },
+  { href: '/', label: 'Hôm nay', icon: Home },
+  { href: '/schedule', label: 'Lịch', icon: CalendarDays },
+  { href: '/plans', label: 'Kế hoạch', icon: Target },
+  { href: '/routines', label: 'Nhịp sống', icon: Repeat },
+  { href: '/history', label: 'Lịch sử', icon: History },
 ];
 
 /** Mục "hệ thống" làm icon trên top-bar mobile (không vào bottom bar). */
 const MOBILE_SECONDARY: NavItem[] = [
-  { href: "/notifications", label: "Thông báo", icon: Bell },
-  { href: "/guide", label: "Hướng dẫn", icon: BookOpen },
+  { href: '/notifications', label: 'Thông báo', icon: Bell },
+  { href: '/guide', label: 'Hướng dẫn', icon: BookOpen },
 ];
 
 function useIsActive() {
   const pathname = usePathname();
   return (href: string) =>
-    href === "/"
-      ? pathname === "/"
-      : pathname === href || pathname.startsWith(`${href}/`);
+    href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function SecondaryLink({
-  href,
-  label,
-  icon: Icon,
-  active,
-}: NavItem & { active: boolean }) {
+function SecondaryLink({ href, label, icon: Icon, active }: NavItem & { active: boolean }) {
   return (
     <Link
       href={href}
       aria-label={label}
-      aria-current={active ? "page" : undefined}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        "inline-flex size-9 items-center justify-center rounded-md transition-colors sm:size-8",
+        'inline-flex size-9 items-center justify-center rounded-md transition-colors sm:size-8',
         active
-          ? "bg-muted text-foreground"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? 'bg-muted text-foreground'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >
       <Icon className="size-[18px]" />
@@ -92,13 +81,7 @@ function SecondaryLink({
  * Khung app (mục giao diện, đại tu 2026-06): sidebar trái 7 mục trên desktop (thu gọn được),
  * top-bar + bottom tab bar 5 mục trên mobile. Nội dung căn giữa max-w-5xl.
  */
-export function AppShell({
-  streak,
-  children,
-}: {
-  streak: StreakProps;
-  children: ReactNode;
-}) {
+export function AppShell({ streak, children }: { streak: StreakProps; children: ReactNode }) {
   const isActive = useIsActive();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -107,15 +90,12 @@ export function AppShell({
       {/* ───────── Sidebar (desktop ≥ lg) ───────── */}
       <aside
         className={cn(
-          "sticky top-0 hidden h-svh shrink-0 flex-col border-r border-border/70 transition-[width] duration-200 lg:flex",
-          collapsed ? "w-16" : "w-60",
+          'sticky top-0 hidden h-svh shrink-0 flex-col border-r border-border/70 transition-[width] duration-200 lg:flex',
+          collapsed ? 'w-16' : 'w-60',
         )}
       >
         <div className="flex h-14 items-center gap-2 px-3">
-          <Link
-            href="/"
-            className="flex min-w-0 items-center gap-2 font-semibold tracking-tight"
-          >
+          <Link href="/" className="flex min-w-0 items-center gap-2 font-semibold tracking-tight">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
               <ListTodo className="size-4" />
             </span>
@@ -144,32 +124,24 @@ export function AppShell({
           </button>
         )}
 
-        <nav
-          aria-label="Điều hướng chính"
-          className="flex flex-1 flex-col gap-1 px-2 py-2"
-        >
+        <nav aria-label="Điều hướng chính" className="flex flex-1 flex-col gap-1 px-2 py-2">
           {NAV_GROUPS.map((group, gi) => (
             <div key={gi} className="flex flex-col gap-1">
               {gi > 0 && (
-                <div
-                  className={cn(
-                    "my-1 h-px bg-border/70",
-                    collapsed ? "mx-2" : "mx-3",
-                  )}
-                />
+                <div className={cn('my-1 h-px bg-border/70', collapsed ? 'mx-2' : 'mx-3')} />
               )}
               {group.map((item) => {
                 const active = isActive(item.href);
                 const link = (
                   <Link
                     href={item.href}
-                    aria-current={active ? "page" : undefined}
+                    aria-current={active ? 'page' : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                      collapsed && "justify-center px-0",
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                      collapsed && 'justify-center px-0',
                       active
-                        ? "bg-muted font-medium text-foreground"
-                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                        ? 'bg-muted font-medium text-foreground'
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                     )}
                   >
                     <item.icon className="size-[18px] shrink-0" />
@@ -191,8 +163,8 @@ export function AppShell({
 
         <div
           className={cn(
-            "flex items-center border-t border-border/70 p-2",
-            collapsed ? "flex-col gap-1" : "justify-between px-3",
+            'flex items-center border-t border-border/70 p-2',
+            collapsed ? 'flex-col gap-1' : 'justify-between px-3',
           )}
         >
           <StreakChip {...streak} />
@@ -204,10 +176,7 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top-bar (mobile) — chừa safe-area trên cùng (notch / PWA) */}
         <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border/70 bg-background/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:hidden">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-semibold tracking-tight"
-          >
+          <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
             <span className="flex size-7 items-center justify-center rounded-md bg-foreground text-background">
               <ListTodo className="size-4" />
             </span>
@@ -216,11 +185,7 @@ export function AppShell({
           <div className="flex items-center gap-0.5">
             <StreakChip {...streak} />
             {MOBILE_SECONDARY.map((item) => (
-              <SecondaryLink
-                key={item.href}
-                {...item}
-                active={isActive(item.href)}
-              />
+              <SecondaryLink key={item.href} {...item} active={isActive(item.href)} />
             ))}
             <ThemeToggle />
           </div>
@@ -241,18 +206,13 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={active ? "page" : undefined}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] transition-colors",
-                  active ? "text-foreground" : "text-muted-foreground",
+                  'flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] transition-colors',
+                  active ? 'text-foreground' : 'text-muted-foreground',
                 )}
               >
-                <item.icon
-                  className={cn(
-                    "size-5 transition-transform",
-                    active && "scale-110",
-                  )}
-                />
+                <item.icon className={cn('size-5 transition-transform', active && 'scale-110')} />
                 {item.label}
               </Link>
             );

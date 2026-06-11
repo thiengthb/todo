@@ -1,24 +1,24 @@
-import { prisma } from "@/lib/db";
-import type { NotificationIntensity, NotificationSettingsDTO } from "@/lib/types";
+import { prisma } from '@/lib/db';
+import type { NotificationIntensity, NotificationSettingsDTO } from '@/lib/types';
 
-const SINGLETON_ID = "singleton";
+const SINGLETON_ID = 'singleton';
 
 /** Giá trị mặc định khi chưa có hàng nào trong DB (khớp default của schema) */
 const DEFAULTS: NotificationSettingsDTO = {
   enabled: false,
-  discordWebhookUrl: "",
-  intensity: "balanced",
+  discordWebhookUrl: '',
+  intensity: 'balanced',
   morningEnabled: true,
-  morningTime: "07:30",
+  morningTime: '07:30',
   streakGuardEnabled: true,
-  streakGuardTime: "20:00",
+  streakGuardTime: '20:00',
   randomNudgeEnabled: true,
   eveningEnabled: false,
-  eveningTime: "21:30",
-  randomWindowStart: "09:00",
-  randomWindowEnd: "18:00",
-  quietStart: "22:00",
-  quietEnd: "07:00",
+  eveningTime: '21:30',
+  randomWindowStart: '09:00',
+  randomWindowEnd: '18:00',
+  quietStart: '22:00',
+  quietEnd: '07:00',
   includeMotivation: true,
   includeQuote: true,
   includeTip: true,
@@ -35,13 +35,12 @@ export async function getSettings(): Promise<NotificationSettingsDTO> {
   if (!row) {
     return {
       ...DEFAULTS,
-      discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL ?? "",
+      discordWebhookUrl: process.env.DISCORD_WEBHOOK_URL ?? '',
     };
   }
   return {
     enabled: row.enabled,
-    discordWebhookUrl:
-      row.discordWebhookUrl || process.env.DISCORD_WEBHOOK_URL || "",
+    discordWebhookUrl: row.discordWebhookUrl || process.env.DISCORD_WEBHOOK_URL || '',
     intensity: row.intensity as NotificationIntensity,
     morningEnabled: row.morningEnabled,
     morningTime: row.morningTime,
@@ -61,9 +60,7 @@ export async function getSettings(): Promise<NotificationSettingsDTO> {
 }
 
 /** Lưu cấu hình (upsert hàng singleton). Webhook lưu nguyên văn (rỗng = dùng env). */
-export async function saveSettings(
-  data: NotificationSettingsDTO,
-): Promise<void> {
+export async function saveSettings(data: NotificationSettingsDTO): Promise<void> {
   const payload = {
     enabled: data.enabled,
     discordWebhookUrl: data.discordWebhookUrl.trim() || null,

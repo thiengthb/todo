@@ -1,4 +1,4 @@
-import { isValidHm } from "@/lib/notify/time";
+import { isValidHm } from '@/lib/notify/time';
 import type {
   DecomposeResult,
   FreeSlot,
@@ -8,7 +8,7 @@ import type {
   Priority,
   SuggestionItem,
   SuggestionResult,
-} from "@/lib/types";
+} from '@/lib/types';
 
 /** Một kế hoạch đang chạy, kèm tiến độ động, gửi cho model để rót việc kế tiếp */
 export interface ActivePlanContext {
@@ -146,67 +146,61 @@ Nguyên tắc bắt buộc:
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
 // các bước chia nhỏ (mục 11) — mảng tiêu đề ngắn, optional
-const SUBTASKS_SCHEMA = { type: "ARRAY", items: { type: "STRING" } } as const;
+const SUBTASKS_SCHEMA = { type: 'ARRAY', items: { type: 'STRING' } } as const;
 
 // field xếp giờ (mục 14) — dùng chung cho item thường & plan item
 const SLOT_PROPS = {
-  slotStart: { type: "STRING", nullable: true },
-  estimatedMinutes: { type: "INTEGER", nullable: true },
-  deepWork: { type: "BOOLEAN", nullable: true },
+  slotStart: { type: 'STRING', nullable: true },
+  estimatedMinutes: { type: 'INTEGER', nullable: true },
+  deepWork: { type: 'BOOLEAN', nullable: true },
 } as const;
 
 const ITEM_SCHEMA = {
-  type: "OBJECT",
+  type: 'OBJECT',
   properties: {
-    title: { type: "STRING" },
-    priority: { type: "STRING", enum: ["high", "medium", "low"] },
-    reason: { type: "STRING" },
+    title: { type: 'STRING' },
+    priority: { type: 'STRING', enum: ['high', 'medium', 'low'] },
+    reason: { type: 'STRING' },
     subtasks: SUBTASKS_SCHEMA,
-    cue: { type: "STRING", nullable: true },
+    cue: { type: 'STRING', nullable: true },
     ...SLOT_PROPS,
   },
-  required: ["title", "priority", "reason"],
+  required: ['title', 'priority', 'reason'],
 } as const;
 
 const PLAN_ITEM_SCHEMA = {
-  type: "OBJECT",
+  type: 'OBJECT',
   properties: {
-    title: { type: "STRING" },
-    priority: { type: "STRING", enum: ["high", "medium", "low"] },
-    reason: { type: "STRING" },
+    title: { type: 'STRING' },
+    priority: { type: 'STRING', enum: ['high', 'medium', 'low'] },
+    reason: { type: 'STRING' },
     subtasks: SUBTASKS_SCHEMA,
-    cue: { type: "STRING", nullable: true },
+    cue: { type: 'STRING', nullable: true },
     ...SLOT_PROPS,
-    planId: { type: "STRING" },
-    milestoneId: { type: "STRING", nullable: true },
+    planId: { type: 'STRING' },
+    milestoneId: { type: 'STRING', nullable: true },
   },
-  required: ["title", "priority", "reason", "planId"],
+  required: ['title', 'priority', 'reason', 'planId'],
 } as const;
 
 const RESPONSE_SCHEMA = {
-  type: "OBJECT",
+  type: 'OBJECT',
   properties: {
-    capacity_note: { type: "STRING" },
-    carry_over: { type: "ARRAY", items: ITEM_SCHEMA },
-    suggested_tasks: { type: "ARRAY", items: ITEM_SCHEMA },
-    plan_tasks: { type: "ARRAY", items: PLAN_ITEM_SCHEMA },
-    recovery_day: { type: "BOOLEAN" },
+    capacity_note: { type: 'STRING' },
+    carry_over: { type: 'ARRAY', items: ITEM_SCHEMA },
+    suggested_tasks: { type: 'ARRAY', items: ITEM_SCHEMA },
+    plan_tasks: { type: 'ARRAY', items: PLAN_ITEM_SCHEMA },
+    recovery_day: { type: 'BOOLEAN' },
   },
-  required: [
-    "capacity_note",
-    "carry_over",
-    "suggested_tasks",
-    "plan_tasks",
-    "recovery_day",
-  ],
+  required: ['capacity_note', 'carry_over', 'suggested_tasks', 'plan_tasks', 'recovery_day'],
 } as const;
 
 /** Bỏ ```json fences nếu model lỡ thêm */
 function stripFences(text: string): string {
-  return text.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
+  return text.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
 }
 
-const PRIORITIES: readonly Priority[] = ["high", "medium", "low"];
+const PRIORITIES: readonly Priority[] = ['high', 'medium', 'low'];
 
 /** Validate thủ công shape JSON từ model — sai chỗ nào báo chỗ đó */
 function parseResult(raw: string): SuggestionResult {
@@ -214,54 +208,47 @@ function parseResult(raw: string): SuggestionResult {
   try {
     data = JSON.parse(stripFences(raw));
   } catch {
-    throw new Error("Model trả về không phải JSON hợp lệ");
+    throw new Error('Model trả về không phải JSON hợp lệ');
   }
   const obj = data as Record<string, unknown>;
-  if (typeof obj?.capacity_note !== "string") {
-    throw new Error("JSON thiếu trường capacity_note");
+  if (typeof obj?.capacity_note !== 'string') {
+    throw new Error('JSON thiếu trường capacity_note');
   }
   // mảng bước chia nhỏ: chỉ giữ string không rỗng, bỏ nếu rỗng
   const parseSubtasks = (raw: unknown): string[] | undefined => {
     if (!Array.isArray(raw)) return undefined;
     const steps = raw
-      .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+      .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
       .map((s) => s.trim());
     return steps.length > 0 ? steps : undefined;
   };
   // field xếp giờ (mục 14) — slotStart hợp lệ "HH:MM", estimate dương, deepWork true
   const parseSlot = (item: Record<string, unknown>) => ({
     slotStart:
-      typeof item.slotStart === "string" && isValidHm(item.slotStart)
-        ? item.slotStart
-        : undefined,
+      typeof item.slotStart === 'string' && isValidHm(item.slotStart) ? item.slotStart : undefined,
     estimatedMinutes:
-      typeof item.estimatedMinutes === "number" && item.estimatedMinutes > 0
+      typeof item.estimatedMinutes === 'number' && item.estimatedMinutes > 0
         ? Math.round(item.estimatedMinutes)
         : undefined,
     deepWork: item.deepWork === true ? true : undefined,
   });
-  const parseItems = (
-    key: "carry_over" | "suggested_tasks",
-  ): SuggestionItem[] => {
+  const parseItems = (key: 'carry_over' | 'suggested_tasks'): SuggestionItem[] => {
     const arr = obj[key];
     if (!Array.isArray(arr)) throw new Error(`JSON thiếu mảng ${key}`);
     return arr.map((it, i) => {
       const item = it as Record<string, unknown>;
-      if (typeof item?.title !== "string" || typeof item?.reason !== "string") {
+      if (typeof item?.title !== 'string' || typeof item?.reason !== 'string') {
         throw new Error(`${key}[${i}] thiếu title/reason`);
       }
       const priority = PRIORITIES.includes(item.priority as Priority)
         ? (item.priority as Priority)
-        : "medium";
+        : 'medium';
       return {
         title: item.title,
         priority,
         reason: item.reason,
         subtasks: parseSubtasks(item.subtasks),
-        cue:
-          typeof item.cue === "string" && item.cue.trim()
-            ? item.cue.trim()
-            : undefined,
+        cue: typeof item.cue === 'string' && item.cue.trim() ? item.cue.trim() : undefined,
         ...parseSlot(item),
       };
     });
@@ -274,28 +261,24 @@ function parseResult(raw: string): SuggestionResult {
       .map((it): PlanSuggestionItem | null => {
         const item = it as Record<string, unknown>;
         if (
-          typeof item?.title !== "string" ||
-          typeof item?.reason !== "string" ||
-          typeof item?.planId !== "string"
+          typeof item?.title !== 'string' ||
+          typeof item?.reason !== 'string' ||
+          typeof item?.planId !== 'string'
         ) {
           return null; // thiếu liên kết thì bỏ, không làm hỏng cả response
         }
         const priority = PRIORITIES.includes(item.priority as Priority)
           ? (item.priority as Priority)
-          : "medium";
+          : 'medium';
         return {
           title: item.title,
           priority,
           reason: item.reason,
           subtasks: parseSubtasks(item.subtasks),
-          cue:
-            typeof item.cue === "string" && item.cue.trim()
-              ? item.cue.trim()
-              : undefined,
+          cue: typeof item.cue === 'string' && item.cue.trim() ? item.cue.trim() : undefined,
           ...parseSlot(item),
           planId: item.planId,
-          milestoneId:
-            typeof item.milestoneId === "string" ? item.milestoneId : null,
+          milestoneId: typeof item.milestoneId === 'string' ? item.milestoneId : null,
         };
       })
       .filter((x): x is PlanSuggestionItem => x !== null);
@@ -303,8 +286,8 @@ function parseResult(raw: string): SuggestionResult {
 
   return {
     capacity_note: obj.capacity_note,
-    carry_over: parseItems("carry_over"),
-    suggested_tasks: parseItems("suggested_tasks"),
+    carry_over: parseItems('carry_over'),
+    suggested_tasks: parseItems('suggested_tasks'),
     plan_tasks: parsePlanItems(),
     plan_alerts: [], // server điền sau (số liệu động, không để model bịa)
     recovery_day: obj.recovery_day === true,
@@ -323,24 +306,24 @@ async function callGeminiJson(
 ): Promise<string> {
   const apiKey = process.env.AI_API_KEY;
   if (!apiKey) {
-    throw new Error("Chưa cấu hình AI_API_KEY trong .env (xem .env.example)");
+    throw new Error('Chưa cấu hình AI_API_KEY trong .env (xem .env.example)');
   }
-  const model = process.env.AI_MODEL || "gemini-2.5-flash";
+  const model = process.env.AI_MODEL || 'gemini-2.5-flash';
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: userText }] }],
+        contents: [{ role: 'user', parts: [{ text: userText }] }],
         generationConfig: {
           temperature,
-          responseMimeType: "application/json",
+          responseMimeType: 'application/json',
           responseSchema,
         },
       }),
@@ -348,24 +331,20 @@ async function callGeminiJson(
   );
 
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
+    const body = await res.text().catch(() => '');
     throw new Error(`Gemini lỗi ${res.status}: ${body.slice(0, 300)}`);
   }
 
   const payload = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
-  const text = payload.candidates?.[0]?.content?.parts
-    ?.map((p) => p.text ?? "")
-    .join("");
-  if (!text) throw new Error("Gemini không trả về nội dung nào");
+  const text = payload.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('');
+  if (!text) throw new Error('Gemini không trả về nội dung nào');
   return text;
 }
 
 /** Gọi Gemini đề xuất ngày mai và trả về kết quả đã validate */
-export async function suggestTomorrow(
-  ctx: SuggestContext,
-): Promise<SuggestionResult> {
+export async function suggestTomorrow(ctx: SuggestContext): Promise<SuggestionResult> {
   const text = await callGeminiJson(
     SYSTEM_PROMPT,
     `Dữ liệu của người dùng:\n${JSON.stringify(ctx, null, 2)}`,
@@ -379,7 +358,7 @@ export async function suggestTomorrow(
 
 /** Dữ kiện THẬT (code lắp từ DB) để AI bám vào, KHÔNG tự bịa số liệu */
 export interface NotificationFacts {
-  kind: "morning" | "streak_guard" | "random_nudge" | "evening";
+  kind: 'morning' | 'streak_guard' | 'random_nudge' | 'evening';
   /** chuỗi giữ lửa hiện tại (ngày) */
   streakCurrent: number;
   /** chuỗi đang nguy hiểm (hôm nay chưa làm việc nào) */
@@ -448,13 +427,13 @@ Quy tắc nội dung:
 Chỉ trả về đúng JSON theo schema, không kèm văn bản hay markdown nào khác.`;
 
 const NOTIFY_SCHEMA = {
-  type: "OBJECT",
+  type: 'OBJECT',
   properties: {
-    message: { type: "STRING" },
-    quote: { type: "STRING", nullable: true },
-    tip: { type: "STRING", nullable: true },
+    message: { type: 'STRING' },
+    quote: { type: 'STRING', nullable: true },
+    tip: { type: 'STRING', nullable: true },
   },
-  required: ["message"],
+  required: ['message'],
 } as const;
 
 /** Gọi Gemini viết giọng văn thông báo; ném lỗi nếu thất bại để caller fallback tĩnh */
@@ -471,19 +450,16 @@ export async function composeNotificationVoice(
   try {
     data = JSON.parse(stripFences(text));
   } catch {
-    throw new Error("Model trả về không phải JSON hợp lệ");
+    throw new Error('Model trả về không phải JSON hợp lệ');
   }
   const obj = data as Record<string, unknown>;
-  if (typeof obj?.message !== "string" || !obj.message.trim()) {
-    throw new Error("JSON thiếu trường message");
+  if (typeof obj?.message !== 'string' || !obj.message.trim()) {
+    throw new Error('JSON thiếu trường message');
   }
   return {
     message: obj.message.trim(),
-    quote:
-      typeof obj.quote === "string" && obj.quote.trim()
-        ? obj.quote.trim()
-        : null,
-    tip: typeof obj.tip === "string" && obj.tip.trim() ? obj.tip.trim() : null,
+    quote: typeof obj.quote === 'string' && obj.quote.trim() ? obj.quote.trim() : null,
+    tip: typeof obj.tip === 'string' && obj.tip.trim() ? obj.tip.trim() : null,
   };
 }
 
@@ -508,22 +484,22 @@ Nguyên tắc bắt buộc:
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
 const DECOMPOSE_SCHEMA = {
-  type: "OBJECT",
+  type: 'OBJECT',
   properties: {
     milestones: {
-      type: "ARRAY",
+      type: 'ARRAY',
       items: {
-        type: "OBJECT",
+        type: 'OBJECT',
         properties: {
-          title: { type: "STRING" },
-          order: { type: "INTEGER" },
-          targetDate: { type: "STRING", nullable: true },
+          title: { type: 'STRING' },
+          order: { type: 'INTEGER' },
+          targetDate: { type: 'STRING', nullable: true },
         },
-        required: ["title", "order"],
+        required: ['title', 'order'],
       },
     },
   },
-  required: ["milestones"],
+  required: ['milestones'],
 } as const;
 
 /** Validate thủ công shape JSON decompose */
@@ -532,23 +508,21 @@ function parseDecompose(raw: string): DecomposeResult {
   try {
     data = JSON.parse(stripFences(raw));
   } catch {
-    throw new Error("Model trả về không phải JSON hợp lệ");
+    throw new Error('Model trả về không phải JSON hợp lệ');
   }
   const arr = (data as Record<string, unknown>)?.milestones;
-  if (!Array.isArray(arr)) throw new Error("JSON thiếu mảng milestones");
+  if (!Array.isArray(arr)) throw new Error('JSON thiếu mảng milestones');
   const milestones: MilestoneDraft[] = arr.map((it, i) => {
     const m = it as Record<string, unknown>;
-    if (typeof m?.title !== "string" || !m.title.trim()) {
+    if (typeof m?.title !== 'string' || !m.title.trim()) {
       throw new Error(`milestones[${i}] thiếu title`);
     }
-    const order = typeof m.order === "number" ? m.order : i + 1;
-    const targetDate = typeof m.targetDate === "string" ? m.targetDate : null;
+    const order = typeof m.order === 'number' ? m.order : i + 1;
+    const targetDate = typeof m.targetDate === 'string' ? m.targetDate : null;
     return { title: m.title.trim(), order, targetDate };
   });
   // chuẩn hoá order liên tục 1..n theo thứ tự model trả về
-  milestones
-    .sort((a, b) => a.order - b.order)
-    .forEach((m, i) => (m.order = i + 1));
+  milestones.sort((a, b) => a.order - b.order).forEach((m, i) => (m.order = i + 1));
   return { milestones };
 }
 
@@ -563,9 +537,7 @@ export interface DecomposeInput {
 }
 
 /** Gọi Gemini chia mục tiêu thành roadmap milestone */
-export async function decomposePlan(
-  input: DecomposeInput,
-): Promise<DecomposeResult> {
+export async function decomposePlan(input: DecomposeInput): Promise<DecomposeResult> {
   const text = await callGeminiJson(
     DECOMPOSE_PROMPT,
     `Thông tin kế hoạch:\n${JSON.stringify(input, null, 2)}`,

@@ -9,31 +9,31 @@
 
 // Từ nối/chung chung tiếng Việt — bỏ để giữ lại từ mang nghĩa chủ đề
 const STOPWORDS = new Set([
-  "và",
-  "cho",
-  "các",
-  "một",
-  "của",
-  "với",
-  "the",
-  "bài",
-  "lại",
-  "xong",
-  "tiếp",
-  "thêm",
-  "phần",
-  "chút",
-  "nửa",
-  "buổi",
-  "ngày",
-  "hôm",
+  'và',
+  'cho',
+  'các',
+  'một',
+  'của',
+  'với',
+  'the',
+  'bài',
+  'lại',
+  'xong',
+  'tiếp',
+  'thêm',
+  'phần',
+  'chút',
+  'nửa',
+  'buổi',
+  'ngày',
+  'hôm',
 ]);
 
 /** Tách tiêu đề thành các "từ khóa" thô (≥3 ký tự, bỏ stopword) */
 function keywords(title: string): string[] {
   return title
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .split(/\s+/)
     .filter((w) => w.length >= 3 && !STOPWORDS.has(w));
 }
@@ -82,10 +82,10 @@ export function computeDifficultyHints(
         total: 0,
       };
       c.total += 1;
-      if (t.emotion === "hard") c.hard += 1;
-      if (t.emotion === "love") c.love += 1;
-      if (t.actualBucket === "slower") c.slow += 1;
-      if (t.actualBucket === "faster") c.fast += 1;
+      if (t.emotion === 'hard') c.hard += 1;
+      if (t.emotion === 'love') c.love += 1;
+      if (t.actualBucket === 'slower') c.slow += 1;
+      if (t.actualBucket === 'faster') c.fast += 1;
       byWord.set(w, c);
     }
   }

@@ -1,38 +1,38 @@
-import { Bell } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
-import { NotificationSettingsForm } from "@/components/notifications/settings-form";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSettings } from "@/lib/notify/settings";
-import { prisma } from "@/lib/db";
-import { cn } from "@/lib/utils";
+import { Bell } from 'lucide-react';
+import { PageHeader } from '@/components/page-header';
+import { EmptyState } from '@/components/empty-state';
+import { NotificationSettingsForm } from '@/components/notifications/settings-form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getSettings } from '@/lib/notify/settings';
+import { prisma } from '@/lib/db';
+import { cn } from '@/lib/utils';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 const KIND_LABEL: Record<string, string> = {
-  morning: "Bản tin sáng",
-  streak_guard: "Nhắc giữ streak",
-  random_nudge: "Cú hích ngẫu nhiên",
-  evening: "Đúc kết tối",
+  morning: 'Bản tin sáng',
+  streak_guard: 'Nhắc giữ streak',
+  random_nudge: 'Cú hích ngẫu nhiên',
+  evening: 'Đúc kết tối',
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  sent: "text-emerald-600 dark:text-emerald-400",
-  skipped: "text-muted-foreground",
-  error: "text-rose-600 dark:text-rose-400",
+  sent: 'text-emerald-600 dark:text-emerald-400',
+  skipped: 'text-muted-foreground',
+  error: 'text-rose-600 dark:text-rose-400',
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  sent: "Đã gửi",
-  skipped: "Bỏ qua",
-  error: "Lỗi",
+  sent: 'Đã gửi',
+  skipped: 'Bỏ qua',
+  error: 'Lỗi',
 };
 
 export default async function NotificationsPage() {
   const [settings, logs] = await Promise.all([
     getSettings(),
     prisma.notificationLog.findMany({
-      orderBy: { sentAt: "desc" },
+      orderBy: { sentAt: 'desc' },
       take: 15,
     }),
   ]);
@@ -69,14 +69,12 @@ export default async function NotificationsPage() {
                 <div
                   key={log.id}
                   className={cn(
-                    "flex items-start gap-3 px-4 py-3",
-                    i < logs.length - 1 && "border-b border-border/70",
+                    'flex items-start gap-3 px-4 py-3',
+                    i < logs.length - 1 && 'border-b border-border/70',
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">
-                      {KIND_LABEL[log.kind] ?? log.kind}
-                    </p>
+                    <p className="text-sm font-medium">{KIND_LABEL[log.kind] ?? log.kind}</p>
                     {log.detail && (
                       <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                         {log.detail}
@@ -86,8 +84,8 @@ export default async function NotificationsPage() {
                   <div className="shrink-0 text-right">
                     <p
                       className={cn(
-                        "text-xs font-medium",
-                        STATUS_STYLE[log.status] ?? "text-muted-foreground",
+                        'text-xs font-medium',
+                        STATUS_STYLE[log.status] ?? 'text-muted-foreground',
                       )}
                     >
                       {STATUS_LABEL[log.status] ?? log.status}
@@ -107,10 +105,10 @@ export default async function NotificationsPage() {
 }
 
 function fmtTime(d: Date): string {
-  return d.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
+  return d.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }

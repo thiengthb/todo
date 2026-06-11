@@ -4,7 +4,7 @@
  */
 
 export function defaultTz(): string {
-  return process.env.DEFAULT_TIMEZONE || "Asia/Ho_Chi_Minh";
+  return process.env.DEFAULT_TIMEZONE || 'Asia/Ho_Chi_Minh';
 }
 
 /** Parse chuỗi ISO 8601 → Date; ném lỗi rõ nếu sai. */
@@ -19,11 +19,11 @@ export function parseIso(iso: string): Date {
 /** "YYYY-MM-DD" theo múi giờ tz cho một mốc thời gian (dùng để set cột `date`). */
 export function localDay(date: Date, tz: string = defaultTz()): string {
   // en-CA cho định dạng YYYY-MM-DD; timeZone quy về ngày địa phương
-  return new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat('en-CA', {
     timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(date);
 }
 
@@ -36,26 +36,19 @@ const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Offset (phút, local − UTC) của một mốc thời gian tại tz. VD Asia/Ho_Chi_Minh = +420. */
 function tzOffsetMinutes(at: Date, tz: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   }).formatToParts(at);
   const m: Record<string, string> = {};
   for (const p of parts) m[p.type] = p.value;
-  const asUtc = Date.UTC(
-    +m.year,
-    +m.month - 1,
-    +m.day,
-    +m.hour,
-    +m.minute,
-    +m.second,
-  );
+  const asUtc = Date.UTC(+m.year, +m.month - 1, +m.day, +m.hour, +m.minute, +m.second);
   return (asUtc - at.getTime()) / 60000;
 }
 
@@ -64,14 +57,11 @@ function tzOffsetMinutes(at: Date, tz: string): number {
  * KHÔNG phải UTC-midnight như `new Date("2026-06-11")`. Lưu vào cột DateTime sẽ đọc lại
  * đúng ngày khi quy về `localDay`.
  */
-export function localMidnightUtc(
-  dateStr: string,
-  tz: string = defaultTz(),
-): Date {
+export function localMidnightUtc(dateStr: string, tz: string = defaultTz()): Date {
   if (!DATE_ONLY.test(dateStr)) {
     throw new Error(`Cần ngày dạng YYYY-MM-DD: ${dateStr}`);
   }
-  const [y, mo, d] = dateStr.split("-").map(Number);
+  const [y, mo, d] = dateStr.split('-').map(Number);
   const utcGuess = Date.UTC(y, mo - 1, d, 0, 0, 0);
   const offset = tzOffsetMinutes(new Date(utcGuess), tz);
   return new Date(utcGuess - offset * 60000);

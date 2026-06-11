@@ -1,20 +1,13 @@
-import { prisma } from "@/lib/db";
-import {
-  addDays,
-  dayLabel,
-  delayDays,
-  formatDateVN,
-  isValidDateStr,
-  todayStr,
-} from "@/lib/dates";
-import { DayNav } from "@/components/day-nav";
-import { pickMitId } from "@/lib/priority";
-import { buildReflection } from "@/lib/reflection";
-import { computeStreaks } from "@/lib/streak";
-import { computeVelocity } from "@/lib/velocity";
-import { computeDifficultyHints } from "@/lib/difficulty";
-import { computePlanProgress } from "@/lib/plan";
-import { habitDueOn } from "@/lib/habits";
+import { prisma } from '@/lib/db';
+import { addDays, dayLabel, delayDays, formatDateVN, isValidDateStr, todayStr } from '@/lib/dates';
+import { DayNav } from '@/components/day-nav';
+import { pickMitId } from '@/lib/priority';
+import { buildReflection } from '@/lib/reflection';
+import { computeStreaks } from '@/lib/streak';
+import { computeVelocity } from '@/lib/velocity';
+import { computeDifficultyHints } from '@/lib/difficulty';
+import { computePlanProgress } from '@/lib/plan';
+import { habitDueOn } from '@/lib/habits';
 import type {
   CommitmentDTO,
   Emotion,
@@ -23,30 +16,26 @@ import type {
   ScheduleKind,
   SoftBlockDTO,
   TaskDTO,
-} from "@/lib/types";
-import { AddTask } from "@/components/today/add-task";
-import { CheckinBox } from "@/components/today/checkin-box";
-import { NoteBox } from "@/components/today/note-box";
-import { StatsCards } from "@/components/today/stats-cards";
-import { SuggestSheet } from "@/components/today/suggest-sheet";
-import { TaskItem } from "@/components/today/task-item";
-import { ScheduleStrip } from "@/components/today/schedule-strip";
-import { StreakBanner } from "@/components/today/streak-banner";
-import { PlanMomentum } from "@/components/today/plan-momentum";
-import { HabitStrip } from "@/components/today/habit-strip";
-import { FocusBar } from "@/components/today/focus-bar";
-import { DayTimeline } from "@/components/today/day-timeline";
-import { EmptyState } from "@/components/empty-state";
-import { ListTodo } from "lucide-react";
-import {
-  blocksForDate,
-  computeFreeSlots,
-  softBlocksForDate,
-} from "@/lib/schedule";
-import { getScheduleSettings } from "@/lib/schedule-settings";
-import { toHm } from "@/lib/notify/time";
+} from '@/lib/types';
+import { AddTask } from '@/components/today/add-task';
+import { CheckinBox } from '@/components/today/checkin-box';
+import { NoteBox } from '@/components/today/note-box';
+import { StatsCards } from '@/components/today/stats-cards';
+import { SuggestSheet } from '@/components/today/suggest-sheet';
+import { TaskItem } from '@/components/today/task-item';
+import { ScheduleStrip } from '@/components/today/schedule-strip';
+import { StreakBanner } from '@/components/today/streak-banner';
+import { PlanMomentum } from '@/components/today/plan-momentum';
+import { HabitStrip } from '@/components/today/habit-strip';
+import { FocusBar } from '@/components/today/focus-bar';
+import { DayTimeline } from '@/components/today/day-timeline';
+import { EmptyState } from '@/components/empty-state';
+import { ListTodo } from 'lucide-react';
+import { blocksForDate, computeFreeSlots, softBlocksForDate } from '@/lib/schedule';
+import { getScheduleSettings } from '@/lib/schedule-settings';
+import { toHm } from '@/lib/notify/time';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   searchParams: Promise<{ date?: string; view?: string }>;
@@ -79,20 +68,18 @@ export default async function DayPage({ searchParams }: PageProps) {
     // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
     prisma.task.findMany({
       where: { date, parentId: null },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: 'asc' },
       include: {
         plan: { select: { title: true } },
         subtasks: {
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: 'asc' },
           include: { plan: { select: { title: true } } },
         },
       },
     }),
     prisma.dailyNote.findUnique({ where: { date } }),
     // check-in chỉ cần cho hôm nay (Personal OS, mục 11)
-    isToday
-      ? prisma.dayCheckin.findUnique({ where: { date } })
-      : Promise.resolve(null),
+    isToday ? prisma.dayCheckin.findUnique({ where: { date } }) : Promise.resolve(null),
     // việc xong 7 ngày gần đây (bỏ container) để phản chiếu danh tính (mục 11)
     isToday
       ? prisma.task.findMany({
@@ -115,7 +102,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       ? prisma.task.findMany({
           where: { done: true },
           select: { date: true },
-          distinct: ["date"],
+          distinct: ['date'],
         })
       : Promise.resolve([]),
     // task lá ~7 ngày trước → tốc độ thật (khớp weeklyAvg của /api/suggest)
@@ -142,14 +129,12 @@ export default async function DayPage({ searchParams }: PageProps) {
     // kế hoạch đang chạy → momentum card + tiến độ động
     isToday
       ? prisma.plan.findMany({
-          where: { status: "active" },
-          include: { milestones: { orderBy: { order: "asc" } } },
+          where: { status: 'active' },
+          include: { milestones: { orderBy: { order: 'asc' } } },
         })
       : Promise.resolve([]),
     // thói quen đang bật + lần tick hôm nay (mục 11) — chỉ cho hôm nay
-    isToday
-      ? prisma.habit.findMany({ where: { active: true } })
-      : Promise.resolve([]),
+    isToday ? prisma.habit.findMany({ where: { active: true } }) : Promise.resolve([]),
     isToday
       ? prisma.habitCheck.findMany({
           where: { date },
@@ -186,9 +171,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     dayOfWeek: s.dayOfWeek,
     startTime: s.startTime,
     endTime: s.endTime,
-    kind: (["hoc", "lam", "khac"].includes(s.kind)
-      ? s.kind
-      : "khac") as ScheduleKind,
+    kind: (['hoc', 'lam', 'khac'].includes(s.kind) ? s.kind : 'khac') as ScheduleKind,
     active: s.active,
     validFrom: s.validFrom,
     validUntil: s.validUntil,
@@ -196,12 +179,7 @@ export default async function DayPage({ searchParams }: PageProps) {
   }));
   const anchor = scheduleSettings.termAnchorMonday;
   // khe trống + quỹ giờ rảnh động (mục 14) cho ngày đang xem
-  const capacity = computeFreeSlots(
-    date,
-    commitments,
-    scheduleEvents,
-    scheduleSettings,
-  );
+  const capacity = computeFreeSlots(date, commitments, scheduleEvents, scheduleSettings);
   const scheduleFree = capacity.capacityMin;
   // khối hiển thị: lịch cứng + khung mềm (cho dải chip + timeline)
   const scheduleBlocks = [
@@ -260,7 +238,7 @@ export default async function DayPage({ searchParams }: PageProps) {
   const reflection = isToday
     ? buildReflection({
         activeDays7: new Set(recentDone7.map((t) => t.date)).size,
-        hardDone7: recentDone7.filter((t) => t.emotion === "hard").length,
+        hardDone7: recentDone7.filter((t) => t.emotion === 'hard').length,
         done7: recentDone7.length,
       })
     : null;
@@ -273,9 +251,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       )
     : null;
   const velocity = isToday ? computeVelocity(weekTaskRows) : null;
-  const hardTopics = isToday
-    ? computeDifficultyHints(ratedRows).hardTopics
-    : [];
+  const hardTopics = isToday ? computeDifficultyHints(ratedRows).hardTopics : [];
   const planMomentum = isToday
     ? activePlanRows.map((p) => {
         const prog = computePlanProgress(p, p.milestones, today);
@@ -312,28 +288,24 @@ export default async function DayPage({ searchParams }: PageProps) {
     .reduce((s, t) => s + (t.estimatedMinutes ?? 0), 0);
   // mặc định: có dữ liệu lịch/việc-đã-xếp → timeline; quá khứ → ép list
   const hasTimelineData = scheduleBlocks.length > 0 || timelineTasks.length > 0;
-  const view: "list" | "timeline" = isPast
-    ? "list"
-    : rawView === "list" || rawView === "timeline"
+  const view: 'list' | 'timeline' = isPast
+    ? 'list'
+    : rawView === 'list' || rawView === 'timeline'
       ? rawView
       : hasTimelineData
-        ? "timeline"
-        : "list";
+        ? 'timeline'
+        : 'list';
 
   return (
     <div className="py-8">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm text-muted-foreground capitalize">
-            {formatDateVN(date)}
-          </p>
+          <p className="text-sm text-muted-foreground capitalize">{formatDateVN(date)}</p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight capitalize sm:text-2xl">
             {dayLabel(date)}
           </h1>
           {/* phản chiếu danh tính — feedback thông tin, không điểm số (mục 11) */}
-          {reflection && (
-            <p className="mt-2 text-xs text-muted-foreground">{reflection}</p>
-          )}
+          {reflection && <p className="mt-2 text-xs text-muted-foreground">{reflection}</p>}
         </div>
         <DayNav date={date} today={today} />
       </header>
@@ -355,10 +327,10 @@ export default async function DayPage({ searchParams }: PageProps) {
             />
           )}
           {/* dải chip lịch chỉ ở chế độ Danh sách (timeline đã vẽ khối) */}
-          {view === "list" && <ScheduleStrip blocks={scheduleBlocks} />}
+          {view === 'list' && <ScheduleStrip blocks={scheduleBlocks} />}
           {isToday && <HabitStrip habits={todayHabits} />}
 
-          {view === "timeline" && !isPast ? (
+          {view === 'timeline' && !isPast ? (
             <>
               <DayTimeline
                 isToday={isToday}
@@ -375,12 +347,7 @@ export default async function DayPage({ searchParams }: PageProps) {
                     Chưa xếp giờ ({unscheduledTasks.length})
                   </p>
                   {unscheduledTasks.map((t) => (
-                    <TaskItem
-                      key={t.id}
-                      task={t}
-                      mitId={mitId}
-                      freeSlots={capacity.slots}
-                    />
+                    <TaskItem key={t.id} task={t} mitId={mitId} freeSlots={capacity.slots} />
                   ))}
                 </div>
               )}
@@ -390,14 +357,12 @@ export default async function DayPage({ searchParams }: PageProps) {
               icon={ListTodo}
               title={
                 isPast
-                  ? "Ngày này không có việc nào"
+                  ? 'Ngày này không có việc nào'
                   : isToday
-                    ? "Chưa có việc nào hôm nay"
-                    : "Chưa có kế hoạch cho ngày này"
+                    ? 'Chưa có việc nào hôm nay'
+                    : 'Chưa có kế hoạch cho ngày này'
               }
-              description={
-                isPast ? undefined : "Thêm việc đầu tiên ở ô bên dưới."
-              }
+              description={isPast ? undefined : 'Thêm việc đầu tiên ở ô bên dưới.'}
               className="py-10"
             />
           ) : (
@@ -417,7 +382,7 @@ export default async function DayPage({ searchParams }: PageProps) {
           {/* Ghi chú nằm CUỐI cột việc → thẳng hàng đúng bằng các thanh todo phía trên */}
           {isToday && (
             <div className="mt-6">
-              <NoteBox initialNote={dailyNote?.note ?? ""} />
+              <NoteBox initialNote={dailyNote?.note ?? ''} />
             </div>
           )}
 
@@ -432,11 +397,7 @@ export default async function DayPage({ searchParams }: PageProps) {
         </section>
 
         <aside className="flex flex-col gap-4">
-          <StatsCards
-            done={doneCount}
-            total={leaves.length}
-            velocity={velocity}
-          />
+          <StatsCards done={doneCount} total={leaves.length} velocity={velocity} />
           {isToday && (
             <CheckinBox
               initial={{
@@ -447,9 +408,7 @@ export default async function DayPage({ searchParams }: PageProps) {
               }}
             />
           )}
-          {isToday && planMomentum.length > 0 && (
-            <PlanMomentum plans={planMomentum} />
-          )}
+          {isToday && planMomentum.length > 0 && <PlanMomentum plans={planMomentum} />}
           {isToday && <SuggestSheet />}
         </aside>
       </div>

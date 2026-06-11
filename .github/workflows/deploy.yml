@@ -6,7 +6,7 @@ name: build-and-push
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   # Cho phép bấm nút "Run workflow" thủ công trên GitHub
   workflow_dispatch:
 
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write   # cho phép GITHUB_TOKEN push lên ghcr.io
+      packages: write # cho phép GITHUB_TOKEN push lên ghcr.io
     steps:
       - uses: actions/checkout@v4
 

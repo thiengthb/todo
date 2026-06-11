@@ -1,21 +1,15 @@
-"use client";
+'use client';
 
-import { useTransition } from "react";
-import { AlertTriangle, CalendarPlus, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { extendPlanDeadline } from "@/app/actions";
+import { useTransition } from 'react';
+import { AlertTriangle, CalendarPlus, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { extendPlanDeadline } from '@/app/actions';
 
 /**
  * Cảnh báo chậm tiến độ + lựa chọn (mục 10.4) — KHÔNG tự co giãn ngầm,
  * nói rõ chậm bao nhiêu rồi để người dùng chọn hướng xử lý.
  */
-export function BehindAlert({
-  id,
-  behindDays,
-}: {
-  id: string;
-  behindDays: number;
-}) {
+export function BehindAlert({ id, behindDays }: { id: string; behindDays: number }) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -29,21 +23,14 @@ export function BehindAlert({
       </p>
       <ul className="mt-2 space-y-1 text-xs text-amber-700/80 dark:text-amber-400/80">
         <li>· Giãn deadline để giữ nhịp hiện tại, hoặc</li>
-        <li>
-          · Bỏ bớt một cột mốc chưa quan trọng (xoá ở danh sách dưới), hoặc
-        </li>
-        <li>
-          · Giữ nguyên và tăng tốc — đề xuất hằng ngày sẽ ưu tiên việc của kế
-          hoạch này.
-        </li>
+        <li>· Bỏ bớt một cột mốc chưa quan trọng (xoá ở danh sách dưới), hoặc</li>
+        <li>· Giữ nguyên và tăng tốc — đề xuất hằng ngày sẽ ưu tiên việc của kế hoạch này.</li>
       </ul>
       <Button
         size="sm"
         variant="outline"
         disabled={pending}
-        onClick={() =>
-          startTransition(() => extendPlanDeadline(id, behindDays))
-        }
+        onClick={() => startTransition(() => extendPlanDeadline(id, behindDays))}
         className="mt-3 gap-2 border-amber-300 dark:border-amber-800"
       >
         {pending ? (

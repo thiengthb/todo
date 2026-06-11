@@ -1,15 +1,10 @@
-import { prisma } from "@/lib/db";
-import { computeStreaks } from "@/lib/streak";
-import { computePlanProgress } from "@/lib/plan";
-import { todayStr } from "@/lib/dates";
-import { blocksForDate, freeMinutes } from "@/lib/schedule";
-import type { NotificationFacts } from "@/lib/ai";
-import type {
-  CommitmentDTO,
-  NotificationKind,
-  ScheduleEventDTO,
-  ScheduleKind,
-} from "@/lib/types";
+import { prisma } from '@/lib/db';
+import { computeStreaks } from '@/lib/streak';
+import { computePlanProgress } from '@/lib/plan';
+import { todayStr } from '@/lib/dates';
+import { blocksForDate, freeMinutes } from '@/lib/schedule';
+import type { NotificationFacts } from '@/lib/ai';
+import type { CommitmentDTO, NotificationKind, ScheduleEventDTO, ScheduleKind } from '@/lib/types';
 
 // task "container" (có ≥1 con) là nhóm, không tính vào stats/streak (mục 11)
 const NOT_CONTAINER = { subtasks: { none: {} } };
@@ -20,39 +15,31 @@ const IMPACT_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
  * Lắp DỮ KIỆN THẬT cho thông báo (mục 13). Đây là phần "code" — mọi con số/tên việc
  * truy ngược được về DB; AI chỉ viết giọng văn quanh đây, không tự bịa.
  */
-export async function buildNotificationFacts(
-  kind: NotificationKind,
-): Promise<NotificationFacts> {
+export async function buildNotificationFacts(kind: NotificationKind): Promise<NotificationFacts> {
   const today = todayStr();
 
-  const [
-    todayLeaves,
-    undoneLeaves,
-    activeDayRows,
-    plans,
-    commitmentRows,
-    eventRows,
-  ] = await Promise.all([
-    // việc lá hôm nay (bỏ container)
-    prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
-    // việc còn dở đến hôm nay (bỏ container) — để cú hích bám vào
-    prisma.task.findMany({
-      where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
-      orderBy: { createdAt: "asc" },
-    }),
-    // ngày có việc done → tính streak động
-    prisma.task.findMany({
-      where: { done: true },
-      select: { date: true },
-      distinct: ["date"],
-    }),
-    prisma.plan.findMany({
-      where: { status: "active" },
-      include: { milestones: { orderBy: { order: "asc" } } },
-    }),
-    prisma.commitment.findMany({ where: { active: true } }),
-    prisma.scheduleEvent.findMany({ where: { date: today } }),
-  ]);
+  const [todayLeaves, undoneLeaves, activeDayRows, plans, commitmentRows, eventRows] =
+    await Promise.all([
+      // việc lá hôm nay (bỏ container)
+      prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
+      // việc còn dở đến hôm nay (bỏ container) — để cú hích bám vào
+      prisma.task.findMany({
+        where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
+        orderBy: { createdAt: 'asc' },
+      }),
+      // ngày có việc done → tính streak động
+      prisma.task.findMany({
+        where: { done: true },
+        select: { date: true },
+        distinct: ['date'],
+      }),
+      prisma.plan.findMany({
+        where: { status: 'active' },
+        include: { milestones: { orderBy: { order: 'asc' } } },
+      }),
+      prisma.commitment.findMany({ where: { active: true } }),
+      prisma.scheduleEvent.findMany({ where: { date: today } }),
+    ]);
 
   // lịch cứng hôm nay → quỹ giờ rảnh + tóm tắt cho giọng văn (mục 14)
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
@@ -78,9 +65,7 @@ export async function buildNotificationFacts(
   }));
   const todayBlocks = blocksForDate(today, commitments, scheduleEvents);
   const todaySchedule = todayBlocks.map((b) =>
-    b.startTime && b.endTime
-      ? `${b.startTime}–${b.endTime} ${b.title}`
-      : `Cả ngày ${b.title}`,
+    b.startTime && b.endTime ? `${b.startTime}–${b.endTime} ${b.title}` : `Cả ngày ${b.title}`,
   );
   const freeMinutesToday = freeMinutes(today, commitments, scheduleEvents);
 
@@ -98,9 +83,7 @@ export async function buildNotificationFacts(
   let mit = mitPool[0] ?? null;
   for (const t of mitPool) {
     const score = (t.impact ? IMPACT_RANK[t.impact] : 0) + (t.planId ? 1 : 0);
-    const bestScore = mit
-      ? (mit.impact ? IMPACT_RANK[mit.impact] : 0) + (mit.planId ? 1 : 0)
-      : -1;
+    const bestScore = mit ? (mit.impact ? IMPACT_RANK[mit.impact] : 0) + (mit.planId ? 1 : 0) : -1;
     if (score > bestScore) mit = t;
   }
 
@@ -115,7 +98,7 @@ export async function buildNotificationFacts(
   });
   let capacityScore: number | null = null;
   if (checkin) {
-    const { computeCapacity } = await import("@/lib/capacity");
+    const { computeCapacity } = await import('@/lib/capacity');
     capacityScore = computeCapacity(checkin);
   }
 

@@ -1,18 +1,18 @@
-import { Target } from "lucide-react";
-import { prisma } from "@/lib/db";
-import { computePlanProgress } from "@/lib/plan";
-import type { PlanStatus } from "@/lib/types";
-import { CreatePlanDialog } from "@/components/plans/create-plan-dialog";
-import { PlanCard } from "@/components/plans/plan-card";
-import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
+import { Target } from 'lucide-react';
+import { prisma } from '@/lib/db';
+import { computePlanProgress } from '@/lib/plan';
+import type { PlanStatus } from '@/lib/types';
+import { CreatePlanDialog } from '@/components/plans/create-plan-dialog';
+import { PlanCard } from '@/components/plans/plan-card';
+import { PageHeader } from '@/components/page-header';
+import { EmptyState } from '@/components/empty-state';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 /** Nhãn ngày còn lại từ progress.daysLeft */
 function daysLeftLabel(daysLeft: number): string {
   if (daysLeft > 0) return `còn ${daysLeft}d`;
-  if (daysLeft === 0) return "hạn hôm nay";
+  if (daysLeft === 0) return 'hạn hôm nay';
   return `quá hạn ${-daysLeft}d`;
 }
 
@@ -26,8 +26,8 @@ const STATUS_ORDER: Record<PlanStatus, number> = {
 
 export default async function PlansPage() {
   const plans = await prisma.plan.findMany({
-    include: { milestones: { orderBy: { order: "asc" } } },
-    orderBy: { createdAt: "desc" },
+    include: { milestones: { orderBy: { order: 'asc' } } },
+    orderBy: { createdAt: 'desc' },
   });
 
   const cards = plans
@@ -41,11 +41,7 @@ export default async function PlansPage() {
 
   return (
     <div className="py-8">
-      <PageHeader
-        eyebrow="Mục tiêu dài hạn"
-        title="Kế hoạch"
-        action={<CreatePlanDialog />}
-      />
+      <PageHeader eyebrow="Mục tiêu dài hạn" title="Kế hoạch" action={<CreatePlanDialog />} />
 
       {cards.length === 0 ? (
         <EmptyState

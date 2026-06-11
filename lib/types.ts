@@ -1,6 +1,6 @@
-export type Emotion = "love" | "meh" | "hard";
+export type Emotion = 'love' | 'meh' | 'hard';
 
-export type Priority = "high" | "medium" | "low";
+export type Priority = 'high' | 'medium' | 'low';
 
 /** Một đề xuất của AI — luôn kèm reason truy ngược được về dữ liệu thật */
 export interface SuggestionItem {
@@ -79,8 +79,8 @@ export interface TaskDTO {
 
 // ---- Kế hoạch (mục 10) ----
 
-export type PlanStatus = "active" | "paused" | "done" | "archived";
-export type Intensity = "nhẹ" | "vừa" | "dồn";
+export type PlanStatus = 'active' | 'paused' | 'done' | 'archived';
+export type Intensity = 'nhẹ' | 'vừa' | 'dồn';
 
 /** Một cột mốc model trả về từ bước decompose (chưa có id, chưa lưu DB) */
 export interface MilestoneDraft {
@@ -96,7 +96,7 @@ export interface DecomposeResult {
 
 // ---- Lịch trình (mục 14) ----
 
-export type ScheduleKind = "hoc" | "lam" | "khac";
+export type ScheduleKind = 'hoc' | 'lam' | 'khac';
 
 /** Lịch cứng lặp theo tuần (khớp model Commitment) */
 export interface CommitmentDTO {
@@ -159,7 +159,7 @@ export interface ScheduleBlock {
   startTime: string | null; // null = cả ngày
   endTime: string | null;
   kind: ScheduleKind;
-  source: "commitment" | "event" | "soft";
+  source: 'commitment' | 'event' | 'soft';
 }
 
 /** Một khe giờ rảnh trong ngày (mục 14) — tính động từ computeFreeSlots */
@@ -190,13 +190,13 @@ export interface ScheduleSettingsDTO {
 
 /** Bốn loại thông báo — khớp cột `kind` của NotificationLog */
 export type NotificationKind =
-  | "morning" // bản tin sáng
-  | "streak_guard" // nhắc giữ streak khi atRisk
-  | "random_nudge" // cú hích ngẫu nhiên làm task
-  | "evening"; // đúc kết tối
+  | 'morning' // bản tin sáng
+  | 'streak_guard' // nhắc giữ streak khi atRisk
+  | 'random_nudge' // cú hích ngẫu nhiên làm task
+  | 'evening'; // đúc kết tối
 
 /** Preset cường độ — chỉ là gợi ý UI để set nhanh các toggle bên dưới */
-export type NotificationIntensity = "minimal" | "balanced" | "active";
+export type NotificationIntensity = 'minimal' | 'balanced' | 'active';
 
 /** Cấu hình thông báo (1 hàng, app một người dùng) — khớp model Prisma */
 export interface NotificationSettingsDTO {

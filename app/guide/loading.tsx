@@ -1,5 +1,5 @@
-import { GridSkeleton } from "@/components/skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
+import { GridSkeleton } from '@/components/skeletons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Skeleton trang Hướng dẫn — hero + lưới thẻ. */
 export default function Loading() {

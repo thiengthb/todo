@@ -1,21 +1,21 @@
-"use server";
+'use server';
 
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { isValidDateStr } from "@/lib/dates";
-import { isValidHm } from "@/lib/notify/time";
-import { hmToMinutes } from "@/lib/notify/time";
-import { saveScheduleSettings } from "@/lib/schedule-settings";
-import type { ScheduleKind, ScheduleSettingsDTO } from "@/lib/types";
+import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/db';
+import { isValidDateStr } from '@/lib/dates';
+import { isValidHm } from '@/lib/notify/time';
+import { hmToMinutes } from '@/lib/notify/time';
+import { saveScheduleSettings } from '@/lib/schedule-settings';
+import type { ScheduleKind, ScheduleSettingsDTO } from '@/lib/types';
 
-const KINDS: ScheduleKind[] = ["hoc", "lam", "khac"];
+const KINDS: ScheduleKind[] = ['hoc', 'lam', 'khac'];
 const toKind = (k: string): ScheduleKind =>
-  (KINDS as string[]).includes(k) ? (k as ScheduleKind) : "khac";
+  (KINDS as string[]).includes(k) ? (k as ScheduleKind) : 'khac';
 
 function revalidate() {
   // /schedule cho trang lịch, / cho dải lịch hôm nay
-  revalidatePath("/schedule");
-  revalidatePath("/");
+  revalidatePath('/schedule');
+  revalidatePath('/');
 }
 
 /** Field kỳ học dùng chung cho lịch cứng & khung mềm (mục 14) — tất cả tùy chọn */
@@ -35,9 +35,7 @@ export interface CommitmentInput extends SemesterInput {
 
 /** Kiểm tra chung cho khối có giờ: giờ hợp lệ + bắt đầu < kết thúc */
 function validTimes(start: string, end: string): boolean {
-  return (
-    isValidHm(start) && isValidHm(end) && hmToMinutes(start) < hmToMinutes(end)
-  );
+  return isValidHm(start) && isValidHm(end) && hmToMinutes(start) < hmToMinutes(end);
 }
 
 /** Chuẩn hoá + kiểm tra field kỳ học. Trả data đã sạch hoặc lỗi. */
@@ -54,13 +52,12 @@ function normalizeSemester(i: SemesterInput):
   const validFrom = i.validFrom?.trim() || null;
   const validUntil = i.validUntil?.trim() || null;
   if (validFrom && !isValidDateStr(validFrom))
-    return { ok: false, error: "Ngày bắt đầu kỳ không hợp lệ" };
+    return { ok: false, error: 'Ngày bắt đầu kỳ không hợp lệ' };
   if (validUntil && !isValidDateStr(validUntil))
-    return { ok: false, error: "Ngày kết thúc kỳ không hợp lệ" };
+    return { ok: false, error: 'Ngày kết thúc kỳ không hợp lệ' };
   if (validFrom && validUntil && validFrom > validUntil)
-    return { ok: false, error: "Ngày bắt đầu kỳ phải trước ngày kết thúc" };
-  const weekParity =
-    i.weekParity === "odd" || i.weekParity === "even" ? i.weekParity : null;
+    return { ok: false, error: 'Ngày bắt đầu kỳ phải trước ngày kết thúc' };
+  const weekParity = i.weekParity === 'odd' || i.weekParity === 'even' ? i.weekParity : null;
   return { ok: true, data: { validFrom, validUntil, weekParity } };
 }
 
@@ -68,11 +65,10 @@ export async function addCommitment(
   input: CommitmentInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên lịch" };
-  if (input.dayOfWeek < 0 || input.dayOfWeek > 6)
-    return { ok: false, error: "Thứ không hợp lệ" };
+  if (!title) return { ok: false, error: 'Cần tên lịch' };
+  if (input.dayOfWeek < 0 || input.dayOfWeek > 6) return { ok: false, error: 'Thứ không hợp lệ' };
   if (!validTimes(input.startTime, input.endTime))
-    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+    return { ok: false, error: 'Giờ bắt đầu phải trước giờ kết thúc' };
   const sem = normalizeSemester(input);
   if (!sem.ok) return sem;
 
@@ -95,9 +91,9 @@ export async function updateCommitment(
   input: CommitmentInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên lịch" };
+  if (!title) return { ok: false, error: 'Cần tên lịch' };
   if (!validTimes(input.startTime, input.endTime))
-    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+    return { ok: false, error: 'Giờ bắt đầu phải trước giờ kết thúc' };
   const sem = normalizeSemester(input);
   if (!sem.ok) return sem;
 
@@ -116,10 +112,7 @@ export async function updateCommitment(
   return { ok: true };
 }
 
-export async function setCommitmentActive(
-  id: string,
-  active: boolean,
-): Promise<void> {
+export async function setCommitmentActive(id: string, active: boolean): Promise<void> {
   await prisma.commitment.update({ where: { id }, data: { active } });
   revalidate();
 }
@@ -143,11 +136,10 @@ export async function addSoftBlock(
   input: SoftBlockInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên khung giờ" };
-  if (input.dayOfWeek < 0 || input.dayOfWeek > 6)
-    return { ok: false, error: "Thứ không hợp lệ" };
+  if (!title) return { ok: false, error: 'Cần tên khung giờ' };
+  if (input.dayOfWeek < 0 || input.dayOfWeek > 6) return { ok: false, error: 'Thứ không hợp lệ' };
   if (!validTimes(input.startTime, input.endTime))
-    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+    return { ok: false, error: 'Giờ bắt đầu phải trước giờ kết thúc' };
   const sem = normalizeSemester(input);
   if (!sem.ok) return sem;
 
@@ -170,9 +162,9 @@ export async function updateSoftBlock(
   input: SoftBlockInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên khung giờ" };
+  if (!title) return { ok: false, error: 'Cần tên khung giờ' };
   if (!validTimes(input.startTime, input.endTime))
-    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+    return { ok: false, error: 'Giờ bắt đầu phải trước giờ kết thúc' };
   const sem = normalizeSemester(input);
   if (!sem.ok) return sem;
 
@@ -191,10 +183,7 @@ export async function updateSoftBlock(
   return { ok: true };
 }
 
-export async function setSoftBlockActive(
-  id: string,
-  active: boolean,
-): Promise<void> {
+export async function setSoftBlockActive(id: string, active: boolean): Promise<void> {
   await prisma.softBlock.update({ where: { id }, data: { active } });
   revalidate();
 }
@@ -217,14 +206,13 @@ export async function addScheduleEvent(
   input: ScheduleEventInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên sự kiện" };
-  if (!isValidDateStr(input.date))
-    return { ok: false, error: "Ngày không hợp lệ" };
+  if (!title) return { ok: false, error: 'Cần tên sự kiện' };
+  if (!isValidDateStr(input.date)) return { ok: false, error: 'Ngày không hợp lệ' };
 
   // có giờ thì phải hợp lệ; cả ngày (không giờ) hoặc cancels thì bỏ qua
   const hasTime = !!input.startTime && !!input.endTime;
   if (hasTime && !validTimes(input.startTime!, input.endTime!))
-    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+    return { ok: false, error: 'Giờ bắt đầu phải trước giờ kết thúc' };
 
   await prisma.scheduleEvent.create({
     data: {
@@ -245,13 +233,12 @@ export async function updateScheduleEvent(
   input: ScheduleEventInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên sự kiện" };
-  if (!isValidDateStr(input.date))
-    return { ok: false, error: "Ngày không hợp lệ" };
+  if (!title) return { ok: false, error: 'Cần tên sự kiện' };
+  if (!isValidDateStr(input.date)) return { ok: false, error: 'Ngày không hợp lệ' };
 
   const hasTime = !!input.startTime && !!input.endTime;
   if (hasTime && !validTimes(input.startTime!, input.endTime!))
-    return { ok: false, error: "Giờ bắt đầu phải trước giờ kết thúc" };
+    return { ok: false, error: 'Giờ bắt đầu phải trước giờ kết thúc' };
 
   await prisma.scheduleEvent.update({
     where: { id },
@@ -278,15 +265,15 @@ export async function updateScheduleSettings(
   input: ScheduleSettingsDTO,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!isValidHm(input.wakeTime) || !isValidHm(input.sleepTime))
-    return { ok: false, error: "Giờ không hợp lệ" };
+    return { ok: false, error: 'Giờ không hợp lệ' };
   if (hmToMinutes(input.wakeTime) >= hmToMinutes(input.sleepTime))
-    return { ok: false, error: "Giờ thức phải trước giờ ngủ" };
+    return { ok: false, error: 'Giờ thức phải trước giờ ngủ' };
   if (input.bufferMin < 0 || input.bufferMin > 120)
-    return { ok: false, error: "Buffer phải trong khoảng 0–120 phút" };
+    return { ok: false, error: 'Buffer phải trong khoảng 0–120 phút' };
   if (input.minSlotMin < 0 || input.minSlotMin > 240)
-    return { ok: false, error: "Ngưỡng khe không hợp lệ" };
+    return { ok: false, error: 'Ngưỡng khe không hợp lệ' };
   if (input.termAnchorMonday && !isValidDateStr(input.termAnchorMonday))
-    return { ok: false, error: "Mốc tuần không hợp lệ" };
+    return { ok: false, error: 'Mốc tuần không hợp lệ' };
 
   await saveScheduleSettings(input);
   revalidate();

@@ -1,12 +1,12 @@
-"use server";
+'use server';
 
-import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
-import { todayStr } from "@/lib/dates";
+import { revalidatePath } from 'next/cache';
+import { prisma } from '@/lib/db';
+import { todayStr } from '@/lib/dates';
 
 function revalidate() {
-  revalidatePath("/");
-  revalidatePath("/schedule");
+  revalidatePath('/');
+  revalidatePath('/schedule');
 }
 
 /** Chuẩn hoá CSV thứ trong tuần ("1,2,3"), bỏ giá trị ngoài 0..6; rỗng → null (hằng ngày) */
@@ -15,12 +15,12 @@ function normalizeDays(daysOfWeek: string | null | undefined): string | null {
   const days = [
     ...new Set(
       daysOfWeek
-        .split(",")
+        .split(',')
         .map((s) => Number(s.trim()))
         .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6),
     ),
   ].sort((a, b) => a - b);
-  return days.length > 0 ? days.join(",") : null;
+  return days.length > 0 ? days.join(',') : null;
 }
 
 export interface HabitInput {
@@ -28,11 +28,9 @@ export interface HabitInput {
   daysOfWeek: string | null;
 }
 
-export async function addHabit(
-  input: HabitInput,
-): Promise<{ ok: boolean; error?: string }> {
+export async function addHabit(input: HabitInput): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên thói quen" };
+  if (!title) return { ok: false, error: 'Cần tên thói quen' };
   await prisma.habit.create({
     data: { title, daysOfWeek: normalizeDays(input.daysOfWeek) },
   });
@@ -45,7 +43,7 @@ export async function updateHabit(
   input: HabitInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const title = input.title.trim();
-  if (!title) return { ok: false, error: "Cần tên thói quen" };
+  if (!title) return { ok: false, error: 'Cần tên thói quen' };
   await prisma.habit.update({
     where: { id },
     data: { title, daysOfWeek: normalizeDays(input.daysOfWeek) },
@@ -54,10 +52,7 @@ export async function updateHabit(
   return { ok: true };
 }
 
-export async function setHabitActive(
-  id: string,
-  active: boolean,
-): Promise<void> {
+export async function setHabitActive(id: string, active: boolean): Promise<void> {
   await prisma.habit.update({ where: { id }, data: { active } });
   revalidate();
 }

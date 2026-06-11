@@ -1,12 +1,12 @@
-import { prisma } from "@/lib/db";
-import type { ScheduleSettingsDTO } from "@/lib/types";
+import { prisma } from '@/lib/db';
+import type { ScheduleSettingsDTO } from '@/lib/types';
 
-const SINGLETON_ID = "singleton";
+const SINGLETON_ID = 'singleton';
 
 /** Mặc định khi chưa có hàng nào (khớp default schema + hằng số 07–23h cũ) */
 export const DEFAULT_SCHEDULE_SETTINGS: ScheduleSettingsDTO = {
-  wakeTime: "07:00",
-  sleepTime: "23:00",
+  wakeTime: '07:00',
+  sleepTime: '23:00',
   bufferMin: 15,
   minSlotMin: 30,
   termAnchorMonday: null,
@@ -28,9 +28,7 @@ export async function getScheduleSettings(): Promise<ScheduleSettingsDTO> {
 }
 
 /** Lưu cấu hình lịch (upsert hàng singleton). */
-export async function saveScheduleSettings(
-  data: ScheduleSettingsDTO,
-): Promise<void> {
+export async function saveScheduleSettings(data: ScheduleSettingsDTO): Promise<void> {
   const payload = {
     wakeTime: data.wakeTime,
     sleepTime: data.sleepTime,

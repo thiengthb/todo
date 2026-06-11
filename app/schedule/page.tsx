@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import { prisma } from '@/lib/db';
 import {
   addDays,
   formatDateShort,
@@ -6,15 +6,11 @@ import {
   mondayOf,
   todayStr,
   weekdayShortVN,
-} from "@/lib/dates";
-import {
-  blocksForDate,
-  computeFreeSlots,
-  softBlocksForDate,
-} from "@/lib/schedule";
-import { getScheduleSettings } from "@/lib/schedule-settings";
-import { PageHeader } from "@/components/page-header";
-import { WeekView, type DayColumn } from "@/components/schedule/week-view";
+} from '@/lib/dates';
+import { blocksForDate, computeFreeSlots, softBlocksForDate } from '@/lib/schedule';
+import { getScheduleSettings } from '@/lib/schedule-settings';
+import { PageHeader } from '@/components/page-header';
+import { WeekView, type DayColumn } from '@/components/schedule/week-view';
 import type {
   CommitmentDTO,
   FreeSlot,
@@ -22,11 +18,11 @@ import type {
   ScheduleEventDTO,
   ScheduleKind,
   SoftBlockDTO,
-} from "@/lib/types";
+} from '@/lib/types';
 
 /** focus → khac (ScheduleKind chỉ có hoc/lam/khac) */
 function toScheduleKind(k: string): ScheduleKind {
-  return k === "hoc" || k === "lam" ? k : "khac";
+  return k === 'hoc' || k === 'lam' ? k : 'khac';
 }
 
 /** Sắp khối theo giờ; khối cả ngày (null) lên đầu — "HH:MM" so lexical = thời gian */
@@ -37,7 +33,7 @@ function byStart(a: ScheduleBlock, b: ScheduleBlock): number {
   return a.startTime.localeCompare(b.startTime);
 }
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   searchParams: Promise<{ start?: string }>;
@@ -50,20 +46,19 @@ export default async function SchedulePage({ searchParams }: PageProps) {
   const dates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekEnd = dates[6];
 
-  const [commitmentRows, softBlockRows, eventRows, settings] =
-    await Promise.all([
-      prisma.commitment.findMany({
-        orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-      }),
-      prisma.softBlock.findMany({
-        orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-      }),
-      prisma.scheduleEvent.findMany({
-        where: { date: { gte: weekStart, lte: weekEnd } },
-        orderBy: { date: "asc" },
-      }),
-      getScheduleSettings(),
-    ]);
+  const [commitmentRows, softBlockRows, eventRows, settings] = await Promise.all([
+    prisma.commitment.findMany({
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+    }),
+    prisma.softBlock.findMany({
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+    }),
+    prisma.scheduleEvent.findMany({
+      where: { date: { gte: weekStart, lte: weekEnd } },
+      orderBy: { date: 'asc' },
+    }),
+    getScheduleSettings(),
+  ]);
 
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
     id: c.id,
@@ -112,12 +107,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
       // lưới hiển thị cả lịch cứng + khung mềm (soft); quỹ rảnh chỉ tính lịch cứng
       blocks: [
         ...blocksForDate(date, commitments, events, settings.termAnchorMonday),
-        ...softBlocksForDate(
-          date,
-          softBlocks,
-          events,
-          settings.termAnchorMonday,
-        ),
+        ...softBlocksForDate(date, softBlocks, events, settings.termAnchorMonday),
       ].sort(byStart),
       freeMin: cap.capacityMin,
     };
