@@ -27,6 +27,8 @@ function isKindEnabled(
       return s.randomNudgeEnabled;
     case 'evening':
       return s.eveningEnabled;
+    case 'queue_nudge':
+      return s.queueNudgeEnabled;
   }
 }
 
@@ -98,6 +100,12 @@ export async function runNotification(
   const res = await sendDiscord(settings.discordWebhookUrl, composed.message);
   if (!res.ok) {
     return log('error', res.error ?? `Gửi thất bại (HTTP ${res.status})`);
+  }
+  // cooldown mục tiêu "Ấp ủ" vừa nhắc (mục 17) → vòng sau xếp hạng thấp, không lặp lại liên tục
+  if (kind === 'queue_nudge' && facts.topIncubatingGoalId) {
+    await prisma.goal
+      .update({ where: { id: facts.topIncubatingGoalId }, data: { lastNudgedAt: new Date() } })
+      .catch(() => {});
   }
   return log('sent', composed.preview);
 }

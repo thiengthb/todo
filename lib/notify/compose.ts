@@ -8,6 +8,7 @@ const COLOR: Record<NotificationKind, number> = {
   streak_guard: 0xf59e0b, // amber — tín hiệu nhẹ "cần giữ"
   random_nudge: 0x64748b, // slate trung tính
   evening: 0x6366f1, // indigo dịu cho buổi tối
+  queue_nudge: 0x14b8a6, // teal — cơ hội nhẹ nhàng (mục 17)
 };
 
 const TITLE: Record<NotificationKind, string> = {
@@ -15,6 +16,7 @@ const TITLE: Record<NotificationKind, string> = {
   streak_guard: '🌱 Giữ chuỗi của bạn',
   random_nudge: '👋 Một cú hích nhẹ',
   evening: '🌙 Đúc kết tối',
+  queue_nudge: '🌿 Lúc rảnh — điều bạn ấp ủ',
 };
 
 export interface Composed {
@@ -50,6 +52,18 @@ export async function compose(
       if (facts.undoneCount === 0) {
         shouldSend = false;
         skipReason = 'Không còn việc dở để nhắc';
+      }
+    } else if (facts.kind === 'queue_nudge') {
+      // CƠ HỘI, không nghĩa vụ (mục 17): chỉ nhắc khi còn mục Ấp ủ + quỹ giờ rảnh đủ rộng + sức không thấp
+      if (facts.incubatingCount === 0) {
+        shouldSend = false;
+        skipReason = 'Không có mục tiêu nào đang ấp ủ';
+      } else if (facts.freeMinutesToday < 90) {
+        shouldSend = false;
+        skipReason = 'Quỹ giờ rảnh hôm nay không nhiều';
+      } else if (facts.capacityScore != null && facts.capacityScore < 40) {
+        shouldSend = false;
+        skipReason = 'Sức hôm nay đang thấp — để bạn nghỉ';
       }
     }
   }
@@ -101,5 +115,11 @@ function buildFactLine(f: NotificationFacts): string {
   if (f.totalCount > 0) bits.push(`✅ ${f.doneCount}/${f.totalCount} việc hôm nay`);
   if (f.streakCurrent > 0) bits.push(`🔥 chuỗi ${f.streakCurrent} ngày`);
   if (f.behindPlans.length > 0) bits.push(`📌 kế hoạch chậm: ${f.behindPlans.join(', ')}`);
+  // minh bạch cho nudge Ấp ủ (mục 17): số điều ấp ủ + quỹ giờ rảnh thật
+  if (f.kind === 'queue_nudge') {
+    if (f.incubatingCount > 0) bits.push(`🌿 ${f.incubatingCount} điều đang ấp ủ`);
+    if (f.freeMinutesToday > 0)
+      bits.push(`🕒 ~${Math.round(f.freeMinutesToday / 60)}h rảnh hôm nay`);
+  }
   return bits.join('  ·  ');
 }

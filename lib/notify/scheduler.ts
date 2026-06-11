@@ -33,6 +33,15 @@ async function tick(): Promise<void> {
     );
     if (target >= 0 && nowMin === target) due.push('random_nudge');
   }
+  // nhắc "Ấp ủ" (mục 17): cùng cửa randomWindow nhưng seed KHÁC ngày để không trùng phút random_nudge
+  if (settings.queueNudgeEnabled) {
+    const target = randomNudgeTargetMinute(
+      `${todayStr()}#queue`,
+      settings.randomWindowStart,
+      settings.randomWindowEnd,
+    );
+    if (target >= 0 && nowMin === target) due.push('queue_nudge');
+  }
 
   for (const kind of due) {
     await runNotification(kind).catch(() => {});

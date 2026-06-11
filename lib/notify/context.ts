@@ -1,8 +1,9 @@
 import { prisma } from '@/lib/db';
 import { computeStreaks } from '@/lib/streak';
 import { computePlanProgress } from '@/lib/plan';
+import { estimateGoalSize, rankGoalsForNudge } from '@/lib/queue';
 import { todayStr } from '@/lib/dates';
-import { blocksForDate, freeMinutes } from '@/lib/schedule';
+import { blocksForDate, computeFreeSlots } from '@/lib/schedule';
 import type { NotificationFacts } from '@/lib/ai';
 import type { CommitmentDTO, NotificationKind, ScheduleEventDTO, ScheduleKind } from '@/lib/types';
 
@@ -18,7 +19,7 @@ const IMPACT_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 export async function buildNotificationFacts(kind: NotificationKind): Promise<NotificationFacts> {
   const today = todayStr();
 
-  const [todayLeaves, undoneLeaves, activeDayRows, plans, commitmentRows, eventRows] =
+  const [todayLeaves, undoneLeaves, activeDayRows, plans, commitmentRows, eventRows, goalRows] =
     await Promise.all([
       // việc lá hôm nay (bỏ container)
       prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
@@ -39,6 +40,8 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
       }),
       prisma.commitment.findMany({ where: { active: true } }),
       prisma.scheduleEvent.findMany({ where: { date: today } }),
+      // mục tiêu "Ấp ủ" còn trong hàng đợi (mục 17) — để nhắc lấy ra khi rảnh
+      prisma.goal.findMany({ where: { status: 'incubating' } }),
     ]);
 
   // lịch cứng hôm nay → quỹ giờ rảnh + tóm tắt cho giọng văn (mục 14)
@@ -67,7 +70,8 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
   const todaySchedule = todayBlocks.map((b) =>
     b.startTime && b.endTime ? `${b.startTime}–${b.endTime} ${b.title}` : `Cả ngày ${b.title}`,
   );
-  const freeMinutesToday = freeMinutes(today, commitments, scheduleEvents);
+  const todayCap = computeFreeSlots(today, commitments, scheduleEvents);
+  const freeMinutesToday = todayCap.capacityMin;
 
   const streak = computeStreaks(
     activeDayRows.map((r) => r.date),
@@ -102,6 +106,10 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
     capacityScore = computeCapacity(checkin);
   }
 
+  // Ấp ủ (mục 17): xếp theo độ hợp quỹ giờ rảnh + sức hôm nay; mục đầu là gợi ý lấy ra làm
+  const rankedGoals = rankGoalsForNudge(goalRows, todayCap.slots, capacityScore, today);
+  const topGoal = rankedGoals[0] ?? null;
+
   return {
     kind,
     streakCurrent: streak.current,
@@ -115,5 +123,13 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
     capacityScore,
     todaySchedule,
     freeMinutesToday,
+    incubatingCount: rankedGoals.length,
+    topIncubatingGoal: topGoal?.title ?? null,
+    topIncubatingGoalId: topGoal?.id ?? null,
+    topIncubatingApproach: topGoal
+      ? estimateGoalSize(topGoal) === 'large'
+        ? 'plan'
+        : 'task'
+      : null,
   };
 }

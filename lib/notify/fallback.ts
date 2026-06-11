@@ -71,6 +71,11 @@ export function fallbackVoice(
           ? `Hôm nay bạn đã xong ${f.doneCount} việc — ghi lại một dòng cảm nhận trước khi nghỉ nhé. Làm tốt lắm 🌙`
           : 'Một ngày trôi qua nhẹ nhàng. Mai mình bắt đầu lại từ một việc nhỏ là được 🌙';
       break;
+    case 'queue_nudge':
+      message = f.topIncubatingGoal
+        ? `Bạn đang có chút thời gian rảnh 🌿 Hay là lấy “${f.topIncubatingGoal}” trong mục Ấp ủ ra làm thử? Chỉ một bước nhỏ thôi.`
+        : 'Bạn đang có chút thời gian rảnh 🌿 Ngó qua mục Ấp ủ xem có điều gì muốn bắt đầu không nhé.';
+      break;
   }
   return {
     message,

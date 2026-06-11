@@ -7,7 +7,13 @@ import { isValidHm } from '@/lib/notify/time';
 import type { NotificationIntensity, NotificationKind, NotificationSettingsDTO } from '@/lib/types';
 
 const INTENSITIES: NotificationIntensity[] = ['minimal', 'balanced', 'active'];
-const KINDS: NotificationKind[] = ['morning', 'streak_guard', 'random_nudge', 'evening'];
+const KINDS: NotificationKind[] = [
+  'morning',
+  'streak_guard',
+  'random_nudge',
+  'evening',
+  'queue_nudge',
+];
 
 /** Lưu cấu hình thông báo. Ép kiểu/định dạng giờ về an toàn trước khi ghi DB. */
 export async function saveNotificationSettings(
@@ -30,6 +36,7 @@ export async function saveNotificationSettings(
     randomNudgeEnabled: !!input.randomNudgeEnabled,
     eveningEnabled: !!input.eveningEnabled,
     eveningTime: time(input.eveningTime, '21:30'),
+    queueNudgeEnabled: !!input.queueNudgeEnabled,
     randomWindowStart: time(input.randomWindowStart, '09:00'),
     randomWindowEnd: time(input.randomWindowEnd, '18:00'),
     quietStart: time(input.quietStart, '22:00'),

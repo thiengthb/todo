@@ -17,7 +17,11 @@ const INTENSITY_PRESETS: Record<
   NotificationIntensity,
   Pick<
     NotificationSettingsDTO,
-    'morningEnabled' | 'streakGuardEnabled' | 'randomNudgeEnabled' | 'eveningEnabled'
+    | 'morningEnabled'
+    | 'streakGuardEnabled'
+    | 'randomNudgeEnabled'
+    | 'eveningEnabled'
+    | 'queueNudgeEnabled'
   >
 > = {
   minimal: {
@@ -25,18 +29,21 @@ const INTENSITY_PRESETS: Record<
     streakGuardEnabled: true,
     randomNudgeEnabled: false,
     eveningEnabled: false,
+    queueNudgeEnabled: false,
   },
   balanced: {
     morningEnabled: true,
     streakGuardEnabled: true,
     randomNudgeEnabled: true,
     eveningEnabled: false,
+    queueNudgeEnabled: true,
   },
   active: {
     morningEnabled: true,
     streakGuardEnabled: true,
     randomNudgeEnabled: true,
     eveningEnabled: true,
+    queueNudgeEnabled: true,
   },
 };
 
@@ -228,6 +235,15 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
             onTime={(v) => set('eveningTime', v)}
             onTest={() => test('evening')}
             testing={testing === 'evening'}
+            disabledTest={testing !== null}
+          />
+          <KindRow
+            title="🌿 Nhắc khi rảnh (Ấp ủ)"
+            hint="Khi quỹ giờ rảnh hôm nay cao, gợi ý nhẹ lấy một điều bạn đang ấp ủ ra làm. Cơ hội, không hối thúc. Dùng chung cửa giờ với cú hích ngẫu nhiên."
+            enabled={s.queueNudgeEnabled}
+            onToggle={(v) => set('queueNudgeEnabled', v)}
+            onTest={() => test('queue_nudge')}
+            testing={testing === 'queue_nudge'}
             disabledTest={testing !== null}
             last
           />
