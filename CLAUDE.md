@@ -508,8 +508,15 @@ KHÔNG thêm lại `create_project`/`projectId` vào MCP.
   NÊN xếp việc mới), `freeSlots[]`. `create_task`/`update_task` nhận thêm `deepWork`; serialize trả thêm
   `deepWork`/`actualBucket`. Habit (mục 11) cô lập khỏi task: `list_habits` (dueToday/doneToday/streak —
   thông tin, KHÔNG điểm), `check_habit` (tick 1 ngày, idempotent).
-- Resources: `today_overview` (+ `habits`), `active_plans` (tiến độ động). Prompts:
-  `plan_my_day`, `plan_week`, `plan_project` (→ `create_plan` + milestones, rót task cuốn chiếu),
+- **Ấp ủ (mục 17 — hàng đợi mục tiêu CHƯA cam kết, KHÁC Plan/Task):** `add_to_queue` (bắt giữ
+  `title`+`note?`), `list_queue` (lọc status, mặc định incubating; trả `ageDays` động), `update_goal`
+  (title/note/`pinned`/`snoozedUntil`), `drop_goal` (buông — chỉ khi user đồng ý, AI không tự quyết),
+  `promote_to_task` (kéo thành Việc 1 ngày — tái dùng `createTask`), `promote_to_plan` (nâng thành Kế
+  hoạch — tái dùng `createPlan` + milestones, rồi DỪNG). Promote ⇒ goal `status=promoted` + truy ngược
+  `promotedTaskId`/`promotedPlanId`. Goal cô lập: KHÔNG `date`, KHÔNG tính streak/stats.
+- Resources: `today_overview` (+ `habits`), `active_plans` (tiến độ động), `incubating_overview`
+  (mục tiêu Ấp ủ + `ageDays`). Prompts: `plan_my_day`, `plan_week`, `plan_project` (→ `create_plan` +
+  milestones, rót task cuốn chiếu), `triage_queue` (rà soát Ấp ủ → kéo/nâng/buông, chờ duyệt),
   `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt** → mới ghi;
   tôn trọng `suggestedFreeMinutes` + gắn `scheduledFor` vào `freeSlots` thật.
 
@@ -553,14 +560,15 @@ tự-ngắt-khi-idle):
 > thật để (a) đặt nhãn UI, (b) viết mô tả tool/prompt MCP sao cho AI map đúng. Lý do ra đời: AI tạo "kế
 > hoạch" qua MCP nhưng dữ liệu rải vào cả Lịch sử lẫn Kế hoạch, và `Project` (MCP) thì vô hình.
 
-| Tab                   | Route                      | Vai trò DUY NHẤT                                                                                                                                                |
-| --------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hôm nay               | `/`                        | Thực thi **trong ngày**: việc hôm nay, tiêu điểm, đề xuất ngày mai.                                                                                             |
-| Lịch tuần             | `/schedule`                | **Lịch CỨNG lặp tuần** (học/làm) + khung tập trung → quỹ giờ thật. KHÔNG phải todo.                                                                             |
-| **Kế hoạch**          | `/plans`                   | **MỤC TIÊU DÀI HẠN**: roadmap + cột mốc + tiến độ (`Plan`/`Milestone`). **Nơi DUY NHẤT** mang nghĩa "kế hoạch"; chỗ xem tổng quan một kế hoạch (`/plans/[id]`). |
-| Nhịp sống             | `/routines`                | Thói quen lặp + giờ thức/ngủ + quỹ giờ.                                                                                                                         |
-| Lịch sử               | `/history`                 | **Nhìn lại**: ngày đã qua, streak, tỉ lệ + "Việc sắp tới". **KHÔNG dùng từ "kế hoạch"** ở đây.                                                                  |
-| Thông báo / Hướng dẫn | `/notifications`, `/guide` | Hệ thống.                                                                                                                                                       |
+| Tab                   | Route                      | Vai trò DUY NHẤT                                                                                                                                                    |
+| --------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hôm nay               | `/`                        | Thực thi **trong ngày**: việc hôm nay, tiêu điểm, đề xuất ngày mai.                                                                                                 |
+| Lịch tuần             | `/schedule`                | **Lịch CỨNG lặp tuần** (học/làm) + khung tập trung → quỹ giờ thật. KHÔNG phải todo.                                                                                 |
+| **Kế hoạch**          | `/plans`                   | **MỤC TIÊU DÀI HẠN**: roadmap + cột mốc + tiến độ (`Plan`/`Milestone`). **Nơi DUY NHẤT** mang nghĩa "kế hoạch"; chỗ xem tổng quan một kế hoạch (`/plans/[id]`).     |
+| **Ấp ủ**              | `/incubating`              | **MỤC TIÊU CHƯA CAM KẾT** (Someday/Maybe — `Goal`): bắt giữ không áp lực. Ngõ ra: kéo thành Việc / nâng thành Kế hoạch / buông. **Nơi DUY NHẤT** mang nghĩa "ấp ủ". |
+| Nhịp sống             | `/routines`                | Thói quen lặp + giờ thức/ngủ + quỹ giờ.                                                                                                                             |
+| Lịch sử               | `/history`                 | **Nhìn lại**: ngày đã qua, streak, tỉ lệ + "Việc sắp tới". **KHÔNG dùng từ "kế hoạch"** ở đây.                                                                      |
+| Thông báo / Hướng dẫn | `/notifications`, `/guide` | Hệ thống.                                                                                                                                                           |
 
 **Quy ước tên (BẮT BUỘC):**
 
@@ -568,9 +576,56 @@ tự-ngắt-khi-idle):
   "Việc sắp tới", không "Kế hoạch sắp tới").
 - "Việc/task" = đơn vị hằng ngày (có `date`/`scheduledFor`) → Hôm nay/Lịch sử. "Lịch" = `Commitment`/
   `SoftBlock` lặp tuần (KHÔNG phải task) → Lịch tuần.
+- "Ấp ủ" = **chỉ** trang `/incubating` (mục tiêu CHƯA cam kết — chưa có ngày, chưa có roadmap). Không
+  trang nào khác dùng từ này. Ấp ủ KHÁC "Kế hoạch" (đã có roadmap) và "Việc" (đã có ngày).
 
 **Map MCP/AI (để không hiểu sai):**
 
 - Mục tiêu nhiều bước / dài hạn → **Plan** (`create_plan` + milestones). KHÔNG có Project (đã gỡ, §15.3).
 - Việc của một ngày → `create_task`/`bulk_create_tasks` (ngày cụ thể). Lịch cứng → `get_schedule` (đọc
   bối cảnh, không tạo task). Tạo Plan xong **KHÔNG tự đẻ task** (§10.8) — task rót cuốn chiếu.
+- Mục tiêu người dùng MUỐN làm nhưng CHƯA chốt khi nào / chưa rõ task hay plan → **Ấp ủ** (`add_to_queue`).
+  Khi sẵn sàng: `promote_to_task` (việc gọn) hoặc `promote_to_plan` (mục tiêu nhiều bước). KHÔNG tự buông.
+
+---
+
+## 17. Ấp ủ — hàng đợi mục tiêu chưa cam kết (Someday/Maybe)
+
+> **Tầng tiền-cam-kết** mà app trước đây thiếu: chỗ trút những điều MUỐN làm nhưng chưa xử lý được, để
+> đầu óc nhẹ đi (GTD Someday/Maybe). Ăn khớp §11 (bắt giữ ít ma sát, giảm lo âu vì "quá nhiều"). Route
+> `/incubating`, model `Goal`, logic thuần `lib/queue.ts`. KHÁC `Task` (đã có ngày) và `Plan` (đã có
+> roadmap) — đây là giai đoạn TRƯỚC cả hai.
+
+### 17.1 Mô hình & bất biến
+
+- **`Goal`** (additive, không đụng schema cũ): `title`, `note?`, `status` (incubating|promoted|dropped),
+  `pinned`, `snoozedUntil?`, `lastNudgedAt?`, `promotedTaskId?`/`promotedPlanId?` (truy ngược). KHÔNG có
+  `date`. **Cô lập** khỏi streak/stats/completion (như Plan/Habit).
+- **Tính ĐỘNG, không lưu cứng** (`lib/queue.ts`): `goalAgeDays` (tuổi), `isStale` (≥30 ngày, chưa ghim,
+  không snooze → bật gợi ý "giữ/buông"), `rankGoalsForNudge` (xếp theo độ hợp khe rảnh + capacity +
+  ghim + chưa-nudge-gần-đây), `estimateGoalSize` (heuristic cỡ — chỉ để khớp khe, KHÔNG phán task/plan).
+- **Bắt giữ 1 chạm:** chỉ cần `title` + Enter; không hỏi cỡ/khi-nào lúc bắt.
+- **3 ngõ ra:** `promoteGoalToTask` (kéo vào một ngày → Task, tái dùng action tạo task),
+  `promoteGoalToPlan` (nâng → Plan, tái dùng `createPlan` + `CreatePlanDialog` prefill), hoặc **buông**
+  (soft `dropped`, khôi phục được). KHÔNG đẻ luồng tạo task/plan riêng.
+- **AI chỉ gợi ý, người dùng quyết:** gợi ý cỡ (`suggestApproach` task|plan), gợi ý ghép-chủ-đề, nhắc
+  khi rảnh — đều là gợi ý mềm, reason truy về dữ liệu thật. KHÔNG tự nâng/tự buông.
+
+### 17.2 Trí tuệ "nhắc khi rảnh" (đã tích hợp, không tạo luồng riêng)
+
+- **Đề xuất ngày mai** (`/api/suggest`): `SuggestContext.incubatingGoals` (đã xếp bằng `rankGoalsForNudge`)
+  - nhóm mới `queue_pulls` trong `RESPONSE_SCHEMA` (rule 17 trong prompt): CHỈ gợi khi còn dư quỹ giờ thật
+    sau carry_over+suggested+plan_tasks (không nhồi); `suggestApproach` = gợi ý cỡ; ≥2 mục cùng chủ đề có thể
+    gợi gộp thành Plan. **Trust boundary** route lọc `goalId` không còn incubating. UI: nhóm "Từ Ấp ủ" trong
+    `suggest-sheet`.
+- **Thẻ Today** (`components/today/incubating-nudge.tsx`): hiện ở cột phải khi quỹ giờ rảnh ≥ 90′ & còn
+  mục Ấp ủ → nổi 1 mục hợp nhất + nút "Hôm nay"/"Kế hoạch".
+- **Discord** (mục 13): kind thứ 5 `queue_nudge` (toggle riêng, dùng chung cửa `randomWindow`, seed khác
+  ngày). Gating: chỉ bắn khi `incubatingCount>0` && `freeMinutesToday≥90` && capacity không thấp. Sau khi
+  gửi đặt `lastNudgedAt` (cooldown — vòng sau không lặp một mục). Giọng "cơ hội", không hối thúc; AI lỗi →
+  fallback tĩnh. `NotificationFacts` thêm `incubatingCount`/`topIncubatingGoal`/`topIncubatingApproach`.
+
+### 17.3 MCP (§15.4)
+
+`add_to_queue`, `list_queue`, `update_goal`, `drop_goal`, `promote_to_task`, `promote_to_plan` +
+resource `incubating_overview` + prompt `triage_queue`. Promote tái dùng `createTask`/`createPlan`.

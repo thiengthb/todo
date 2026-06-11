@@ -15,6 +15,7 @@ import {
   Repeat,
   Smile,
   Sparkles,
+  Sprout,
   Target,
   Terminal,
 } from 'lucide-react';
@@ -72,6 +73,11 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
     icon: CalendarCheck,
     title: 'Kế hoạch dài hạn',
     desc: 'Mục tiêu lớn được chia thành cột mốc; mỗi ngày AI rót việc kế tiếp theo tốc độ thật.',
+  },
+  {
+    icon: Sprout,
+    title: 'Ấp ủ — để dành cho sau',
+    desc: 'Trút những điều muốn làm nhưng chưa thể xử lý ngay vào hàng đợi không áp lực. Lúc rảnh, app gợi lấy ra làm — kéo thành việc hoặc nâng thành kế hoạch.',
   },
   {
     icon: Repeat,
@@ -160,6 +166,18 @@ const MCP_TOOL_GROUPS: { icon: LucideIcon; label: string; tools: string[] }[] = 
     ],
   },
   {
+    icon: Sprout,
+    label: 'Ấp ủ (hàng đợi mục tiêu)',
+    tools: [
+      'add_to_queue',
+      'list_queue',
+      'update_goal',
+      'promote_to_task',
+      'promote_to_plan',
+      'drop_goal',
+    ],
+  },
+  {
     icon: Repeat,
     label: 'Thói quen',
     tools: ['list_habits', 'check_habit'],
@@ -180,6 +198,10 @@ const MCP_PROMPTS: { name: string; desc: string }[] = [
     desc: 'Mục tiêu lớn + deadline → tạo kế hoạch (Plan) với roadmap cột mốc, rồi rót việc cuốn chiếu.',
   },
   {
+    name: 'triage_queue',
+    desc: 'Rà soát hàng đợi "Ấp ủ" → gợi kéo thành việc / nâng thành kế hoạch / buông.',
+  },
+  {
     name: 'review_and_reschedule',
     desc: 'Rà việc quá hạn/chưa xong → đề xuất dời lịch hợp lý.',
   },
@@ -190,6 +212,7 @@ const MCP_PHRASES: string[] = [
   'Tuần này tôi có mấy việc lớn, dàn giúp tôi tránh quá tải.',
   'Tôi muốn luyện thi N2 trong 6 tháng — tạo kế hoạch với các cột mốc kiểm chứng được.',
   'Xem việc nào đang trễ và đề xuất dời lịch giúp tôi.',
+  'Tôi có vài điều đang ấp ủ — lúc rảnh giúp tôi chọn cái nào nên bắt đầu trước.',
 ];
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
