@@ -171,7 +171,7 @@ export default async function HistoryPage() {
 
   return (
     <div className="py-8">
-      <PageHeader eyebrow="Toàn cảnh các ngày" title="Lịch sử & kế hoạch" />
+      <PageHeader eyebrow="Toàn cảnh các ngày" title="Lịch sử" />
 
       <div className="space-y-10">
         {/* Chuỗi giữ lửa */}
@@ -287,7 +287,7 @@ export default async function HistoryPage() {
         {future.length > 0 && (
           <section>
             <h2 className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              <CalendarRange className="size-3.5" /> Kế hoạch sắp tới
+              <CalendarRange className="size-3.5" /> Việc sắp tới
             </h2>
             {future.map((d) => (
               <DayRow key={d.date} day={d} isFuture />
