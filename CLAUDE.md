@@ -471,26 +471,30 @@ app lọc theo `done`/`date`, KHÔNG theo `status`):
 - **Date contract KHOAN DUNG** (`lib/mcp/tz.ts`): `scheduledFor`/`dueDate`/`startDate`/`targetEndDate`
   nhận **cả** `"YYYY-MM-DD"` **lẫn** ISO 8601 đầy đủ. `coerceToInstant` đổi date-only → **nửa đêm địa
   phương** (`localMidnightUtc`, KHÔNG phải UTC-midnight). KHÔNG dùng `z.string().datetime()` (đã bỏ — nó
-  từ chối date-only, ép Claude gửi UTC, lệch ngày). `serializeProject` trả ngày dạng `"YYYY-MM-DD"`.
+  từ chối date-only, ép Claude gửi UTC, lệch ngày).
 - `rangeSchema` (`get_schedule`/`get_workload_summary`): `to` tùy chọn, mặc định `= from`; ép `from ≤ to`.
 - **Bọc lỗi** (`guard()` ở `server.ts`): MỌI tool bắt `P2025` (id sai → thông báo rõ) + `ZodError` (bullet
   dễ đọc) → trả `isError` mềm, KHÔNG ném `-32603` thô; log `tool`/`ms`/lỗi ra stderr (`docker logs todo`).
 
 ### 15.3 Schema thêm (additive, nullable — mục 15, không phá dữ liệu)
 Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`, `estimatedMinutes?`,
-`projectId?`, `tags Tag[]`. Model mới **`Project`** (generic, RIÊNG với `Plan` roadmap-AI) + **`Tag`**.
+`tags Tag[]`. Model **`Tag`** (m-n). ⚠️ Model **`Project`** vẫn còn trong DB nhưng **ĐÃ GỠ khỏi MCP**
+(deprecated): gây lẫn với `Plan` (§10) và không có trang UI → mọi mục tiêu nhiều bước dùng **Plan**.
+KHÔNG thêm lại `create_project`/`projectId` vào MCP.
 
 ### 15.4 Tools / Resources / Prompts (`lib/mcp/server.ts`)
 - Tools: `ping` (trả `{ok,time,tz,version}`, `version`=`BUILD_SHA` để soi build đang chạy), `create_task`,
   `update_task`, `complete_task`, `delete_task`, `get_task`, `list_tasks`, `get_schedule`,
-  `get_workload_summary`, `bulk_create_tasks`, `create_project`, `get_project`, `list_projects`,
-  `list_habits`, `check_habit`. Description nhấn: `scheduledFor`≠`dueDate`; gọi `get_schedule`/
-  `get_workload_summary` TRƯỚC khi xếp việc.
+  `get_workload_summary`, `bulk_create_tasks`, `list_habits`, `check_habit`. (KHÔNG có tool Project —
+  đã gỡ, §15.3.) Description nhấn: `scheduledFor`≠`dueDate`; gọi `get_schedule`/`get_workload_summary`
+  TRƯỚC khi xếp việc; `bulk_create_tasks` chỉ cho NGÀY CỤ THỂ, KHÔNG pre-fill cả lộ trình Plan.
 - **Plan/Milestone (mục 10 — roadmap dài hạn, KHÁC `Project` generic):** `create_plan` (kèm `milestones[]`
   kết quả kiểm chứng được), `add_milestones`, `update_plan` (giãn deadline/đổi status — chỉ khi user đồng
   ý), `list_plans`/`get_plan` (tiến độ ĐỘNG qua `computePlanProgress`: `progressPct`/`behindDays`/
   `currentMilestone`/`daysLeft`), `check_milestone` (AI **chỉ gợi ý** tick, §10.8). `create_task`/
   `bulk_create_tasks` nhận thêm `planId`/`milestoneId` → task vào /plans + được "Đề xuất ngày mai" rót.
+  **Tạo Plan = roadmap thôi: KHÔNG tự đẻ task** (§10.8) — task rót cuốn chiếu, hoặc khi user yêu cầu ngày
+  cụ thể. Prompt `plan_project` = tạo roadmap rồi DỪNG.
 - **Đồng bộ với day-planner (mục 14):** `get_schedule` mỗi ngày trả `blocks` (lịch cứng đã lọc kỳ học +
   tuần chẵn/lẻ theo `ScheduleSettings.termAnchorMonday`) + `softBlocks` (khung mềm, không chiếm quỹ cứng) +
   `tasks`. `get_workload_summary` dùng `computeFreeSlots` theo `ScheduleSettings` (giờ thức/buffer/minSlot):
@@ -498,7 +502,7 @@ Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`,
   NÊN xếp việc mới), `freeSlots[]`. `create_task`/`update_task` nhận thêm `deepWork`; serialize trả thêm
   `deepWork`/`actualBucket`. Habit (mục 11) cô lập khỏi task: `list_habits` (dueToday/doneToday/streak —
   thông tin, KHÔNG điểm), `check_habit` (tick 1 ngày, idempotent).
-- Resources: `today_overview` (+ `habits`), `active_projects`, `active_plans` (tiến độ động). Prompts:
+- Resources: `today_overview` (+ `habits`), `active_plans` (tiến độ động). Prompts:
   `plan_my_day`, `plan_week`, `plan_project` (→ `create_plan` + milestones, rót task cuốn chiếu),
   `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt** → mới ghi;
   tôn trọng `suggestedFreeMinutes` + gắn `scheduledFor` vào `freeSlots` thật.
@@ -530,3 +534,31 @@ tự-ngắt-khi-idle):
 - `mcp-remote` chỉ là **fallback**; nếu dùng, `command` PHẢI là `"npx"` (không để full path có khoảng trắng).
 - **Stateless** ⇒ reconnect mượt; Watchtower restart khi deploy sẽ ngắt kết nối đang mở ~vài giây
   (in-process, §15.1) — bình thường, connector tự nối lại; so `ping.version` nếu nghi deploy giữa chừng.
+
+---
+
+## 16. Vai trò từng tab — đặt tên & dạy MCP/AI (BẤT BIẾN, chốt 2026-06)
+
+> Mỗi tab có **một** vai trò + **một** tên. Không khái niệm vô hình, không tên trùng. Đây là nguồn sự
+> thật để (a) đặt nhãn UI, (b) viết mô tả tool/prompt MCP sao cho AI map đúng. Lý do ra đời: AI tạo "kế
+> hoạch" qua MCP nhưng dữ liệu rải vào cả Lịch sử lẫn Kế hoạch, và `Project` (MCP) thì vô hình.
+
+| Tab | Route | Vai trò DUY NHẤT |
+|-----|-------|------------------|
+| Hôm nay | `/` | Thực thi **trong ngày**: việc hôm nay, tiêu điểm, đề xuất ngày mai. |
+| Lịch tuần | `/schedule` | **Lịch CỨNG lặp tuần** (học/làm) + khung tập trung → quỹ giờ thật. KHÔNG phải todo. |
+| **Kế hoạch** | `/plans` | **MỤC TIÊU DÀI HẠN**: roadmap + cột mốc + tiến độ (`Plan`/`Milestone`). **Nơi DUY NHẤT** mang nghĩa "kế hoạch"; chỗ xem tổng quan một kế hoạch (`/plans/[id]`). |
+| Nhịp sống | `/routines` | Thói quen lặp + giờ thức/ngủ + quỹ giờ. |
+| Lịch sử | `/history` | **Nhìn lại**: ngày đã qua, streak, tỉ lệ + "Việc sắp tới". **KHÔNG dùng từ "kế hoạch"** ở đây. |
+| Thông báo / Hướng dẫn | `/notifications`, `/guide` | Hệ thống. |
+
+**Quy ước tên (BẮT BUỘC):**
+- "Kế hoạch" = **chỉ** trang `/plans` (mục tiêu dài hạn). Trang khác KHÔNG được dùng từ này (Lịch sử dùng
+  "Việc sắp tới", không "Kế hoạch sắp tới").
+- "Việc/task" = đơn vị hằng ngày (có `date`/`scheduledFor`) → Hôm nay/Lịch sử. "Lịch" = `Commitment`/
+  `SoftBlock` lặp tuần (KHÔNG phải task) → Lịch tuần.
+
+**Map MCP/AI (để không hiểu sai):**
+- Mục tiêu nhiều bước / dài hạn → **Plan** (`create_plan` + milestones). KHÔNG có Project (đã gỡ, §15.3).
+- Việc của một ngày → `create_task`/`bulk_create_tasks` (ngày cụ thể). Lịch cứng → `get_schedule` (đọc
+  bối cảnh, không tạo task). Tạo Plan xong **KHÔNG tự đẻ task** (§10.8) — task rót cuốn chiếu.
