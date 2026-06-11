@@ -7,19 +7,15 @@ import { defaultTz, todayLocal } from "@/lib/mcp/tz";
 import {
   bulkCreateTasks,
   completeTask,
-  createProject,
   createTask,
   deleteTask,
-  getProject,
   getScheduleRange,
   getTask,
   getWorkloadSummary,
   habitCheckSchema,
   listFilterSchema,
   listHabits,
-  listProjects,
   listTasks,
-  projectCreateSchema,
   rangeSchema,
   setHabitCheck,
   taskCreateSchema,
@@ -125,7 +121,7 @@ export const mcpHandler = createMcpHandler(
     server.tool(
       "update_task",
       "Sửa một việc theo `id` (partial — chỉ gửi field cần đổi). Dùng để DỜI LỊCH " +
-        "(đổi `scheduledFor`/`date`), đổi ưu tiên, gắn project, v.v.",
+        "(đổi `scheduledFor`/`date`), đổi ưu tiên, gắn kế hoạch (`planId`/`milestoneId`), v.v.",
       { id: z.string(), ...taskUpdateSchema.shape },
       guard("update_task", async ({ id, ...patch }) =>
         ok(await updateTask(id, patch)),
@@ -192,37 +188,13 @@ export const mcpHandler = createMcpHandler(
     // ---------------- lập kế hoạch hàng loạt ----------------
     server.tool(
       "bulk_create_tasks",
-      "Tạo NHIỀU việc trong MỘT transaction (cho cả tuần/giai đoạn). Trước khi gọi, nên gọi " +
-        "`get_workload_summary` để dàn đều tải. Mỗi việc cùng schema với `create_task`. Tối đa 100.",
+      "Tạo NHIỀU việc trong MỘT transaction cho các NGÀY CỤ THỂ người dùng đã chốt. Trước khi gọi, nên " +
+        "gọi `get_workload_summary` để dàn đều tải. Mỗi việc cùng schema với `create_task`. Tối đa 100. " +
+        "KHÔNG dùng để pre-fill sẵn cả lộ trình của một Plan — Plan chỉ là roadmap, task rót cuốn chiếu (§10.8).",
       { tasks: z.array(taskCreateSchema) },
       guard("bulk_create_tasks", async ({ tasks }) =>
         ok(await bulkCreateTasks(tasks)),
       ),
-    );
-
-    server.tool(
-      "create_project",
-      "Tạo một 'kế hoạch giai đoạn' (Project) với mốc thời gian. Sau đó tạo các task gắn " +
-        "`projectId` này (qua create_task/bulk_create_tasks) để gom nhóm theo dự án.",
-      projectCreateSchema.shape,
-      guard("create_project", async (args) => ok(await createProject(args))),
-    );
-
-    server.tool(
-      "get_project",
-      "Lấy một project kèm TOÀN BỘ task con + tiến độ (progressPct). Dùng để review giai đoạn.",
-      { id: z.string() },
-      guard("get_project", async ({ id }) => {
-        const p = await getProject(id);
-        return p ? ok(p) : mcpError(`Không tìm thấy project id=${id}.`);
-      }),
-    );
-
-    server.tool(
-      "list_projects",
-      "Liệt kê project (lọc `status`: active|done|archived) kèm tiến độ gọn.",
-      { status: z.enum(["active", "done", "archived"]).optional() },
-      guard("list_projects", async (args) => ok(await listProjects(args))),
     );
 
     // ---------------- Habits (mục 11 — KHÔNG điểm, streak chỉ là thông tin) ----------------
@@ -246,11 +218,12 @@ export const mcpHandler = createMcpHandler(
     // ---------------- Plan + Milestone (mục 10 — roadmap dài hạn cuốn chiếu) ----------------
     server.tool(
       "create_plan",
-      "Tạo một KẾ HOẠCH dài hạn (Plan) — mục tiêu + roadmap cột mốc, hiện trong trang /plans và " +
-        "được app 'Đề xuất ngày mai' rót task. KHÁC `create_project` (gom nhóm generic): dùng Plan " +
-        "cho mục tiêu có tiến trình (vd 'Luyện thi N2 trong 6 tháng'). `goal` = định nghĩa 'xong' + " +
-        "bối cảnh. `startDate`/`endDate` = YYYY-MM-DD. Kèm `milestones` (kết quả KIỂM CHỨNG được, vd " +
-        "'Thuộc bảng Hiragana' — KHÔNG mơ hồ) để tạo roadmap luôn. `intensity` (nhẹ|vừa|dồn) là gợi ý mềm.",
+      "Tạo một KẾ HOẠCH dài hạn (Plan) — mục tiêu + roadmap cột mốc, hiện trong trang 'Kế hoạch' và " +
+        "được app 'Đề xuất ngày mai' rót task. Dùng Plan cho MỌI mục tiêu nhiều bước có tiến trình " +
+        "(vd 'Luyện thi N2 trong 6 tháng'). `goal` = định nghĩa 'xong' + bối cảnh. `startDate`/`endDate` " +
+        "= YYYY-MM-DD. Kèm `milestones` (kết quả KIỂM CHỨNG được, vd 'Thuộc bảng Hiragana' — KHÔNG mơ hồ) " +
+        "để tạo roadmap luôn. `intensity` (nhẹ|vừa|dồn) là gợi ý mềm. QUAN TRỌNG: tạo plan xong KHÔNG tự " +
+        "đẻ task — CHỈ tạo roadmap; task rót dần qua 'Đề xuất ngày mai' (§10.8).",
       planCreateSchema.shape,
       guard("create_plan", async (args) => ok(await createPlan(args))),
     );
@@ -349,24 +322,6 @@ export const mcpHandler = createMcpHandler(
     );
 
     server.resource(
-      "active_projects",
-      "todo://active-projects",
-      {
-        description: "Project đang chạy + % hoàn thành.",
-        mimeType: "application/json",
-      },
-      async (uri) => ({
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: "application/json",
-            text: JSON.stringify(await listProjects({ status: "active" })),
-          },
-        ],
-      }),
-    );
-
-    server.resource(
       "active_plans",
       "todo://active-plans",
       {
@@ -432,7 +387,7 @@ export const mcpHandler = createMcpHandler(
 
     server.prompt(
       "plan_project",
-      "Nhận mục tiêu lớn + deadline → tạo kế hoạch (Plan) với roadmap milestone, rồi rót task.",
+      "Nhận mục tiêu dài hạn + deadline → tạo Kế hoạch (Plan) với roadmap cột mốc. CHỈ roadmap.",
       async () => ({
         messages: [
           {
@@ -440,12 +395,13 @@ export const mcpHandler = createMcpHandler(
             content: {
               type: "text",
               text:
-                `Tôi có một mục tiêu lớn cần hoàn thành trước một deadline. ${SAFE}\n` +
+                `Tôi có một mục tiêu dài hạn cần hoàn thành trước một deadline.\n` +
                 `Hỏi tôi mục tiêu + deadline + cường độ, rồi tạo create_plan KÈM milestones (mỗi mốc là ` +
-                `kết quả KIỂM CHỨNG được, không mơ hồ) — đây là roadmap để app theo dõi tiến độ. CHỜ tôi ` +
-                `duyệt roadmap. Sau đó rót vài task kế tiếp gắn planId/milestoneId vào các ngày sắp tới ` +
-                `(xem get_workload_summary để dàn tải; ĐỪNG đẻ sẵn cả 30 ngày — rót cuốn chiếu). ` +
-                `KHÔNG tự tick milestone — chỉ tôi xác nhận.`,
+                `kết quả KIỂM CHỨNG được, không mơ hồ) — đây là roadmap hiện trong trang "Kế hoạch" để ` +
+                `theo dõi tiến độ. Trình bày roadmap cho tôi duyệt.\n` +
+                `QUAN TRỌNG: tạo plan xong thì DỪNG — ĐỪNG tự tạo task cho các ngày tới (§10.8). Việc sẽ ` +
+                `được rót dần qua nút "Đề xuất ngày mai" trong app, hoặc chỉ tạo task khi tôi yêu cầu việc ` +
+                `cụ thể cho một ngày. KHÔNG tự tick milestone — chỉ tôi xác nhận.`,
             },
           },
         ],

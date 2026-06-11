@@ -7,7 +7,6 @@ import {
   CalendarCheck,
   CalendarClock,
   Flame,
-  FolderKanban,
   HeartPulse,
   ListChecks,
   ListTodo,
@@ -161,11 +160,6 @@ const MCP_TOOL_GROUPS: { icon: LucideIcon; label: string; tools: string[] }[] =
         "get_plan",
         "check_milestone",
       ],
-    },
-    {
-      icon: FolderKanban,
-      label: "Dự án (gom nhóm)",
-      tools: ["create_project", "get_project", "list_projects"],
     },
     {
       icon: Repeat,

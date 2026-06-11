@@ -54,7 +54,6 @@ export const taskCreateSchema = z.object({
   deepWork: z.boolean().optional(), // ưu tiên khe sáng (mục 14)
   priority: PRIORITY.optional(),
   status: STATUS.optional(),
-  projectId: z.string().optional(),
   // gắn task vào kế hoạch dài hạn (mục 10) — để task hiện trong /plans + được AI rót
   planId: z.string().optional(),
   milestoneId: z.string().optional(),
@@ -86,7 +85,6 @@ function deriveFields(
   if (input.estimatedMinutes !== undefined)
     out.estimatedMinutes = input.estimatedMinutes;
   if (input.deepWork !== undefined) out.deepWork = input.deepWork;
-  if (input.projectId !== undefined) out.projectId = input.projectId || null;
   if (input.planId !== undefined) out.planId = input.planId || null;
   if (input.milestoneId !== undefined)
     out.milestoneId = input.milestoneId || null;
@@ -130,7 +128,7 @@ function tagsConnect(tags?: string[]) {
 }
 
 type TaskWithRel = Prisma.TaskGetPayload<{
-  include: { tags: true; project: true };
+  include: { tags: true };
 }>;
 
 /** Serialize task cho MCP (gọn, ISO 8601, kèm delayDays động). */
@@ -150,8 +148,6 @@ export function serializeTask(t: TaskWithRel) {
     estimatedMinutes: t.estimatedMinutes,
     deepWork: t.deepWork,
     actualBucket: t.actualBucket, // "faster"|"asExpected"|"slower"|null (1 chạm khi xong)
-    projectId: t.projectId,
-    project: t.project ? { id: t.project.id, name: t.project.name } : null,
     tags: t.tags.map((tag) => tag.name),
     cue: t.cue,
     planId: t.planId,
@@ -160,7 +156,7 @@ export function serializeTask(t: TaskWithRel) {
   };
 }
 
-export const INCLUDE = { tags: true, project: true } as const;
+export const INCLUDE = { tags: true } as const;
 
 // ---------- Task CRUD ----------
 export async function createTask(raw: unknown) {
@@ -238,7 +234,6 @@ export async function bulkCreateTasks(rawList: unknown) {
 export const listFilterSchema = z.object({
   status: STATUS.optional(),
   priority: PRIORITY.optional(),
-  projectId: z.string().optional(),
   tag: z.string().optional(),
   from: isoDate.optional(),
   to: isoDate.optional(),
@@ -252,7 +247,6 @@ export async function listTasks(raw: unknown) {
   const where: Prisma.TaskWhereInput = {};
   if (f.status) where.status = f.status;
   if (f.priority) where.priority = f.priority;
-  if (f.projectId) where.projectId = f.projectId;
   if (f.tag) where.tags = { some: { name: f.tag } };
   if (f.search) where.title = { contains: f.search };
   if (f.includeDone === false) where.done = false;
@@ -270,90 +264,9 @@ export async function listTasks(raw: unknown) {
   return tasks.map(serializeTask);
 }
 
-// ---------- Project ----------
-export const projectCreateSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  startDate: flexibleDate.optional(),
-  targetEndDate: flexibleDate.optional(),
-  status: z.enum(["active", "done", "archived"]).optional(),
-});
-
-export async function createProject(raw: unknown) {
-  const p = projectCreateSchema.parse(raw);
-  const project = await prisma.project.create({
-    data: {
-      name: p.name.trim(),
-      description: p.description || null,
-      startDate: p.startDate ? coerceToInstant(p.startDate) : null,
-      targetEndDate: p.targetEndDate ? coerceToInstant(p.targetEndDate) : null,
-      status: p.status ?? "active",
-    },
-  });
-  return serializeProject(project, []);
-}
-
-function serializeProject(
-  p: Prisma.ProjectGetPayload<object>,
-  tasks: ReturnType<typeof serializeTask>[],
-) {
-  const total = tasks.length;
-  const done = tasks.filter((t) => t.done).length;
-  return {
-    id: p.id,
-    name: p.name,
-    description: p.description,
-    status: p.status,
-    // trả ngày địa phương "YYYY-MM-DD" cho nhất quán với phần còn lại của app
-    startDate: p.startDate ? localDay(p.startDate) : null,
-    targetEndDate: p.targetEndDate ? localDay(p.targetEndDate) : null,
-    progressPct: total > 0 ? Math.round((done / total) * 100) : 0,
-    taskCount: total,
-    doneCount: done,
-    tasks,
-  };
-}
-
-export async function getProject(id: string) {
-  const project = await prisma.project.findUnique({ where: { id } });
-  if (!project) return null;
-  const tasks = await prisma.task.findMany({
-    where: { projectId: id },
-    include: INCLUDE,
-    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
-  });
-  return serializeProject(project, tasks.map(serializeTask));
-}
-
-export async function listProjects(raw: unknown) {
-  const f = z
-    .object({ status: z.enum(["active", "done", "archived"]).optional() })
-    .parse(raw ?? {});
-  const projects = await prisma.project.findMany({
-    where: f.status ? { status: f.status } : {},
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { tasks: true } } },
-  });
-  // tiến độ nhẹ: đếm done qua group; ở đây trả gọn (không kèm tasks)
-  const out = [];
-  for (const p of projects) {
-    const doneCount = await prisma.task.count({
-      where: { projectId: p.id, done: true },
-    });
-    out.push({
-      id: p.id,
-      name: p.name,
-      status: p.status,
-      taskCount: p._count.tasks,
-      doneCount,
-      progressPct:
-        p._count.tasks > 0 ? Math.round((doneCount / p._count.tasks) * 100) : 0,
-      startDate: p.startDate ? localDay(p.startDate) : null,
-      targetEndDate: p.targetEndDate ? localDay(p.targetEndDate) : null,
-    });
-  }
-  return out;
-}
+// Project (gom nhóm generic) đã GỠ khỏi MCP — gây lẫn với Plan (§10) và không có UI.
+// Mọi mục tiêu nhiều bước dùng Plan/Milestone (lib/mcp/plan-repository.ts). Bảng DB Project
+// giữ nguyên (không migration) nhưng không còn expose qua tool MCP.
 
 // ---------- schedule & workload (tái dùng lib/schedule) ----------
 async function loadScheduleSources(from: string, to: string) {
