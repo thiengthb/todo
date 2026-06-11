@@ -13,6 +13,7 @@ import {
   PanelLeft,
   PanelLeftClose,
   Repeat,
+  Sprout,
   Target,
   type LucideIcon,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ const NAV_GROUPS: NavItem[][] = [
     { href: '/', label: 'Hôm nay', icon: Home },
     { href: '/schedule', label: 'Lịch tuần', icon: CalendarDays },
     { href: '/plans', label: 'Kế hoạch', icon: Target },
+    { href: '/incubating', label: 'Ấp ủ', icon: Sprout },
     { href: '/routines', label: 'Nhịp sống', icon: Repeat },
   ],
   [{ href: '/history', label: 'Lịch sử', icon: History }],

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { GripVertical, Loader2, Plus, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,7 +20,20 @@ import { IconTooltip } from '@/components/icon-tooltip';
 import { cn } from '@/lib/utils';
 import { addDays, todayStr } from '@/lib/dates';
 import { createPlan } from '@/app/actions';
+import { promoteGoalToPlan } from '@/app/incubating/actions';
 import type { DecomposeResult, Intensity, MilestoneDraft } from '@/lib/types';
+
+interface CreatePlanDialogProps {
+  /** Khi nâng từ một mục tiêu "Ấp ủ" (mục 17): lưu xong sẽ đánh dấu goal promoted + truy ngược */
+  goalId?: string;
+  /** Prefill tiêu đề/mục tiêu (vd từ goal) */
+  defaultTitle?: string;
+  defaultGoal?: string;
+  /** Trigger tuỳ biến thay nút "Kế hoạch mới" mặc định */
+  trigger?: ReactNode;
+  /** Gọi khi nâng thành công (để đóng menu cha) */
+  onPromoted?: () => void;
+}
 
 const INTENSITIES: { value: Intensity; label: string; hint: string }[] = [
   { value: 'nhẹ', label: 'Nhẹ', hint: 'ít mốc, mỗi mốc nhỏ' },
@@ -30,12 +43,18 @@ const INTENSITIES: { value: Intensity; label: string; hint: string }[] = [
 
 const DURATIONS = [14, 30, 60, 90];
 
-export function CreatePlanDialog() {
+export function CreatePlanDialog({
+  goalId,
+  defaultTitle = '',
+  defaultGoal = '',
+  trigger,
+  onPromoted,
+}: CreatePlanDialogProps = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const [title, setTitle] = useState('');
-  const [goal, setGoal] = useState('');
+  const [title, setTitle] = useState(defaultTitle);
+  const [goal, setGoal] = useState(defaultGoal);
   const [startDate, setStartDate] = useState(todayStr());
   const [duration, setDuration] = useState(30);
   const [intensity, setIntensity] = useState<Intensity>('vừa');
@@ -47,8 +66,8 @@ export function CreatePlanDialog() {
   const endDate = addDays(startDate, duration);
 
   function reset() {
-    setTitle('');
-    setGoal('');
+    setTitle(defaultTitle);
+    setGoal(defaultGoal);
     setStartDate(todayStr());
     setDuration(30);
     setIntensity('vừa');
@@ -86,17 +105,13 @@ export function CreatePlanDialog() {
     }
     startSave(async () => {
       try {
-        const id = await createPlan({
-          title,
-          goal,
-          startDate,
-          endDate,
-          intensity,
-          milestones: clean,
-        });
-        toast.success('Đã tạo kế hoạch');
+        const input = { title, goal, startDate, endDate, intensity, milestones: clean };
+        // nâng từ "Ấp ủ" (mục 17): tái dùng createPlan + đánh dấu goal promoted
+        const id = goalId ? await promoteGoalToPlan(goalId, input) : await createPlan(input);
+        toast.success(goalId ? 'Đã nâng thành kế hoạch' : 'Đã tạo kế hoạch');
         setOpen(false);
         reset();
+        onPromoted?.();
         router.push(`/plans/${id}`);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Không lưu được kế hoạch');
@@ -132,9 +147,11 @@ export function CreatePlanDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="size-4" /> Kế hoạch mới
-        </Button>
+        {trigger ?? (
+          <Button className="gap-2">
+            <Plus className="size-4" /> Kế hoạch mới
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>

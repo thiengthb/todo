@@ -36,13 +36,26 @@ export interface PlanAlert {
   options: string[];
 }
 
-/** Hợp đồng JSON model phải trả về (spec mục 6 + nhóm plan mục 10.7) */
+/**
+ * Gợi ý lấy một mục tiêu từ "Ấp ủ" ra làm (mục 17) — chỉ khi còn dư quỹ giờ thật.
+ * `suggestApproach` = gợi ý CỠ (kéo thành việc hay nâng thành kế hoạch); người dùng quyết.
+ */
+export interface QueuePullItem {
+  goalId: string;
+  title: string;
+  suggestApproach: 'task' | 'plan';
+  reason: string;
+}
+
+/** Hợp đồng JSON model phải trả về (spec mục 6 + nhóm plan mục 10.7 + ấp ủ mục 17) */
 export interface SuggestionResult {
   capacity_note: string;
   carry_over: SuggestionItem[];
   suggested_tasks: SuggestionItem[];
   /** việc rót từ kế hoạch đang chạy — model điền */
   plan_tasks: PlanSuggestionItem[];
+  /** gợi ý lấy mục tiêu "Ấp ủ" ra làm khi còn dư quỹ giờ (mục 17) — model điền */
+  queue_pulls: QueuePullItem[];
   /** cảnh báo chậm — server điền sau khi model trả về */
   plan_alerts: PlanAlert[];
   /** ngày phục hồi (mục 11): sức thấp / nhiều ngày "hard" → chỉ đề xuất việc nhẹ */
@@ -188,12 +201,13 @@ export interface ScheduleSettingsDTO {
 
 // ---- Thông báo Discord (mục 13) ----
 
-/** Bốn loại thông báo — khớp cột `kind` của NotificationLog */
+/** Các loại thông báo — khớp cột `kind` của NotificationLog */
 export type NotificationKind =
   | 'morning' // bản tin sáng
   | 'streak_guard' // nhắc giữ streak khi atRisk
   | 'random_nudge' // cú hích ngẫu nhiên làm task
-  | 'evening'; // đúc kết tối
+  | 'evening' // đúc kết tối
+  | 'queue_nudge'; // nhắc lấy mục tiêu "Ấp ủ" ra làm khi rảnh (mục 17)
 
 /** Preset cường độ — chỉ là gợi ý UI để set nhanh các toggle bên dưới */
 export type NotificationIntensity = 'minimal' | 'balanced' | 'active';
@@ -210,6 +224,8 @@ export interface NotificationSettingsDTO {
   randomNudgeEnabled: boolean;
   eveningEnabled: boolean;
   eveningTime: string;
+  /** nhắc "Ấp ủ" khi rảnh (mục 17) — dùng chung cửa randomWindow */
+  queueNudgeEnabled: boolean;
   randomWindowStart: string;
   randomWindowEnd: string;
   quietStart: string;
@@ -217,6 +233,24 @@ export interface NotificationSettingsDTO {
   includeMotivation: boolean;
   includeQuote: boolean;
   includeTip: boolean;
+}
+
+// ---- Ấp ủ (mục 17): hàng đợi mục tiêu chưa cam kết ----
+
+export type GoalStatus = 'incubating' | 'promoted' | 'dropped';
+
+/** DTO gọn cho client — tuổi/độ-cũ đã tính sẵn ở server (lib/queue.ts) */
+export interface GoalDTO {
+  id: string;
+  title: string;
+  note: string | null;
+  status: GoalStatus;
+  pinned: boolean;
+  snoozedUntil: string | null;
+  /** số ngày kể từ lúc bắt giữ (động) */
+  ageDays: number;
+  /** ≥30 ngày, chưa ghim, không snooze → bật gợi ý "giữ / buông" (mục 11.2) */
+  isStale: boolean;
 }
 
 /** Tiến độ tính ĐỘNG của một plan (lib/plan.ts) — không lưu DB */

@@ -183,6 +183,8 @@ model NotificationSettings {
   randomNudgeEnabled Boolean @default(true)
   eveningEnabled    Boolean @default(false)
   eveningTime       String  @default("21:30")
+  // "Ấp ủ" (mục 17): nhắc nhẹ lấy mục tiêu ra làm khi quỹ giờ rảnh cao — dùng chung cửa randomWindow
+  queueNudgeEnabled Boolean @default(true)
 
   // cửa sổ cho cú hích ngẫu nhiên + giờ yên (không gửi gì trong khoảng này)
   randomWindowStart String @default("09:00")
@@ -242,4 +244,23 @@ model DayCheckin {
   mood       Int? // 1..5
   stress     Int? // 1..5
   sleepHours Float?
+}
+
+// "Ấp ủ" (mục 17): hàng đợi mục tiêu CHƯA cam kết — giai đoạn tiền-task/tiền-plan (Someday/Maybe).
+// KHÔNG có `date`, KHÔNG tính vào streak/stats/completion (cô lập như Plan/Habit). Tuổi/độ-cũ suy
+// ĐỘNG ở lib/queue.ts. Ngõ ra: kéo thành Task (promotedTaskId) hoặc nâng thành Plan (promotedPlanId).
+model Goal {
+  id             String    @id @default(cuid())
+  title          String
+  note           String? // bối cảnh / vì sao muốn (tùy chọn)
+  status         String    @default("incubating") // incubating | promoted | dropped
+  pinned         Boolean   @default(false) // user đánh dấu "muốn làm sớm" → reset độ-cũ
+  snoozedUntil   String? // "YYYY-MM-DD" — không nudge/không hỏi-cũ trước mốc này
+  lastNudgedAt   DateTime? // tiết chế tần suất nudge (không lặp một goal liên tục)
+  promotedPlanId String? // truy ngược: đã nâng thành plan nào
+  promotedTaskId String? // truy ngược: đã kéo thành task nào
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
 }
