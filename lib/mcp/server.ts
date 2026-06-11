@@ -35,6 +35,19 @@ import {
   planUpdateSchema,
   updatePlan,
 } from '@/lib/mcp/plan-repository';
+import {
+  addToQueue,
+  dropGoal,
+  goalCreateSchema,
+  goalListSchema,
+  goalUpdateSchema,
+  listQueue,
+  promoteToPlan,
+  promoteToPlanSchema,
+  promoteToTask,
+  promoteToTaskSchema,
+  updateGoal,
+} from '@/lib/mcp/goal-repository';
 
 /**
  * MCP server (mục 15) — chạy trong app Next, dùng chung Prisma + lib helper.
@@ -260,6 +273,59 @@ export const mcpHandler = createMcpHandler(
       guard('check_milestone', async (args) => ok(await checkMilestone(args))),
     );
 
+    // ---------------- Ấp ủ (mục 17 — hàng đợi mục tiêu CHƯA cam kết) ----------------
+    server.tool(
+      'add_to_queue',
+      'Bắt giữ một MỤC TIÊU vào "Ấp ủ" (hàng đợi chưa cam kết) — dùng khi người dùng MUỐN làm gì đó ' +
+        'nhưng CHƯA chốt khi nào / chưa thành việc cụ thể hay kế hoạch. KHÁC create_task (đã có ngày) và ' +
+        'create_plan (đã có roadmap). Chỉ cần `title`; `note` để ghi bối cảnh. Không có deadline, không ' +
+        'tính vào streak/thống kê.',
+      goalCreateSchema.shape,
+      guard('add_to_queue', async (args) => ok(await addToQueue(args))),
+    );
+
+    server.tool(
+      'list_queue',
+      'Liệt kê mục tiêu trong "Ấp ủ" (mặc định `status=incubating`; có thể lọc promoted|dropped). ' +
+        'Mỗi mục kèm `ageDays` (số ngày đã nằm chờ — động) để biết điều gì đã ấp ủ lâu.',
+      goalListSchema.shape,
+      guard('list_queue', async (args) => ok(await listQueue(args))),
+    );
+
+    server.tool(
+      'update_goal',
+      'Sửa một mục tiêu Ấp ủ theo `id` (partial): `title`/`note`, `pinned` (muốn làm sớm), ' +
+        '`snoozedUntil` (YYYY-MM-DD, tạm ẩn không nhắc — null để bỏ hoãn).',
+      { id: z.string(), ...goalUpdateSchema.shape },
+      guard('update_goal', async ({ id, ...patch }) => ok(await updateGoal(id, patch))),
+    );
+
+    server.tool(
+      'drop_goal',
+      'BUÔNG một mục tiêu Ấp ủ (chuyển sang dropped) — chỉ làm khi NGƯỜI DÙNG đồng ý buông, AI không tự quyết.',
+      { id: z.string() },
+      guard('drop_goal', async ({ id }) => ok(await dropGoal(id))),
+    );
+
+    server.tool(
+      'promote_to_task',
+      'KÉO một mục tiêu Ấp ủ thành VIỆC một ngày (việc gọn, làm được trong một buổi). Tái dùng quy ' +
+        'tắc create_task: `scheduledFor` (lúc làm) hoặc `date` (YYYY-MM-DD; mặc định hôm nay nếu cả hai ' +
+        'trống), `estimatedMinutes`, `deepWork`, `priority`. Mục tiêu sẽ rời hàng đợi (status=promoted).',
+      promoteToTaskSchema.shape,
+      guard('promote_to_task', async (args) => ok(await promoteToTask(args))),
+    );
+
+    server.tool(
+      'promote_to_plan',
+      'NÂNG một mục tiêu Ấp ủ thành KẾ HOẠCH dài hạn (mục tiêu nhiều bước có tiến trình). Tái dùng ' +
+        'create_plan: cần `startDate`/`endDate` (YYYY-MM-DD), kèm `milestones` (kết quả KIỂM CHỨNG được). ' +
+        '`title`/`goal` mặc định lấy từ mục tiêu. Tạo roadmap rồi DỪNG — KHÔNG tự đẻ task (§10.8). Mục ' +
+        'tiêu rời hàng đợi (status=promoted).',
+      promoteToPlanSchema.shape,
+      guard('promote_to_plan', async (args) => ok(await promoteToPlan(args))),
+    );
+
     // ---------------- Resources ----------------
     server.resource(
       'today_overview',
@@ -324,6 +390,25 @@ export const mcpHandler = createMcpHandler(
       }),
     );
 
+    server.resource(
+      'incubating_overview',
+      'todo://incubating',
+      {
+        description:
+          'Mục tiêu trong "Ấp ủ" (chưa cam kết) + tuổi (ageDays) — để gợi lấy ra làm khi rảnh.',
+        mimeType: 'application/json',
+      },
+      async (uri) => ({
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify(await listQueue({ status: 'incubating' })),
+          },
+        ],
+      }),
+    );
+
     // ---------------- Prompts (ép quy trình an toàn) ----------------
     const SAFE =
       `QUY TRÌNH BẮT BUỘC: (1) đọc ngữ cảnh thật trước (get_schedule + get_workload_summary, ` +
@@ -382,6 +467,28 @@ export const mcpHandler = createMcpHandler(
                 `QUAN TRỌNG: tạo plan xong thì DỪNG — ĐỪNG tự tạo task cho các ngày tới (§10.8). Việc sẽ ` +
                 `được rót dần qua nút "Đề xuất ngày mai" trong app, hoặc chỉ tạo task khi tôi yêu cầu việc ` +
                 `cụ thể cho một ngày. KHÔNG tự tick milestone — chỉ tôi xác nhận.`,
+            },
+          },
+        ],
+      }),
+    );
+
+    server.prompt(
+      'triage_queue',
+      'Rà soát "Ấp ủ" (hàng đợi mục tiêu) và đề xuất kéo thành việc / nâng thành kế hoạch / buông.',
+      async () => ({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text:
+                `Hãy giúp tôi rà soát mục "Ấp ủ" (hàng đợi mục tiêu chưa cam kết). ${SAFE}\n` +
+                `Đọc list_queue + get_workload_summary cho ít ngày tới. Với mỗi mục tiêu, đề xuất một ` +
+                `trong ba: KÉO thành việc một ngày (promote_to_task, chỉ khi còn quỹ giờ rảnh — đừng nhồi), ` +
+                `NÂNG thành kế hoạch nếu là mục tiêu nhiều bước (promote_to_plan + milestones kiểm chứng được), ` +
+                `hoặc gợi ý BUÔNG nếu đã cũ/không còn phù hợp. Mục cùng chủ đề có thể gộp thành một kế hoạch. ` +
+                `TRÌNH BÀY đề xuất rồi CHỜ tôi duyệt — KHÔNG tự buông (drop_goal) và KHÔNG tự ghi khi chưa đồng ý.`,
             },
           },
         ],
