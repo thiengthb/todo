@@ -1,13 +1,13 @@
 /**
- * Suy ĐỘNG "độ khó" từ lịch sử cảm xúc (mục 11) — không lưu cột cứng, giống delay/streak.
+ * Infer "difficulty" DYNAMICALLY from emotion history (section 11) — not stored in a column, like delay/streak.
  *
- * Ý tưởng (reference-class / outside-view chống planning fallacy): nhóm các task đã chấm
- * cảm xúc theo từ khóa trong tiêu đề; chủ đề hay bị chấm "hard" → AI nên hạ rào / chia nhỏ,
- * chủ đề hay "love" → AI có thể tận dụng đà. Đây chỉ là GỢI Ý best-effort; AI vẫn nhìn cả
- * danh sách task thật để tự suy luận.
+ * Idea (reference-class / outside-view against the planning fallacy): group emotion-rated tasks
+ * by keywords in the title; topics often rated "hard" → the AI should lower the bar / break them down,
+ * topics often "love" → the AI can ride the momentum. This is a best-effort HINT only; the AI still looks at
+ * the whole real task list to reason for itself.
  */
 
-// Từ nối/chung chung tiếng Việt — bỏ để giữ lại từ mang nghĩa chủ đề
+// Vietnamese conjunctions/generic words — dropped to keep words that carry topic meaning
 const STOPWORDS = new Set([
   'và',
   'cho',
@@ -29,7 +29,7 @@ const STOPWORDS = new Set([
   'hôm',
 ]);
 
-/** Tách tiêu đề thành các "từ khóa" thô (≥3 ký tự, bỏ stopword) */
+/** Split a title into rough "keywords" (≥3 chars, dropping stopwords) */
 function keywords(title: string): string[] {
   return title
     .toLowerCase()
@@ -39,21 +39,21 @@ function keywords(title: string): string[] {
 }
 
 export interface DifficultyHints {
-  /** chủ đề thường được chấm "hard" → nên hạ rào / chia nhỏ */
+  /** topics often rated "hard" → should lower the bar / break down */
   hardTopics: string[];
-  /** chủ đề thường được chấm "love" (dễ/thích) → tận dụng đà */
+  /** topics often rated "love" (easy/liked) → ride the momentum */
   easyTopics: string[];
-  /** chủ đề thường mất LÂU hơn ước lượng (actualBucket="slower") → AI cộng giờ */
+  /** topics that usually take LONGER than estimated (actualBucket="slower") → AI adds time */
   slowTopics: string[];
-  /** chủ đề thường NHANH hơn ước lượng (actualBucket="faster") */
+  /** topics that are usually FASTER than estimated (actualBucket="faster") */
   fastTopics: string[];
-  /** số task đã chấm cảm xúc dùng để suy ra (độ tin cậy) */
+  /** number of emotion-rated tasks used to infer this (confidence) */
   samples: number;
 }
 
 /**
- * @param rated  các task ĐÃ chấm cảm xúc (done + emotion != null) trong cửa sổ gần đây;
- *               `actualBucket` (mục 14) tùy chọn — thiếu thì slow/fast rỗng (degrade mượt).
+ * @param rated  tasks that HAVE been emotion-rated (done + emotion != null) within the recent window;
+ *               `actualBucket` (section 14) optional — if absent, slow/fast are empty (graceful degrade).
  */
 export function computeDifficultyHints(
   rated: {
@@ -62,7 +62,7 @@ export function computeDifficultyHints(
     actualBucket?: string | null;
   }[],
 ): DifficultyHints {
-  // gom theo keyword: đếm số lần hard / love / slow / fast / tổng
+  // group by keyword: count occurrences of hard / love / slow / fast / total
   const byWord = new Map<
     string,
     { hard: number; love: number; slow: number; fast: number; total: number }
@@ -72,7 +72,7 @@ export function computeDifficultyHints(
   for (const t of rated) {
     if (!t.emotion && !t.actualBucket) continue;
     samples += 1;
-    const seen = new Set(keywords(t.title)); // mỗi task tính 1 lần/từ
+    const seen = new Set(keywords(t.title)); // count each task once per word
     for (const w of seen) {
       const c = byWord.get(w) ?? {
         hard: 0,
@@ -90,7 +90,7 @@ export function computeDifficultyHints(
     }
   }
 
-  // chỉ giữ chủ đề xuất hiện ≥2 lần để tránh nhiễu; ngưỡng skew 50%
+  // keep only topics appearing ≥2 times to avoid noise; skew threshold 50%
   const hardTopics: string[] = [];
   const easyTopics: string[] = [];
   const slowTopics: string[] = [];

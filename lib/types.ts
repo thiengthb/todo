@@ -2,33 +2,33 @@ export type Emotion = 'love' | 'meh' | 'hard';
 
 export type Priority = 'high' | 'medium' | 'low';
 
-/** Một đề xuất của AI — luôn kèm reason truy ngược được về dữ liệu thật */
+/** An AI suggestion — always carries a reason traceable back to real data */
 export interface SuggestionItem {
   title: string;
   priority: Priority;
   reason: string;
   /**
-   * Khi việc quá lớn / hay trượt, AI có thể đề xuất chia thành các bước nhỏ (mục 11).
-   * Rỗng/không có = việc đơn. Thêm "Ngày mai" sẽ tạo task cha + các task con này.
+   * When a task is too big / often slips, the AI may suggest breaking it into small steps (section 11).
+   * Empty/absent = single task. "Add to Tomorrow" will create a parent task + these subtasks.
    */
   subtasks?: string[];
-  /** gợi ý "khi nào/ở đâu" làm việc (implementation intention, mục 11) — tùy chọn */
+  /** suggested "when/where" to do it (implementation intention, section 11) — optional */
   cue?: string;
-  /** giờ AI đề xuất bắt đầu, "HH:MM" — nằm trong một khe rảnh (mục 14); server đã validate */
+  /** AI-suggested start time, "HH:MM" — falls inside a free slot (section 14); already validated by the server */
   slotStart?: string;
-  /** ước lượng thời lượng (phút) AI đề xuất — mục 14 */
+  /** AI-suggested duration estimate (minutes) — section 14 */
   estimatedMinutes?: number;
-  /** AI đánh dấu việc cần tập trung sâu (mục 14) */
+  /** AI flags a task as requiring deep focus (section 14) */
   deepWork?: boolean;
 }
 
-/** Đề xuất phục vụ một kế hoạch — kèm liên kết để gắn task vào plan/milestone */
+/** A suggestion serving a plan — carries links to attach the task to a plan/milestone */
 export interface PlanSuggestionItem extends SuggestionItem {
   planId: string;
   milestoneId: string | null;
 }
 
-/** Cảnh báo chậm tiến độ (mục 10.4) — số liệu tính ĐỘNG ở server, không để model bịa */
+/** Behind-schedule alert (section 10.4) — figures computed DYNAMICALLY on the server, not made up by the model */
 export interface PlanAlert {
   planId: string;
   planTitle: string;
@@ -37,8 +37,8 @@ export interface PlanAlert {
 }
 
 /**
- * Gợi ý lấy một mục tiêu từ "Ấp ủ" ra làm (mục 17) — chỉ khi còn dư quỹ giờ thật.
- * `suggestApproach` = gợi ý CỠ (kéo thành việc hay nâng thành kế hoạch); người dùng quyết.
+ * Suggestion to pull a goal out of "Incubating" and act on it (section 17) — only when there is real spare time.
+ * `suggestApproach` = a SIZE hint (drag into a task or promote into a plan); the user decides.
  */
 export interface QueuePullItem {
   goalId: string;
@@ -47,75 +47,75 @@ export interface QueuePullItem {
   reason: string;
 }
 
-/** Hợp đồng JSON model phải trả về (spec mục 6 + nhóm plan mục 10.7 + ấp ủ mục 17) */
+/** JSON contract the model must return (spec section 6 + plan group section 10.7 + incubating section 17) */
 export interface SuggestionResult {
   capacity_note: string;
   carry_over: SuggestionItem[];
   suggested_tasks: SuggestionItem[];
-  /** việc rót từ kế hoạch đang chạy — model điền */
+  /** tasks fed from a running plan — filled by the model */
   plan_tasks: PlanSuggestionItem[];
-  /** gợi ý lấy mục tiêu "Ấp ủ" ra làm khi còn dư quỹ giờ (mục 17) — model điền */
+  /** suggestion to pull "Incubating" goals out when there is spare time (section 17) — filled by the model */
   queue_pulls: QueuePullItem[];
-  /** cảnh báo chậm — server điền sau khi model trả về */
+  /** behind-schedule alerts — filled by the server after the model returns */
   plan_alerts: PlanAlert[];
-  /** ngày phục hồi (mục 11): sức thấp / nhiều ngày "hard" → chỉ đề xuất việc nhẹ */
+  /** recovery day (section 11): low energy / many "hard" days → only suggest light tasks */
   recovery_day: boolean;
 }
 
-/** DTO gọn cho client component — đã tính sẵn delay phía server */
+/** Compact DTO for client components — delay precomputed on the server */
 export interface TaskDTO {
   id: string;
   title: string;
   done: boolean;
   emotion: Emotion | null;
-  /** số ngày trì hoãn (0 nếu task mới trong ngày) */
+  /** number of days delayed (0 if the task is new today) */
   delay: number;
-  /** tên plan nếu task phục vụ một kế hoạch (mục 10) — để hiện chip */
+  /** plan name if the task serves a plan (section 10) — to show a chip */
   planTitle?: string | null;
-  /** các bước con nếu task này là "container" được chia nhỏ (mục 11) */
+  /** child steps if this task is a broken-down "container" (section 11) */
   subtasks?: TaskDTO[];
-  /** gợi ý "khi nào/ở đâu" (implementation intention, mục 11) — tùy chọn */
+  /** "when/where" hint (implementation intention, section 11) — optional */
   cue?: string | null;
-  /** mức tác động 80/20 (mục 11) — để tính "việc chính" (MIT) */
+  /** 80/20 impact level (section 11) — to compute the "main task" (MIT) */
   impact?: Priority | null;
-  /** lý do trượt nếu đã ghi (mục 11) */
+  /** slip reason if recorded (section 11) */
   slipReason?: string | null;
-  /** ước lượng thời lượng (phút) — mục 14 */
+  /** duration estimate (minutes) — section 14 */
   estimatedMinutes?: number | null;
-  /** việc cần tập trung sâu (mục 14) */
+  /** task requiring deep focus (section 14) */
   deepWork?: boolean;
-  /** phản hồi thời lượng 1-chạm khi xong: "faster" | "asExpected" | "slower" */
+  /** one-tap duration feedback on completion: "faster" | "asExpected" | "slower" */
   actualBucket?: string | null;
-  /** giờ dự kiến làm "HH:MM" (mục 14) — để đặt lên timeline; null = chưa xếp giờ */
+  /** planned time "HH:MM" (section 14) — to place on the timeline; null = not yet scheduled */
   scheduledFor?: string | null;
 }
 
-// ---- Kế hoạch (mục 10) ----
+// ---- Plan (section 10) ----
 
 export type PlanStatus = 'active' | 'paused' | 'done' | 'archived';
 export type Intensity = 'nhẹ' | 'vừa' | 'dồn';
 
-/** Một cột mốc model trả về từ bước decompose (chưa có id, chưa lưu DB) */
+/** A milestone returned by the model from the decompose step (no id yet, not saved to the DB) */
 export interface MilestoneDraft {
   title: string;
   order: number;
   targetDate: string | null;
 }
 
-/** Hợp đồng JSON cho route /api/plan/decompose */
+/** JSON contract for the /api/plan/decompose route */
 export interface DecomposeResult {
   milestones: MilestoneDraft[];
 }
 
-// ---- Lịch trình (mục 14) ----
+// ---- Schedule (section 14) ----
 
 export type ScheduleKind = 'hoc' | 'lam' | 'khac';
 
-/** Lịch cứng lặp theo tuần (khớp model Commitment) */
+/** Hard schedule repeating weekly (matches the Commitment model) */
 export interface CommitmentDTO {
   id: string;
   title: string;
-  dayOfWeek: number; // 0=CN .. 6=T7
+  dayOfWeek: number; // 0=Sun .. 6=Sat
   startTime: string; // "HH:MM"
   endTime: string;
   kind: ScheduleKind;
@@ -125,11 +125,11 @@ export interface CommitmentDTO {
   weekParity: string | null; // null | "odd" | "even"
 }
 
-/** Khung giờ mềm lặp theo tuần — time-blocking, dời được (khớp model SoftBlock) */
+/** Soft time block repeating weekly — time-blocking, movable (matches the SoftBlock model) */
 export interface SoftBlockDTO {
   id: string;
   title: string;
-  dayOfWeek: number; // 0=CN .. 6=T7
+  dayOfWeek: number; // 0=Sun .. 6=Sat
   startTime: string; // "HH:MM"
   endTime: string;
   kind: ScheduleKind;
@@ -139,7 +139,7 @@ export interface SoftBlockDTO {
   weekParity: string | null; // null | "odd" | "even"
 }
 
-/** Thói quen (mục 11) — daysOfWeek CSV "1,2,3" hoặc null = hằng ngày */
+/** Habit (section 11) — daysOfWeek CSV "1,2,3" or null = daily */
 export interface HabitDTO {
   id: string;
   title: string;
@@ -147,14 +147,14 @@ export interface HabitDTO {
   active: boolean;
 }
 
-/** Trạng thái động của thói quen trong một ngày (lib/habits.ts) */
+/** Dynamic state of a habit on a given day (lib/habits.ts) */
 export interface HabitStatus {
   dueToday: boolean;
   doneToday: boolean;
-  streak: number; // số ngày-đến-hạn liên tiếp đã tick (thông tin, không điểm)
+  streak: number; // number of consecutive due-days ticked (informational, no points)
 }
 
-/** Sự kiện đột xuất một lần (khớp model ScheduleEvent) */
+/** One-off ad-hoc event (matches the ScheduleEvent model) */
 export interface ScheduleEventDTO {
   id: string;
   title: string;
@@ -165,32 +165,32 @@ export interface ScheduleEventDTO {
   cancels: boolean;
 }
 
-/** Một khối lịch đã "phẳng hoá" cho một ngày cụ thể (commitment hoặc event) */
+/** A schedule block "flattened" for a specific day (commitment or event) */
 export interface ScheduleBlock {
   id: string;
   title: string;
-  startTime: string | null; // null = cả ngày
+  startTime: string | null; // null = all day
   endTime: string | null;
   kind: ScheduleKind;
   source: 'commitment' | 'event' | 'soft';
 }
 
-/** Một khe giờ rảnh trong ngày (mục 14) — tính động từ computeFreeSlots */
+/** A free time slot in a day (section 14) — computed dynamically from computeFreeSlots */
 export interface FreeSlot {
   start: string; // "HH:MM"
   end: string; // "HH:MM"
   durationMin: number;
 }
 
-/** Kết quả tính quỹ thời gian một ngày (mục 14) */
+/** Result of computing a day's time budget (section 14) */
 export interface CapacityResult {
   slots: FreeSlot[];
-  capacityMin: number; // tổng phút rảnh (sau buffer, bỏ khe ngắn)
-  wakingMin: number; // tổng phút trong giờ thức
-  busyMin: number; // tổng phút bận (đã gộp chồng + buffer)
+  capacityMin: number; // total free minutes (after buffer, dropping short slots)
+  wakingMin: number; // total minutes during waking hours
+  busyMin: number; // total busy minutes (overlaps merged + buffer)
 }
 
-/** Cấu hình lịch trình (lib/schedule-settings.ts) — khớp model ScheduleSettings */
+/** Schedule configuration (lib/schedule-settings.ts) — matches the ScheduleSettings model */
 export interface ScheduleSettingsDTO {
   wakeTime: string;
   sleepTime: string;
@@ -199,20 +199,20 @@ export interface ScheduleSettingsDTO {
   termAnchorMonday: string | null;
 }
 
-// ---- Thông báo Discord (mục 13) ----
+// ---- Discord notifications (section 13) ----
 
-/** Các loại thông báo — khớp cột `kind` của NotificationLog */
+/** Notification kinds — match the `kind` column of NotificationLog */
 export type NotificationKind =
-  | 'morning' // bản tin sáng
-  | 'streak_guard' // nhắc giữ streak khi atRisk
-  | 'random_nudge' // cú hích ngẫu nhiên làm task
-  | 'evening' // đúc kết tối
-  | 'queue_nudge'; // nhắc lấy mục tiêu "Ấp ủ" ra làm khi rảnh (mục 17)
+  | 'morning' // morning briefing
+  | 'streak_guard' // streak-keeping reminder when atRisk
+  | 'random_nudge' // random nudge to do a task
+  | 'evening' // evening wrap-up
+  | 'queue_nudge'; // reminder to pull an "Incubating" goal out when free (section 17)
 
-/** Preset cường độ — chỉ là gợi ý UI để set nhanh các toggle bên dưới */
+/** Intensity preset — just a UI hint to quickly set the toggles below */
 export type NotificationIntensity = 'minimal' | 'balanced' | 'active';
 
-/** Cấu hình thông báo (1 hàng, app một người dùng) — khớp model Prisma */
+/** Notification configuration (1 row, single-user app) — matches the Prisma model */
 export interface NotificationSettingsDTO {
   enabled: boolean;
   discordWebhookUrl: string;
@@ -224,7 +224,7 @@ export interface NotificationSettingsDTO {
   randomNudgeEnabled: boolean;
   eveningEnabled: boolean;
   eveningTime: string;
-  /** nhắc "Ấp ủ" khi rảnh (mục 17) — dùng chung cửa randomWindow */
+  /** "Incubating" reminder when free (section 17) — shares the randomWindow window */
   queueNudgeEnabled: boolean;
   randomWindowStart: string;
   randomWindowEnd: string;
@@ -235,11 +235,11 @@ export interface NotificationSettingsDTO {
   includeTip: boolean;
 }
 
-// ---- Ấp ủ (mục 17): hàng đợi mục tiêu chưa cam kết ----
+// ---- Incubating (section 17): queue of uncommitted goals ----
 
 export type GoalStatus = 'incubating' | 'promoted' | 'dropped';
 
-/** DTO gọn cho client — tuổi/độ-cũ đã tính sẵn ở server (lib/queue.ts) */
+/** Compact DTO for the client — age/staleness precomputed on the server (lib/queue.ts) */
 export interface GoalDTO {
   id: string;
   title: string;
@@ -247,20 +247,20 @@ export interface GoalDTO {
   status: GoalStatus;
   pinned: boolean;
   snoozedUntil: string | null;
-  /** số ngày kể từ lúc bắt giữ (động) */
+  /** number of days since capture (dynamic) */
   ageDays: number;
-  /** ≥30 ngày, chưa ghim, không snooze → bật gợi ý "giữ / buông" (mục 11.2) */
+  /** ≥30 days, not pinned, not snoozed → enable the "keep / drop" hint (section 11.2) */
   isStale: boolean;
 }
 
-/** Tiến độ tính ĐỘNG của một plan (lib/plan.ts) — không lưu DB */
+/** DYNAMICALLY computed progress of a plan (lib/plan.ts) — not stored in the DB */
 export interface PlanProgress {
   total: number;
   done: number;
   progressPct: number;
-  /** > 0: chậm; < 0: nhanh; 0: đúng tiến độ */
+  /** > 0: behind; < 0: ahead; 0: on schedule */
   behindDays: number;
   daysLeft: number;
-  /** cột mốc đang làm (milestone chưa done đầu tiên), null nếu xong hết */
+  /** milestone in progress (first not-done milestone), null if all done */
   currentMilestone: string | null;
 }

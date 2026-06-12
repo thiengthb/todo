@@ -13,7 +13,7 @@ export interface RunResult {
   detail: string;
 }
 
-/** Loại có bật trong cấu hình không */
+/** Whether this kind is enabled in the config */
 function isKindEnabled(
   kind: NotificationKind,
   s: Awaited<ReturnType<typeof getSettings>>,
@@ -33,10 +33,10 @@ function isKindEnabled(
 }
 
 /**
- * Chạy MỘT thông báo (mục 13). Dùng chung cho cron lẫn nút "Gửi thử".
- * - force = true (gửi thử): bỏ qua enabled/quiet-hours/idempotency và gating tự nhiên.
- * - force = false (cron): kiểm tra đủ điều kiện rồi mới gửi, ghi log để tránh gửi trùng.
- * Không bao giờ ném lỗi — luôn trả RunResult + ghi NotificationLog.
+ * Run ONE notification (section 13). Shared by the cron and the "Test send" button.
+ * - force = true (test send): bypass enabled/quiet-hours/idempotency and the natural gating.
+ * - force = false (cron): check all conditions before sending, log to avoid duplicate sends.
+ * Never throws — always returns a RunResult + writes a NotificationLog.
  */
 export async function runNotification(
   kind: NotificationKind,
@@ -46,8 +46,8 @@ export async function runNotification(
   const today = todayStr();
 
   const log = async (status: RunResult['status'], detail: string): Promise<RunResult> => {
-    // không ghi log cho lần "gửi thử" thành công nhiều lần làm nhiễu lịch sử —
-    // vẫn ghi để minh bạch, nhưng đánh dấu rõ trong detail
+    // don't let repeated successful "test sends" clutter the history —
+    // still log for transparency, but mark it clearly in the detail
     await prisma.notificationLog
       .create({ data: { kind, date: today, status, detail: detail.slice(0, 500) } })
       .catch(() => {});
@@ -56,18 +56,18 @@ export async function runNotification(
 
   const settings = await getSettings();
 
-  // ----- Tiền kiểm tra (chỉ khi không force) -----
+  // ----- Pre-checks (only when not forced) -----
   if (!force) {
     if (!settings.enabled) return { kind, status: 'skipped', detail: 'Thông báo đang tắt' };
     if (!isKindEnabled(kind, settings))
       return { kind, status: 'skipped', detail: 'Loại này đang tắt' };
 
-    // giờ yên — không bắn gì
+    // quiet hours — send nothing
     if (isWithinWindow(minutesOfDay(new Date()), settings.quietStart, settings.quietEnd)) {
       return { kind, status: 'skipped', detail: 'Đang trong giờ yên' };
     }
 
-    // idempotency: đã gửi thành công loại này hôm nay rồi thì thôi
+    // idempotency: if this kind was already sent successfully today, stop
     const already = await prisma.notificationLog.findFirst({
       where: { kind, date: today, status: 'sent' },
     });
@@ -78,10 +78,10 @@ export async function runNotification(
     return log('error', 'Chưa cấu hình webhook Discord');
   }
 
-  // ----- Soạn nội dung -----
+  // ----- Compose the content -----
   const facts = await buildNotificationFacts(kind);
 
-  // lấy vài nội dung đã gửi gần đây để AI tránh lặp câu nói/tip
+  // fetch a few recently sent items so the AI avoids repeating a quote/tip
   const recent = await prisma.notificationLog.findMany({
     where: { status: 'sent' },
     orderBy: { sentAt: 'desc' },
@@ -96,12 +96,12 @@ export async function runNotification(
     return log('skipped', composed.skipReason ?? 'Không cần gửi lúc này');
   }
 
-  // ----- Gửi -----
+  // ----- Send -----
   const res = await sendDiscord(settings.discordWebhookUrl, composed.message);
   if (!res.ok) {
     return log('error', res.error ?? `Gửi thất bại (HTTP ${res.status})`);
   }
-  // cooldown mục tiêu "Ấp ủ" vừa nhắc (mục 17) → vòng sau xếp hạng thấp, không lặp lại liên tục
+  // cooldown the "Incubating" goal just nudged (section 17) → ranked lower next round, no back-to-back repeats
   if (kind === 'queue_nudge' && facts.topIncubatingGoalId) {
     await prisma.goal
       .update({ where: { id: facts.topIncubatingGoalId }, data: { lastNudgedAt: new Date() } })

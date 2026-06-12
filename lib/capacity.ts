@@ -1,9 +1,9 @@
 /**
- * "Capacity" (sức/ngày) tính ĐỘNG (mục 11) — không lưu cứng.
+ * "Capacity" (energy/day) computed DYNAMICALLY (section 11) — not stored.
  *
- * Lưu ý bằng chứng: planning theo năng lượng là hợp lý nhưng bằng chứng MỀM, nên đây chỉ
- * là tín hiệu phụ giúp AI giảm/giữ tải, KHÔNG phải con số tuyệt đối. Mọi field check-in đều
- * optional — thiếu thì trả null và AI chỉ dựa vào tốc độ thật như cũ (degrade mượt).
+ * Evidence note: energy-based planning is reasonable but the evidence is SOFT, so this is only
+ * a secondary signal helping the AI lighten/hold the load, NOT an absolute number. Every check-in field is
+ * optional — if absent, return null and the AI just relies on real velocity as before (graceful degrade).
  */
 export interface DayCheckinLite {
   energy: number | null;
@@ -13,8 +13,8 @@ export interface DayCheckinLite {
 }
 
 /**
- * Quy các tín hiệu (thang 1..5, giấc ngủ theo giờ) về 0..100. Trả null nếu check-in trống.
- * Quanh 50 = bình thường; energy/mood kéo lên, stress kéo xuống, ngủ < 6h trừ điểm.
+ * Map the signals (1..5 scale, sleep in hours) to 0..100. Returns null if the check-in is empty.
+ * Around 50 = normal; energy/mood pull up, stress pulls down, sleep < 6h subtracts points.
  */
 export function computeCapacity(c: DayCheckinLite | null): number | null {
   if (!c) return null;

@@ -1,34 +1,34 @@
 import { daysBetween } from './dates';
 
-/** Một chuỗi giữ lửa: các ngày hoạt động liên tiếp nhau */
+/** A keep-the-flame streak: consecutive active days */
 export interface StreakRun {
   start: string; // "YYYY-MM-DD"
   end: string; // "YYYY-MM-DD"
-  length: number; // số ngày trong chuỗi
+  length: number; // number of days in the streak
 }
 
 export interface StreakSummary {
-  /** số ngày liên tiếp tính đến hôm nay (hoặc hôm qua nếu hôm nay chưa hoạt động) */
+  /** number of consecutive days up to today (or yesterday if there's no activity today yet) */
   current: number;
-  /** chuỗi còn sống nhưng hôm nay chưa có việc xong — cần làm 1 việc để giữ */
+  /** streak still alive but no task done today — need to do 1 task to keep it */
   atRisk: boolean;
-  /** chuỗi dài nhất từng đạt */
+  /** longest streak ever reached */
   longest: number;
-  /** tất cả các chuỗi, mới nhất trước */
+  /** all streaks, most recent first */
   runs: StreakRun[];
 }
 
 /**
- * Tính streak HOÀN TOÀN ĐỘNG từ danh sách "ngày hoạt động" (ngày có ≥1 việc done).
- * Không lưu cứng để tránh lệch dữ liệu — theo nguyên tắc của project (giống delayDays).
+ * Compute the streak FULLY DYNAMICALLY from a list of "active days" (days with ≥1 done task).
+ * Not stored, to avoid data drift — per the project's principle (like delayDays).
  *
- * ÂN HẠN 1 NGÀY (mục 11, "never miss twice"): lỡ MỘT ngày đơn lẻ KHÔNG làm đứt chuỗi —
- * ngày đó được "đóng băng", chuỗi nối tiếp khi hoạt động trở lại. Chỉ lỡ HAI ngày liên
- * tiếp mới đứt. `length` đếm số ngày hoạt động thật (không tính ngày đóng băng), khớp
- * bằng chứng (Lally): bỏ 1 ngày không hại sự tự động hoá, nhưng cần kindness không phạt.
+ * ONE-DAY GRACE (section 11, "never miss twice"): missing a SINGLE isolated day does NOT break the streak —
+ * that day is "frozen", and the streak continues when activity resumes. Only missing TWO consecutive
+ * days breaks it. `length` counts real active days (not frozen days), matching the
+ * evidence (Lally): skipping 1 day doesn't harm automaticity, but it needs kindness, not punishment.
  */
 export function computeStreaks(activeDays: string[], today: string): StreakSummary {
-  // unique, bỏ ngày tương lai (không tính vào chuỗi), sort tăng dần
+  // unique, drop future days (not counted in the streak), sort ascending
   const days = [...new Set(activeDays)].filter((d) => d <= today).sort();
   if (days.length === 0) {
     return { current: 0, atRisk: false, longest: 0, runs: [] };
@@ -37,9 +37,9 @@ export function computeStreaks(activeDays: string[], today: string): StreakSumma
   const runs: StreakRun[] = [];
   let start = days[0];
   let prev = days[0];
-  let count = 1; // số ngày hoạt động trong run (không tính ngày đóng băng)
+  let count = 1; // number of active days in the run (not counting frozen days)
   for (let i = 1; i < days.length; i++) {
-    // gap ≤ 2: liền kề (1) hoặc lỡ đúng 1 ngày (2) → vẫn cùng chuỗi (ân hạn)
+    // gap ≤ 2: adjacent (1) or exactly 1 day missed (2) → still the same streak (grace)
     if (daysBetween(prev, days[i]) <= 2) {
       prev = days[i];
       count += 1;
@@ -54,9 +54,9 @@ export function computeStreaks(activeDays: string[], today: string): StreakSumma
 
   const longest = Math.max(...runs.map((r) => r.length));
 
-  // Chuỗi hiện tại còn sống nếu run cuối kết thúc trong vòng 2 ngày (nhờ ân hạn).
-  // gap 0: đã giữ hôm nay. gap 1 (lỡ hôm nay, hôm qua có) / gap 2 (lỡ hôm qua, nay chưa):
-  // còn cứu được — làm 1 việc hôm nay là nối tiếp; bỏ luôn hôm nay (gap thành ≥3) mới đứt.
+  // The current streak is alive if the last run ends within 2 days (thanks to the grace).
+  // gap 0: already kept today. gap 1 (missed today, yesterday had it) / gap 2 (missed yesterday, none yet today):
+  // still salvageable — doing 1 task today continues it; skipping today too (gap becomes ≥3) breaks it.
   const last = runs[runs.length - 1];
   const gap = daysBetween(last.end, today);
   let current = 0;
@@ -68,6 +68,6 @@ export function computeStreaks(activeDays: string[], today: string): StreakSumma
     atRisk = true;
   }
 
-  runs.reverse(); // mới nhất trước
+  runs.reverse(); // most recent first
   return { current, atRisk, longest, runs };
 }

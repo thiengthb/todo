@@ -2,8 +2,8 @@ import type { NotificationVoice } from '@/lib/ai';
 import type { NotificationFacts } from '@/lib/ai';
 
 /**
- * Ngân hàng nội dung TĨNH — dùng khi AI lỗi/không có AI_API_KEY (degrade mượt, mục 11.1).
- * Thông báo vẫn hữu ích và giữ đúng tinh thần nâng đỡ, không hối thúc.
+ * STATIC content bank — used when the AI fails / there's no AI_API_KEY (graceful degrade, section 11.1).
+ * The notification is still useful and keeps the supportive, non-pushy spirit.
  */
 const QUOTES = [
   '“Việc nhỏ làm đều còn hơn việc lớn làm một lần rồi bỏ.”',
@@ -22,7 +22,7 @@ const TIPS = [
   'Mẹo: đặt một mốc cụ thể “khi nào / ở đâu” sẽ làm — dễ bắt tay hơn nhiều.',
 ];
 
-/** Chọn phần tử theo seed ổn định trong ngày (tránh Math.random để dễ đoán/đỡ lặp) */
+/** Pick an element by a seed stable within the day (avoid Math.random for predictability/less repetition) */
 function pick<T>(arr: T[], seed: number): T {
   return arr[Math.abs(seed) % arr.length];
 }
@@ -33,7 +33,7 @@ function seedFrom(s: string): number {
   return h;
 }
 
-/** Soạn thông báo tĩnh khi không gọi được AI */
+/** Compose a static notification when the AI can't be called */
 export function fallbackVoice(
   f: NotificationFacts,
   include: { motivation: boolean; quote: boolean; tip: boolean },

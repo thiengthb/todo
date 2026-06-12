@@ -1,21 +1,21 @@
 import { daysBetween, todayStr } from './dates';
 import type { PlanProgress } from './types';
 
-/** Một milestone tối thiểu để tính tiến độ */
+/** A minimal milestone for computing progress */
 interface MilestoneLite {
   order: number;
   done: boolean;
 }
 
 /**
- * Tính tiến độ một plan HOÀN TOÀN ĐỘNG (mục 10.5) — không lưu cứng, tránh lệch
- * dữ liệu giống cách tính delay/streak.
+ * Compute a plan's progress FULLY DYNAMICALLY (section 10.5) — not stored, avoiding data
+ * drift, like the way delay/streak are computed.
  *
- * - progressPct: số milestone done / tổng.
- * - behindDays: chênh giữa "mốc kỳ vọng theo lịch" và tiến độ thực, quy ra ngày.
- *   expectedFraction = thời gian đã trôi / tổng thời gian; behindDays = round(
- *   (expectedFraction - actualFraction) × tổng ngày). > 0 nghĩa là đang chậm.
- * - currentMilestone: milestone chưa done có order nhỏ nhất.
+ * - progressPct: milestones done / total.
+ * - behindDays: the gap between the "schedule-expected milestone" and actual progress, in days.
+ *   expectedFraction = time elapsed / total time; behindDays = round(
+ *   (expectedFraction - actualFraction) × total days). > 0 means behind.
+ * - currentMilestone: the not-done milestone with the smallest order.
  */
 export function computePlanProgress(
   plan: { startDate: string; endDate: string },
@@ -27,7 +27,7 @@ export function computePlanProgress(
   const progressPct = total === 0 ? 0 : Math.round((done / total) * 100);
 
   const totalDays = Math.max(1, daysBetween(plan.startDate, plan.endDate));
-  // thời gian đã trôi, kẹp trong [0, totalDays] để không vượt biên khi quá/chưa tới hạn
+  // time elapsed, clamped to [0, totalDays] so it doesn't exceed bounds past/before the deadline
   const elapsed = Math.min(totalDays, Math.max(0, daysBetween(plan.startDate, today)));
   const expectedFraction = elapsed / totalDays;
   const actualFraction = total === 0 ? 0 : done / total;
@@ -47,7 +47,7 @@ export function computePlanProgress(
   };
 }
 
-/** Sắp xếp milestone theo order (helper dùng chung cho UI/AI) */
+/** Sort milestones by order (shared helper for UI/AI) */
 export function sortMilestones<T extends MilestoneLite>(milestones: T[]): T[] {
   return [...milestones].sort((a, b) => a.order - b.order);
 }

@@ -3,9 +3,9 @@ import type { TaskDTO } from './types';
 const IMPACT_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
 /**
- * Điểm 80/20 (mục 11): ưu tiên việc tác động cao, thuộc kế hoạch, đã trì hoãn.
- * Dùng để chọn "việc chính" (MIT) trong ngày — KHÔNG sắp xếp lại danh sách
- * (giữ thứ tự nhập cho quen mắt), chỉ làm nổi bật 1 việc.
+ * 80/20 score (section 11): prioritize high-impact tasks, those belonging to a plan, those delayed.
+ * Used to pick the day's "main task" (MIT) — does NOT reorder the list
+ * (keeps the entry order for familiarity), only highlights 1 task.
  */
 function valueScore(t: TaskDTO): number {
   const impact = t.impact ? IMPACT_RANK[t.impact] : 0;
@@ -13,9 +13,9 @@ function valueScore(t: TaskDTO): number {
 }
 
 /**
- * Chọn id của "việc chính" hôm nay: việc CHƯA xong có điểm 80/20 cao nhất.
- * Chỉ trả về khi có ≥2 việc chưa xong và việc top thực sự có tín hiệu (điểm > 0),
- * để badge "việc chính" có ý nghĩa.
+ * Pick the id of today's "main task": the NOT-done task with the highest 80/20 score.
+ * Only returns when there are ≥2 unfinished tasks and the top one truly has a signal (score > 0),
+ * so the "main task" badge is meaningful.
  */
 export function pickMitId(leaves: TaskDTO[]): string | null {
   const undone = leaves.filter((t) => !t.done);

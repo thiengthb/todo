@@ -1,12 +1,12 @@
 import { addDays } from '@/lib/dates';
 import type { HabitDTO, HabitStatus } from '@/lib/types';
 
-/** 0=CN..6=T7 của một chuỗi ngày "YYYY-MM-DD" (giờ địa phương) */
+/** 0=Sun..6=Sat of a "YYYY-MM-DD" date string (local time) */
 function dowOf(dateStr: string): number {
   return new Date(`${dateStr}T00:00:00`).getDay();
 }
 
-/** Thói quen có "đến hạn" vào ngày này không (daysOfWeek null = hằng ngày) */
+/** Whether a habit is "due" on this day (daysOfWeek null = daily) */
 export function habitDueOn(habit: Pick<HabitDTO, 'daysOfWeek'>, dateStr: string): boolean {
   if (!habit.daysOfWeek) return true;
   const days = habit.daysOfWeek
@@ -17,9 +17,9 @@ export function habitDueOn(habit: Pick<HabitDTO, 'daysOfWeek'>, dateStr: string)
 }
 
 /**
- * Trạng thái động của một thói quen (mục 11) — KHÔNG lưu cứng, suy từ các ngày đã tick.
- * streak = số NGÀY-ĐẾN-HẠN liên tiếp (lùi từ hôm nay) đã tick; hôm nay chưa tick KHÔNG
- * làm đứt (ân hạn nhẹ — chỉ là feedback thông tin, không phải điểm số).
+ * Dynamic state of a habit (section 11) — NOT stored, inferred from the ticked days.
+ * streak = number of consecutive DUE-DAYS (going back from today) that were ticked; not ticking today does NOT
+ * break it (light grace — it's just informational feedback, not a score).
  */
 export function computeHabitStatus(
   habit: Pick<HabitDTO, 'daysOfWeek'>,
@@ -31,14 +31,14 @@ export function computeHabitStatus(
   const doneToday = checked.has(today);
 
   let streak = 0;
-  // duyệt tối đa ~1 năm ngày đến hạn, lùi dần
+  // scan up to ~1 year of due-days, going backwards
   for (let i = 0; i < 366; i++) {
     const day = addDays(today, -i);
     if (!habitDueOn(habit, day)) continue;
     if (checked.has(day)) {
       streak += 1;
     } else if (day === today) {
-      continue; // hôm nay chưa tick — chưa tính, nhưng không đứt chuỗi
+      continue; // not ticked today — not counted yet, but doesn't break the streak
     } else {
       break;
     }

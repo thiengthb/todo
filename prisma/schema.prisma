@@ -12,49 +12,49 @@ model Task {
   title       String
   done        Boolean   @default(false)
   emotion     String? // "love" | "meh" | "hard" | null
-  date        String // ngày gắn task, dạng "YYYY-MM-DD"
-  carriedFrom String? // nếu được carry-over từ ngày trước, lưu ngày gốc
+  date        String // the day the task is attached to, format "YYYY-MM-DD"
+  carriedFrom String? // if carried over from a previous day, store the original date
   createdAt   DateTime  @default(now())
   completedAt DateTime?
 
-  // task có thể phục vụ một kế hoạch (mục 10) — optional để CRUD task thường không đổi
+  // a task may serve a plan (section 10) — optional so ordinary task CRUD is unchanged
   planId      String?
   milestoneId String?
   plan        Plan?      @relation(fields: [planId], references: [id], onDelete: SetNull)
   milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
 
-  // chia nhỏ task (mục 11): task cha có ≥1 con là "container", không tính vào stats/streak
+  // task breakdown (section 11): a parent task with ≥1 child is a "container", not counted in stats/streak
   parentId    String?
   parent      Task?      @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
   subtasks    Task[]     @relation("Subtasks")
 
-  // implementation intention (mục 11): gợi ý "khi nào/ở đâu" làm việc — tùy chọn
+  // implementation intention (section 11): "when/where" hint to do it — optional
   cue         String?
 
-  // 80/20 (mục 11): mức tác động "high" | "medium" | "low" — AI suy hoặc người dùng đặt
+  // 80/20 (section 11): impact level "high" | "medium" | "low" — inferred by AI or set by the user
   impact      String?
-  // lý do trượt (mục 11): "tired" | "too_hard" | "no_time" | "unclear" | "deprioritized"
+  // slip reason (section 11): "tired" | "too_hard" | "no_time" | "unclear" | "deprioritized"
   slipReason  String?
 
-  // học thời lượng/năng lượng (mục 14): việc cần tập trung sâu → AI ưu tiên khe sáng
+  // learning duration/energy (section 14): deep-focus tasks → AI prioritizes morning slots
   deepWork     Boolean @default(false)
-  // 1-chạm khi xong: "faster" | "asExpected" | "slower" — AI hiệu chỉnh ước lượng, không phán xét
+  // one-tap on completion: "faster" | "asExpected" | "slower" — AI calibrates the estimate, no judgment
   actualBucket String?
 
-  // ── Field lập kế hoạch generic cho MCP (mục 15) — TẤT CẢ optional, đồng bộ với field cũ ở
-  //    lib/mcp/repository. KHÔNG đổi/xoá field cũ; app hiện tại chạy nguyên vẹn.
-  description      String? // mô tả dài (MCP) — app hiện chỉ dùng title; optional
-  status           String? // "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED" (đồng bộ với `done`)
-  priority         String? // "LOW" | "MEDIUM" | "HIGH" | "URGENT" (song song `impact`)
-  dueDate          DateTime? // hạn chót (ràng buộc), KHÁC scheduledFor
-  scheduledFor     DateTime? // mốc dự kiến làm (lịch theo giờ); set kèm `date` = ngày địa phương
-  estimatedMinutes Int? // ước lượng thời lượng → tính workload/ngày
+  // ── Generic planning fields for MCP (section 15) — ALL optional, kept in sync with the legacy fields in
+  //    lib/mcp/repository. Do NOT change/remove the legacy fields; the current app runs intact.
+  description      String? // long description (MCP) — the app currently only uses title; optional
+  status           String? // "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED" (synced with `done`)
+  priority         String? // "LOW" | "MEDIUM" | "HIGH" | "URGENT" (parallel to `impact`)
+  dueDate          DateTime? // deadline (constraint), DIFFERENT from scheduledFor
+  scheduledFor     DateTime? // planned time to do it (timed schedule); set together with `date` = local day
+  estimatedMinutes Int? // duration estimate → compute workload/day
   projectId        String?
   project          Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  tags             Tag[] // quan hệ m-n ngầm (SQLite không có String[])
+  tags             Tag[] // implicit m-n relation (SQLite has no String[])
 }
 
-// "Kế hoạch giai đoạn" generic do MCP/Claude tạo (mục 15) — RIÊNG với Plan (roadmap AI của app).
+// Generic "phase plan" created by MCP/Claude (section 15) — SEPARATE from Plan (the app's AI roadmap).
 model Project {
   id            String    @id @default(cuid())
   name          String
@@ -67,34 +67,34 @@ model Project {
   tasks         Task[]
 }
 
-// Nhãn phân loại tự do (mục 15) — quan hệ m-n với Task
+// Free-form classification label (section 15) — m-n relation with Task
 model Tag {
   id    String @id @default(cuid())
   name  String @unique
   tasks Task[]
 }
 
-// Kế hoạch dài hạn (mục 10) — roadmap cuốn chiếu, AI rót task hằng ngày bám tốc độ thật
+// Long-term plan (section 10) — rolling roadmap, AI feeds daily tasks following real velocity
 model Plan {
   id         String      @id @default(cuid())
   title      String
-  goal       String // định nghĩa "xong" + bối cảnh
+  goal       String // definition of "done" + context
   startDate  String // "YYYY-MM-DD"
-  endDate    String // mốc mục tiêu
+  endDate    String // target date
   status     String      @default("active") // active | paused | done | archived
-  intensity  String      @default("vừa") // nhẹ | vừa | dồn — gợi ý mềm cho AI
+  intensity  String      @default("vừa") // nhẹ | vừa | dồn — soft hint for the AI
   createdAt  DateTime    @default(now())
   milestones Milestone[]
   tasks      Task[]
 }
 
-// Cột mốc trong roadmap của một plan — tiến độ tính ĐỘNG, chỉ lưu cờ done
+// Milestone in a plan's roadmap — progress computed DYNAMICALLY, only the done flag is stored
 model Milestone {
   id         String  @id @default(cuid())
   planId     String
   plan       Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
   title      String
-  order      Int // thứ tự trong roadmap
+  order      Int // order in the roadmap
   targetDate String?
   done       Boolean @default(false)
   tasks      Task[]
@@ -103,59 +103,59 @@ model Milestone {
 model DailyNote {
   id   String @id @default(cuid())
   date String @unique // "YYYY-MM-DD"
-  note String // ghi chú cuối ngày của người dùng
+  note String // the user's end-of-day note
 }
 
-// Lịch trình (mục 14): lịch CỨNG lặp theo tuần (học, làm). KHÔNG phải Task —
-// là BỐI CẢNH nuôi bộ máy đề xuất (quỹ giờ rảnh thật), không tính vào streak/stats.
+// Schedule (section 14): HARD schedule repeating weekly (study, work). NOT a Task —
+// it is CONTEXT feeding the suggestion engine (real free-time budget), not counted in streak/stats.
 model Commitment {
   id         String   @id @default(cuid())
   title      String
-  dayOfWeek  Int // 0=CN .. 6=T7 (khớp Date.getDay)
-  startTime  String // "HH:MM" giờ địa phương
+  dayOfWeek  Int // 0=Sun .. 6=Sat (matches Date.getDay)
+  startTime  String // "HH:MM" local time
   endTime    String
   kind       String   @default("khac") // "hoc" | "lam" | "khac"
   active     Boolean  @default(true)
-  validFrom  String? // khoảng hiệu lực kỳ học (mục 14) — tự hết hạn; null = mọi lúc
+  validFrom  String? // term validity window (section 14) — auto-expires; null = always
   validUntil String?
-  weekParity String? // null = mọi tuần | "odd" | "even" (tuần chẵn/lẻ kỳ học)
+  weekParity String? // null = every week | "odd" | "even" (odd/even week of the term)
   createdAt  DateTime @default(now())
 
   @@index([dayOfWeek])
 }
 
-// Cấu hình lịch trình (mục 14, nâng cấp): 1 hàng singleton — giờ thức/ngủ + buffer + ngưỡng khe.
-// Dùng để tính quỹ giờ rảnh ĐỘNG (computeFreeSlots) thay cho hằng số 07–23h cứng. Mọi field có default.
+// Schedule configuration (section 14, upgrade): 1 singleton row — wake/sleep times + buffer + slot threshold.
+// Used to compute the DYNAMIC free-time budget (computeFreeSlots) instead of a hardcoded 07–23h. Every field has a default.
 model ScheduleSettings {
   id               String   @id @default("singleton")
   wakeTime         String   @default("07:00")
   sleepTime        String   @default("23:00")
-  bufferMin        Int      @default(15) // đệm trước/sau mỗi lịch cứng (di chuyển/nghỉ)
-  minSlotMin       Int      @default(30) // bỏ khe trống ngắn hơn ngưỡng này
-  termAnchorMonday String? // mốc thứ 2 để tính tuần chẵn/lẻ (mục 14, kỳ học) — tùy chọn
+  bufferMin        Int      @default(15) // buffer before/after each hard schedule item (travel/break)
+  minSlotMin       Int      @default(30) // drop free slots shorter than this threshold
+  termAnchorMonday String? // the Monday anchor to compute odd/even weeks (section 14, term) — optional
   updatedAt        DateTime @updatedAt
 }
 
-// Khung giờ MỀM lặp theo tuần (time-blocking, mục 14): "20–22h học", DỜI ĐƯỢC — khác lịch cứng.
-// KHÔNG bị trừ khỏi quỹ giờ rảnh CỨNG; chỉ giảm "quỹ gợi ý" mà AI dùng (softLoad). Không completion.
+// SOFT time block repeating weekly (time-blocking, section 14): "study 20–22h", MOVABLE — unlike a hard schedule.
+// NOT subtracted from the HARD free-time budget; only reduces the "suggestion budget" the AI uses (softLoad). No completion.
 model SoftBlock {
   id         String   @id @default(cuid())
   title      String
-  dayOfWeek  Int // 0=CN .. 6=T7
+  dayOfWeek  Int // 0=Sun .. 6=Sat
   startTime  String // "HH:MM"
   endTime    String
   kind       String   @default("focus") // focus | hoc | lam | khac
   active     Boolean  @default(true)
-  validFrom  String? // khoảng hiệu lực kỳ học (mục 14, Pha 3) — tùy chọn
+  validFrom  String? // term validity window (section 14, Phase 3) — optional
   validUntil String?
-  weekParity String? // null = mọi tuần | "odd" | "even"
+  weekParity String? // null = every week | "odd" | "even"
   createdAt  DateTime @default(now())
 
   @@index([dayOfWeek])
 }
 
-// Sự kiện ĐỘT XUẤT một lần theo ngày cụ thể; hoặc cancels=true = "nghỉ cả ngày"
-// (bỏ qua mọi lịch cứng hôm đó). startTime null = sự kiện cả ngày.
+// One-off AD-HOC event on a specific day; or cancels=true = "off all day"
+// (skip all hard schedule items that day). startTime null = all-day event.
 model ScheduleEvent {
   id        String  @id @default(cuid())
   title     String
@@ -168,31 +168,31 @@ model ScheduleEvent {
   @@index([date])
 }
 
-// Thông báo Discord (mục 13): cấu hình 1 hàng (app một người dùng) — webhook + cường độ +
-// bật/tắt + giờ từng loại + giờ yên + nội dung AI. Mọi field optional/độ ma sát thấp (mục 11.1).
+// Discord notifications (section 13): 1-row config (single-user app) — webhook + intensity +
+// enable/disable + per-kind times + quiet hours + AI content. Every field optional/low-friction (section 11.1).
 model NotificationSettings {
   id               String  @id @default("singleton")
-  enabled          Boolean @default(false) // công tắc tổng — mặc định tắt tới khi dán webhook
+  enabled          Boolean @default(false) // master switch — off by default until a webhook is pasted
   discordWebhookUrl String?
-  intensity        String  @default("balanced") // minimal | balanced | active (preset cường độ)
+  intensity        String  @default("balanced") // minimal | balanced | active (intensity preset)
 
   morningEnabled    Boolean @default(true)
-  morningTime       String  @default("07:30") // "HH:MM" giờ địa phương (TZ server)
+  morningTime       String  @default("07:30") // "HH:MM" local time (server TZ)
   streakGuardEnabled Boolean @default(true)
   streakGuardTime   String  @default("20:00")
   randomNudgeEnabled Boolean @default(true)
   eveningEnabled    Boolean @default(false)
   eveningTime       String  @default("21:30")
-  // "Ấp ủ" (mục 17): nhắc nhẹ lấy mục tiêu ra làm khi quỹ giờ rảnh cao — dùng chung cửa randomWindow
+  // "Incubating" (section 17): gentle reminder to pull a goal out when free-time budget is high — shares the randomWindow window
   queueNudgeEnabled Boolean @default(true)
 
-  // cửa sổ cho cú hích ngẫu nhiên + giờ yên (không gửi gì trong khoảng này)
+  // window for the random nudge + quiet hours (send nothing during this range)
   randomWindowStart String @default("09:00")
   randomWindowEnd   String @default("18:00")
   quietStart        String @default("22:00")
   quietEnd          String @default("07:00")
 
-  // nội dung do AI viết — bật/tắt từng phần
+  // AI-written content — toggle each part
   includeMotivation Boolean @default(true)
   includeQuote      Boolean @default(true)
   includeTip        Boolean @default(true)
@@ -200,31 +200,31 @@ model NotificationSettings {
   updatedAt DateTime @updatedAt
 }
 
-// Nhật ký gửi (mục 13): idempotency (1 lần/loại/ngày), lịch sử cho UI, và để AI tránh lặp câu.
+// Send log (section 13): idempotency (1 time/kind/day), history for the UI, and to help the AI avoid repeating lines.
 model NotificationLog {
   id     String   @id @default(cuid())
   kind   String // morning | streak_guard | random_nudge | evening
-  date   String // "YYYY-MM-DD" — khoá idempotency cùng kind
+  date   String // "YYYY-MM-DD" — idempotency key together with kind
   status String // sent | skipped | error
-  detail String? // xem trước nội dung đã gửi / lý do bỏ qua / thông báo lỗi
+  detail String? // preview of the content sent / reason for skipping / error message
   sentAt DateTime @default(now())
 
   @@index([kind, date])
   @@index([sentAt])
 }
 
-// Thói quen (mục 11): hành vi lặp 1-chạm. KHÔNG điểm/streak-cứng — streak suy ĐỘNG từ HabitCheck.
-// Cô lập khỏi Task: không tính vào stats/streak/completion của task.
+// Habit (section 11): one-tap repeating behavior. NO points/hard-streak — streak inferred DYNAMICALLY from HabitCheck.
+// Isolated from Task: not counted in the task stats/streak/completion.
 model Habit {
   id         String       @id @default(cuid())
   title      String
-  daysOfWeek String? // CSV "1,2,3,4,5" (0=CN..6=T7); null = hằng ngày
+  daysOfWeek String? // CSV "1,2,3,4,5" (0=Sun..6=Sat); null = daily
   active     Boolean      @default(true)
   createdAt  DateTime     @default(now())
   checks     HabitCheck[]
 }
 
-// Một lần tick thói quen trong ngày — idempotent theo (habitId, date)
+// One habit tick in a day — idempotent on (habitId, date)
 model HabitCheck {
   id      String @id @default(cuid())
   habitId String
@@ -235,8 +235,8 @@ model HabitCheck {
   @@index([date])
 }
 
-// Personal OS (mục 11): check-in cấu trúc trong ngày — TẤT CẢ optional, bỏ qua được.
-// Dùng để suy "capacity" (sức/ngày) động; AI giảm tải / đề xuất ngày phục hồi khi sức thấp.
+// Personal OS (section 11): structured in-day check-in — ALL optional, skippable.
+// Used to infer dynamic "capacity" (energy/day); the AI lightens the load / suggests a recovery day when energy is low.
 model DayCheckin {
   id         String @id @default(cuid())
   date       String @unique // "YYYY-MM-DD"
@@ -246,19 +246,19 @@ model DayCheckin {
   sleepHours Float?
 }
 
-// "Ấp ủ" (mục 17): hàng đợi mục tiêu CHƯA cam kết — giai đoạn tiền-task/tiền-plan (Someday/Maybe).
-// KHÔNG có `date`, KHÔNG tính vào streak/stats/completion (cô lập như Plan/Habit). Tuổi/độ-cũ suy
-// ĐỘNG ở lib/queue.ts. Ngõ ra: kéo thành Task (promotedTaskId) hoặc nâng thành Plan (promotedPlanId).
+// "Incubating" (section 17): queue of UNCOMMITTED goals — the pre-task/pre-plan stage (Someday/Maybe).
+// NO `date`, NOT counted in streak/stats/completion (isolated like Plan/Habit). Age/staleness inferred
+// DYNAMICALLY in lib/queue.ts. Exits: drag into a Task (promotedTaskId) or promote into a Plan (promotedPlanId).
 model Goal {
   id             String    @id @default(cuid())
   title          String
-  note           String? // bối cảnh / vì sao muốn (tùy chọn)
+  note           String? // context / why it's wanted (optional)
   status         String    @default("incubating") // incubating | promoted | dropped
-  pinned         Boolean   @default(false) // user đánh dấu "muốn làm sớm" → reset độ-cũ
-  snoozedUntil   String? // "YYYY-MM-DD" — không nudge/không hỏi-cũ trước mốc này
-  lastNudgedAt   DateTime? // tiết chế tần suất nudge (không lặp một goal liên tục)
-  promotedPlanId String? // truy ngược: đã nâng thành plan nào
-  promotedTaskId String? // truy ngược: đã kéo thành task nào
+  pinned         Boolean   @default(false) // user marks "want to do soon" → reset staleness
+  snoozedUntil   String? // "YYYY-MM-DD" — no nudge/no staleness prompt before this date
+  lastNudgedAt   DateTime? // throttle nudge frequency (don't repeat one goal back to back)
+  promotedPlanId String? // backtrace: which plan it was promoted into
+  promotedTaskId String? // backtrace: which task it was dragged into
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

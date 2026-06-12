@@ -11,8 +11,8 @@ import type {
 } from '@/lib/types';
 
 /**
- * Lịch trình (mục 14) — tính ĐỘNG, không lưu cứng (giống delay/streak/progress).
- * Lịch cứng là BỐI CẢNH nuôi đề xuất: cho biết quỹ giờ rảnh thật mỗi ngày.
+ * Schedule (section 14) — computed DYNAMICALLY, not stored (like delay/streak/progress).
+ * The hard schedule is CONTEXT feeding the suggestions: it reveals the real free-time budget each day.
  */
 
 export const SCHEDULE_KINDS: { value: ScheduleKind; label: string }[] = [
@@ -21,11 +21,11 @@ export const SCHEDULE_KINDS: { value: ScheduleKind; label: string }[] = [
   { value: 'khac', label: 'Khác' },
 ];
 
-/** Giờ thức mặc định 07:00–23:00 (dùng làm fallback khi chưa có ScheduleSettings) */
+/** Default waking hours 07:00–23:00 (used as a fallback when there is no ScheduleSettings) */
 export const WAKING_START = '07:00';
 export const WAKING_END = '23:00';
 
-/** 0=CN..6=T7 của một chuỗi ngày "YYYY-MM-DD" (giờ địa phương) */
+/** 0=Sun..6=Sat of a "YYYY-MM-DD" date string (local time) */
 export function dayOfWeekOf(dateStr: string): number {
   return new Date(`${dateStr}T00:00:00`).getDay();
 }
@@ -34,14 +34,14 @@ function toKind(k: string): ScheduleKind {
   return k === 'hoc' || k === 'lam' ? k : 'khac';
 }
 
-/** "odd" | "even" của tuần chứa dateStr so với tuần mốc (tuần chứa anchor = "odd") */
+/** "odd" | "even" of the week containing dateStr relative to the anchor week (the anchor's week = "odd") */
 export function weekParityOf(dateStr: string, anchorMonday: string): 'odd' | 'even' {
   const weeks = Math.floor(daysBetween(mondayOf(anchorMonday), mondayOf(dateStr)) / 7);
-  // chuẩn hoá modulo về [0,1] kể cả khi âm (ngày trước mốc)
+  // normalize the modulo into [0,1] even when negative (dates before the anchor)
   return ((weeks % 2) + 2) % 2 === 0 ? 'odd' : 'even';
 }
 
-/** Khối lịch lặp có hiệu lực vào ngày này không (mục 14): khoảng kỳ học + tuần chẵn/lẻ */
+/** Whether a recurring schedule block applies on this day (section 14): term window + odd/even week */
 function recurringApplies(
   rule: {
     validFrom?: string | null;
@@ -51,17 +51,17 @@ function recurringApplies(
   dateStr: string,
   anchorMonday?: string | null,
 ): boolean {
-  // khoảng hiệu lực (so sánh chuỗi ISO = thời gian) — áp dụng kể cả khi không có anchor
+  // validity window (ISO string comparison = chronological) — applies even without an anchor
   if (rule.validFrom && dateStr < rule.validFrom) return false;
   if (rule.validUntil && dateStr > rule.validUntil) return false;
-  // tuần chẵn/lẻ: chỉ lọc khi có cả parity lẫn mốc tuần
+  // odd/even week: only filter when both parity and the week anchor are present
   if (rule.weekParity && anchorMonday) {
     if (weekParityOf(dateStr, anchorMonday) !== rule.weekParity) return false;
   }
   return true;
 }
 
-/** Sắp khối theo giờ bắt đầu; khối cả ngày (null) lên đầu */
+/** Sort blocks by start time; all-day blocks (null) come first */
 function byStart(a: ScheduleBlock, b: ScheduleBlock): number {
   if (a.startTime === b.startTime) return 0;
   if (a.startTime === null) return -1;
@@ -70,8 +70,8 @@ function byStart(a: ScheduleBlock, b: ScheduleBlock): number {
 }
 
 /**
- * "Phẳng hoá" lịch của một ngày: commitment khớp thứ (active) + event hôm đó.
- * Nếu có event cancels=true (nghỉ cả ngày) → bỏ hết commitment hôm đó.
+ * "Flatten" a day's schedule: commitments matching the weekday (active) + that day's events.
+ * If an event has cancels=true (off all day) → drop all commitments that day.
  */
 export function blocksForDate(
   dateStr: string,
@@ -112,7 +112,7 @@ export function blocksForDate(
   return [...fromCommitments, ...fromEvents].sort(byStart);
 }
 
-/** Gộp các khoảng [start,end) chồng nhau → danh sách rời nhau, tăng dần. Dùng chung. */
+/** Merge overlapping [start,end) intervals → a disjoint, ascending list. Shared helper. */
 function mergeIntervals(intervals: readonly (readonly [number, number])[]): [number, number][] {
   const sorted = intervals
     .filter(([s, e]) => e > s)
@@ -128,8 +128,8 @@ function mergeIntervals(intervals: readonly (readonly [number, number])[]): [num
 }
 
 /**
- * Tổng phút BẬN trong giờ thức (07–23h) — gộp khoảng chồng để không đếm trùng.
- * Chỉ tính khối CÓ giờ. Giữ nguyên hành vi cũ (không buffer) cho các nơi gọi cũ.
+ * Total BUSY minutes during waking hours (07–23h) — merge overlaps to avoid double-counting.
+ * Only counts timed blocks. Keeps the old behavior (no buffer) for legacy call sites.
  */
 export function busyMinutes(blocks: ScheduleBlock[]): number {
   const ws = hmToMinutes(WAKING_START);
@@ -144,13 +144,13 @@ export function busyMinutes(blocks: ScheduleBlock[]): number {
   return mergeIntervals(intervals).reduce((t, [s, e]) => t + (e - s), 0);
 }
 
-/** Cấu hình mềm cho computeFreeSlots — bỏ trống = hành vi tương thích ngược (07–23h, không buffer). */
+/** Soft config for computeFreeSlots — omit = backward-compatible behavior (07–23h, no buffer). */
 export interface ScheduleConfig {
   wakeTime?: string;
   sleepTime?: string;
   bufferMin?: number;
   minSlotMin?: number;
-  termAnchorMonday?: string | null; // mốc tuần để lọc parity (mục 14)
+  termAnchorMonday?: string | null; // week anchor to filter parity (section 14)
 }
 
 function pushSlot(out: FreeSlot[], start: number, end: number, minSlot: number) {
@@ -164,10 +164,10 @@ function pushSlot(out: FreeSlot[], start: number, end: number, minSlot: number) 
 }
 
 /**
- * Tính quỹ thời gian một ngày (mục 14): danh sách KHE TRỐNG + tổng phút rảnh.
- * Nới mỗi lịch cứng ±bufferMin (đệm di chuyển), kẹp trong [wake, sleep], gộp chồng,
- * khoảng trống giữa = khe rảnh; bỏ khe ngắn hơn minSlotMin.
- * Bỏ trống config → buffer 0 + minSlot 0 + giờ thức 07–23h ⇒ capacityMin == freeMinutes cũ.
+ * Compute a day's time budget (section 14): list of FREE SLOTS + total free minutes.
+ * Pad each hard schedule item by ±bufferMin (travel buffer), clamp to [wake, sleep], merge overlaps,
+ * the gaps between = free slots; drop slots shorter than minSlotMin.
+ * Omit config → buffer 0 + minSlot 0 + waking hours 07–23h ⇒ capacityMin == the old freeMinutes.
  */
 export function computeFreeSlots(
   dateStr: string,
@@ -203,7 +203,7 @@ export function computeFreeSlots(
   return { slots, capacityMin, wakingMin, busyMin };
 }
 
-/** Quỹ phút RẢNH của một ngày (tương thích ngược) = tổng khe rảnh, giờ thức 07–23h, không buffer. */
+/** A day's FREE-minute budget (backward-compatible) = total free slots, waking hours 07–23h, no buffer. */
 export function freeMinutes(
   dateStr: string,
   commitments: CommitmentDTO[],
@@ -213,9 +213,9 @@ export function freeMinutes(
 }
 
 /**
- * "Phẳng hoá" khung giờ MỀM của một ngày (mục 14): soft block khớp thứ (active).
- * Nghỉ cả ngày (event cancels) → bỏ hết soft hôm đó cho nhất quán với lịch cứng.
- * KHÔNG trừ vào quỹ rảnh cứng — chỉ dùng để hiển thị + tính softLoad.
+ * "Flatten" a day's SOFT time blocks (section 14): soft blocks matching the weekday (active).
+ * Off all day (event cancels) → drop all soft blocks that day, consistent with the hard schedule.
+ * NOT subtracted from the hard free budget — only used for display + computing softLoad.
  */
 export function softBlocksForDate(
   dateStr: string,
@@ -240,8 +240,8 @@ export function softBlocksForDate(
 }
 
 /**
- * Tổng phút khung mềm GIAO với khe rảnh (mục 14) — "softLoad". Đại diện thời gian người
- * dùng đã chủ ý dành cho khung tập trung → giảm "quỹ gợi ý" của AI (không đụng quỹ cứng).
+ * Total soft-block minutes that INTERSECT free slots (section 14) — "softLoad". Represents time the user
+ * has intentionally set aside for focus → reduces the AI's "suggestion budget" (does not touch the hard budget).
  */
 export function softLoadMinutes(slots: FreeSlot[], softBlocks: ScheduleBlock[]): number {
   const soft = softBlocks
@@ -260,7 +260,7 @@ export function softLoadMinutes(slots: FreeSlot[], softBlocks: ScheduleBlock[]):
   return total;
 }
 
-/** "3h30" / "45 phút" cho hiển thị gọn */
+/** "3h30" / "45 phút" for compact display */
 export function formatMinutes(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;

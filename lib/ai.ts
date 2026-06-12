@@ -11,12 +11,12 @@ import type {
   SuggestionResult,
 } from '@/lib/types';
 
-/** Một kế hoạch đang chạy, kèm tiến độ động, gửi cho model để rót việc kế tiếp */
+/** A running plan, with dynamic progress, sent to the model to feed the next task */
 export interface ActivePlanContext {
   id: string;
   title: string;
   goal: string;
-  /** cột mốc đang làm (chưa done, order nhỏ nhất) — null nếu xong hết */
+  /** milestone in progress (not done, smallest order) — null if all done */
   currentMilestone: { id: string; title: string } | null;
   progressPct: number;
   behindDays: number;
@@ -24,25 +24,25 @@ export interface ActivePlanContext {
   doneMilestones: number;
 }
 
-/** Ngữ cảnh server tự lắp từ DB để gửi cho model */
+/** Context the server assembles from the DB to send to the model */
 export interface SuggestContext {
   today: string;
   tomorrow: string;
   doneToday: { title: string; emotion: string | null }[];
   undone: { title: string; delayDays: number; slipReason?: string | null }[];
   todayRate: { done: number; total: number };
-  /** trung bình ~7 ngày gần nhất, null nếu chưa đủ dữ liệu */
+  /** average over the last ~7 days, null if not enough data */
   weeklyAvg: {
     avgDonePerDay: number;
     avgPercent: number;
     daysWithData: number;
   } | null;
   note: string | null;
-  /** kế hoạch đang chạy (mục 10) — rỗng nếu không có */
+  /** running plans (section 10) — empty if none */
   activePlans: ActivePlanContext[];
-  /** việc đã chấm cảm xúc ~14 ngày gần nhất — "reference class" để hiệu chỉnh độ khó (mục 11) */
+  /** tasks rated with emotion over the last ~14 days — the "reference class" to calibrate difficulty (section 11) */
   recentDone: { title: string; emotion: string | null }[];
-  /** gợi ý chủ đề khó/dễ/chậm/nhanh suy từ lịch sử cảm xúc + thời lượng (mục 11/14) */
+  /** hard/easy/slow/fast topic hints inferred from emotion + duration history (sections 11/14) */
   difficultyHints: {
     hardTopics: string[];
     easyTopics: string[];
@@ -50,39 +50,39 @@ export interface SuggestContext {
     fastTopics: string[];
     samples: number;
   };
-  /** check-in Personal OS hôm nay (mục 11) — null nếu chưa nhập */
+  /** today's Personal OS check-in (section 11) — null if not entered */
   todayCheckin: {
     energy: number | null;
     mood: number | null;
     stress: number | null;
     sleepHours: number | null;
   } | null;
-  /** sức/ngày suy động 0..100 (mục 11) — null nếu không có check-in */
+  /** dynamically inferred energy/day 0..100 (section 11) — null if no check-in */
   capacityScore: number | null;
-  /** lịch cứng ngày mai (mục 14) — để hiệu chỉnh khối lượng theo quỹ giờ thật */
+  /** tomorrow's hard schedule (section 14) — to calibrate workload against the real time budget */
   tomorrowSchedule: {
     title: string;
     startTime: string | null;
     endTime: string | null;
     kind: string;
   }[];
-  /** phút RẢNH ngày mai = giờ thức − lịch cứng (mục 14) */
+  /** FREE minutes tomorrow = waking hours − hard schedule (section 14) */
   freeMinutesTomorrow: number;
-  /** danh sách KHE TRỐNG ngày mai (mục 14) — để AI gắn việc vào giờ cụ thể */
+  /** list of FREE SLOTS tomorrow (section 14) — for the AI to pin a task to a specific time */
   freeSlotsTomorrow: FreeSlot[];
-  /** quỹ gợi ý = quỹ rảnh − khung mềm đã đặt (mục 14); AI bám số này cho tổng tải */
+  /** suggestion budget = free budget − soft blocks already set (section 14); the AI follows this number for total load */
   suggestedCapacityMin: number;
-  /** khung giờ tập trung (soft block) ngày mai — AI nên ưu tiên xếp việc vào đây */
+  /** focus windows (soft blocks) tomorrow — the AI should prefer placing tasks here */
   preferredWindowsTomorrow: {
     title: string;
     startTime: string | null;
     endTime: string | null;
   }[];
-  /** thói quen hôm nay (mục 11) — thông tin, KHÔNG tính vào tải task */
+  /** today's habits (section 11) — informational, NOT counted in task load */
   habitsToday?: { title: string; doneToday: boolean }[];
   /**
-   * Mục tiêu trong "Ấp ủ" (mục 17) — hàng đợi chưa cam kết, đã xếp theo độ hợp quỹ giờ/sức.
-   * AI chỉ gợi lấy ra LÀM khi còn dư quỹ giờ thật sau carry_over/suggested/plan. Rỗng = không gợi.
+   * Goals in "Incubating" (section 17) — the uncommitted queue, sorted by fit to time budget/energy.
+   * The AI only suggests pulling one out to DO when there is real spare time after carry_over/suggested/plan. Empty = no suggestion.
    */
   incubatingGoals: { id: string; title: string; note: string | null; ageDays: number }[];
 }
@@ -160,10 +160,10 @@ Nguyên tắc bắt buộc:
 
 Chỉ trả về đúng JSON theo schema đã cho, không kèm văn bản hay markdown nào khác.`;
 
-// các bước chia nhỏ (mục 11) — mảng tiêu đề ngắn, optional
+// breakdown steps (section 11) — array of short titles, optional
 const SUBTASKS_SCHEMA = { type: 'ARRAY', items: { type: 'STRING' } } as const;
 
-// field xếp giờ (mục 14) — dùng chung cho item thường & plan item
+// time-slotting fields (section 14) — shared by both ordinary items & plan items
 const SLOT_PROPS = {
   slotStart: { type: 'STRING', nullable: true },
   estimatedMinutes: { type: 'INTEGER', nullable: true },
@@ -198,7 +198,7 @@ const PLAN_ITEM_SCHEMA = {
   required: ['title', 'priority', 'reason', 'planId'],
 } as const;
 
-// gợi ý lấy mục tiêu "Ấp ủ" ra làm (mục 17) — kèm gợi ý cỡ task/plan
+// suggestion to pull an "Incubating" goal out to act on (section 17) — with a task/plan size hint
 const QUEUE_PULL_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -230,14 +230,14 @@ const RESPONSE_SCHEMA = {
   ],
 } as const;
 
-/** Bỏ ```json fences nếu model lỡ thêm */
+/** Strip ```json fences if the model accidentally adds them */
 function stripFences(text: string): string {
   return text.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
 }
 
 const PRIORITIES: readonly Priority[] = ['high', 'medium', 'low'];
 
-/** Validate thủ công shape JSON từ model — sai chỗ nào báo chỗ đó */
+/** Manually validate the JSON shape from the model — report exactly where it's wrong */
 function parseResult(raw: string): SuggestionResult {
   let data: unknown;
   try {
@@ -249,7 +249,7 @@ function parseResult(raw: string): SuggestionResult {
   if (typeof obj?.capacity_note !== 'string') {
     throw new Error('JSON thiếu trường capacity_note');
   }
-  // mảng bước chia nhỏ: chỉ giữ string không rỗng, bỏ nếu rỗng
+  // breakdown steps array: keep only non-empty strings, drop if empty
   const parseSubtasks = (raw: unknown): string[] | undefined => {
     if (!Array.isArray(raw)) return undefined;
     const steps = raw
@@ -257,7 +257,7 @@ function parseResult(raw: string): SuggestionResult {
       .map((s) => s.trim());
     return steps.length > 0 ? steps : undefined;
   };
-  // field xếp giờ (mục 14) — slotStart hợp lệ "HH:MM", estimate dương, deepWork true
+  // time-slotting fields (section 14) — valid "HH:MM" slotStart, positive estimate, deepWork true
   const parseSlot = (item: Record<string, unknown>) => ({
     slotStart:
       typeof item.slotStart === 'string' && isValidHm(item.slotStart) ? item.slotStart : undefined,
@@ -288,7 +288,7 @@ function parseResult(raw: string): SuggestionResult {
       };
     });
   };
-  // plan_tasks: như item thường nhưng kèm planId (bắt buộc) + milestoneId (optional)
+  // plan_tasks: like ordinary items but with planId (required) + milestoneId (optional)
   const parsePlanItems = (): PlanSuggestionItem[] => {
     const arr = obj.plan_tasks;
     if (!Array.isArray(arr)) return [];
@@ -300,7 +300,7 @@ function parseResult(raw: string): SuggestionResult {
           typeof item?.reason !== 'string' ||
           typeof item?.planId !== 'string'
         ) {
-          return null; // thiếu liên kết thì bỏ, không làm hỏng cả response
+          return null; // drop if the link is missing, don't break the whole response
         }
         const priority = PRIORITIES.includes(item.priority as Priority)
           ? (item.priority as Priority)
@@ -319,7 +319,7 @@ function parseResult(raw: string): SuggestionResult {
       .filter((x): x is PlanSuggestionItem => x !== null);
   };
 
-  // queue_pulls (mục 17): gợi ý lấy mục tiêu Ấp ủ ra làm — server còn lọc goalId thật
+  // queue_pulls (section 17): suggestion to pull an Incubating goal out — the server still filters by real goalId
   const parseQueuePulls = (): QueuePullItem[] => {
     const arr = obj.queue_pulls;
     if (!Array.isArray(arr)) return [];
@@ -350,14 +350,14 @@ function parseResult(raw: string): SuggestionResult {
     suggested_tasks: parseItems('suggested_tasks'),
     plan_tasks: parsePlanItems(),
     queue_pulls: parseQueuePulls(),
-    plan_alerts: [], // server điền sau (số liệu động, không để model bịa)
+    plan_alerts: [], // filled by the server later (dynamic figures, not made up by the model)
     recovery_day: obj.recovery_day === true,
   };
 }
 
 /**
- * Gọi Gemini (REST, JSON mode) với một response schema và trả về text JSON thô.
- * Dùng chung cho cả đề xuất ngày mai lẫn decompose plan.
+ * Call Gemini (REST, JSON mode) with a response schema and return the raw JSON text.
+ * Shared by both the tomorrow suggestion and plan decompose.
  */
 async function callGeminiJson(
   systemPrompt: string,
@@ -404,7 +404,7 @@ async function callGeminiJson(
   return text;
 }
 
-/** Gọi Gemini đề xuất ngày mai và trả về kết quả đã validate */
+/** Call Gemini to suggest tomorrow and return the validated result */
 export async function suggestTomorrow(ctx: SuggestContext): Promise<SuggestionResult> {
   const text = await callGeminiJson(
     SYSTEM_PROMPT,
@@ -415,53 +415,53 @@ export async function suggestTomorrow(ctx: SuggestContext): Promise<SuggestionRe
   return parseResult(text);
 }
 
-// ---- Thông báo Discord: AI viết "giọng văn", dữ kiện do code cung cấp (mục 13) ----
+// ---- Discord notifications: the AI writes the "voice", the facts are supplied by code (section 13) ----
 
-/** Dữ kiện THẬT (code lắp từ DB) để AI bám vào, KHÔNG tự bịa số liệu */
+/** REAL facts (code assembles from the DB) for the AI to ground on, NOT to make up figures */
 export interface NotificationFacts {
   kind: 'morning' | 'streak_guard' | 'random_nudge' | 'evening' | 'queue_nudge';
-  /** chuỗi giữ lửa hiện tại (ngày) */
+  /** current keep-the-flame streak (days) */
   streakCurrent: number;
-  /** chuỗi đang nguy hiểm (hôm nay chưa làm việc nào) */
+  /** streak at risk (nothing done today yet) */
   streakAtRisk: boolean;
   doneCount: number;
   totalCount: number;
   undoneCount: number;
-  /** "việc chính" gợi ý hôm nay/đang dở — null nếu không có */
+  /** suggested "main task" today/in progress — null if none */
   mitTitle: string | null;
-  /** vài việc đang dở (tối đa ~3) để cú hích bám vào */
+  /** a few in-progress tasks (max ~3) for the nudge to ground on */
   sampleUndone: string[];
-  /** tên kế hoạch đang chậm tiến độ */
+  /** names of plans behind schedule */
   behindPlans: string[];
-  /** sức/ngày 0..100 nếu có check-in, null nếu không */
+  /** energy/day 0..100 if there's a check-in, null otherwise */
   capacityScore: number | null;
-  /** lịch cứng hôm nay dạng "08:00–11:00 Toán" (mục 14) — rỗng nếu không có */
+  /** today's hard schedule in the form "08:00–11:00 Math" (section 14) — empty if none */
   todaySchedule: string[];
-  /** phút rảnh hôm nay sau lịch cứng (mục 14) */
+  /** free minutes today after the hard schedule (section 14) */
   freeMinutesToday: number;
-  /** số mục tiêu đang trong "Ấp ủ" (mục 17) */
+  /** number of goals currently in "Incubating" (section 17) */
   incubatingCount: number;
-  /** mục tiêu "Ấp ủ" hợp nhất để gợi lấy ra làm — null nếu không có */
+  /** the best-fit "Incubating" goal to suggest pulling out — null if none */
   topIncubatingGoal: string | null;
-  /** id của topIncubatingGoal (nội bộ — để đặt cooldown lastNudgedAt sau khi gửi) */
+  /** id of topIncubatingGoal (internal — to set the lastNudgedAt cooldown after sending) */
   topIncubatingGoalId: string | null;
-  /** gợi ý cỡ cho topIncubatingGoal: "task" | "plan" — null nếu không có */
+  /** size hint for topIncubatingGoal: "task" | "plan" — null if none */
   topIncubatingApproach: 'task' | 'plan' | null;
 }
 
 export interface ComposeNotificationInput {
   facts: NotificationFacts;
   include: { motivation: boolean; quote: boolean; tip: boolean };
-  /** nội dung đã gửi gần đây — để AI KHÔNG lặp lại câu nói/tip */
+  /** content sent recently — so the AI does NOT repeat a quote/tip */
   recentMessages: string[];
 }
 
 export interface NotificationVoice {
-  /** 1–3 câu ngắn, giọng nâng đỡ, hợp loại thông báo */
+  /** 1–3 short sentences, supportive tone, fitting the notification kind */
   message: string;
-  /** câu nói hay (kèm tác giả nếu biết), null nếu không bật/không hợp */
+  /** a nice quote (with author if known), null if disabled/not fitting */
   quote: string | null;
-  /** một mẹo cụ thể, làm được ngay, null nếu không bật */
+  /** one concrete, immediately actionable tip, null if disabled */
   tip: string | null;
 }
 
@@ -510,7 +510,7 @@ const NOTIFY_SCHEMA = {
   required: ['message'],
 } as const;
 
-/** Gọi Gemini viết giọng văn thông báo; ném lỗi nếu thất bại để caller fallback tĩnh */
+/** Call Gemini to write the notification voice; throw on failure so the caller can fall back to static */
 export async function composeNotificationVoice(
   input: ComposeNotificationInput,
 ): Promise<NotificationVoice> {
@@ -518,7 +518,7 @@ export async function composeNotificationVoice(
     NOTIFY_PROMPT,
     `Dữ kiện & yêu cầu:\n${JSON.stringify(input, null, 2)}`,
     NOTIFY_SCHEMA,
-    0.8, // cao hơn chút để câu chữ đa dạng, đỡ lặp
+    0.8, // a bit higher for more varied wording, less repetition
   );
   let data: unknown;
   try {
@@ -537,7 +537,7 @@ export async function composeNotificationVoice(
   };
 }
 
-// ---- Decompose plan: mục tiêu dài hạn → roadmap milestone (mục 10.7) ----
+// ---- Decompose plan: long-term goal → milestone roadmap (section 10.7) ----
 
 const DECOMPOSE_PROMPT = `Bạn là chuyên gia thiết kế lộ trình học/làm việc cá nhân. Nhiệm vụ: từ một
 MỤC TIÊU dài hạn, chia thành các CỘT MỐC (milestone) hợp lý xếp theo thứ tự, trải đều trong khoảng
@@ -576,7 +576,7 @@ const DECOMPOSE_SCHEMA = {
   required: ['milestones'],
 } as const;
 
-/** Validate thủ công shape JSON decompose */
+/** Manually validate the decompose JSON shape */
 function parseDecompose(raw: string): DecomposeResult {
   let data: unknown;
   try {
@@ -595,12 +595,12 @@ function parseDecompose(raw: string): DecomposeResult {
     const targetDate = typeof m.targetDate === 'string' ? m.targetDate : null;
     return { title: m.title.trim(), order, targetDate };
   });
-  // chuẩn hoá order liên tục 1..n theo thứ tự model trả về
+  // normalize order to a contiguous 1..n following the order the model returned
   milestones.sort((a, b) => a.order - b.order).forEach((m, i) => (m.order = i + 1));
   return { milestones };
 }
 
-/** Tham số decompose lắp từ form tạo plan */
+/** Decompose parameters assembled from the create-plan form */
 export interface DecomposeInput {
   title: string;
   goal: string;
@@ -610,7 +610,7 @@ export interface DecomposeInput {
   intensity: Intensity;
 }
 
-/** Gọi Gemini chia mục tiêu thành roadmap milestone */
+/** Call Gemini to split a goal into a milestone roadmap */
 export async function decomposePlan(input: DecomposeInput): Promise<DecomposeResult> {
   const text = await callGeminiJson(
     DECOMPOSE_PROMPT,

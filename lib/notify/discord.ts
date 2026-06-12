@@ -1,13 +1,13 @@
 /**
- * Tầng gửi Discord (mục 13). Một chiều: app → webhook của một kênh Discord.
- * Tách riêng để sau dễ thêm kênh khác (Telegram/Slack) mà không đụng phần soạn nội dung.
+ * Discord sending layer (section 13). One-way: app → a Discord channel's webhook.
+ * Kept separate so other channels (Telegram/Slack) can be added later without touching the content composer.
  */
 
-/** Một embed Discord tối giản — đủ cho thông báo của app */
+/** A minimal Discord embed — enough for the app's notifications */
 export interface DiscordEmbed {
   title?: string;
   description?: string;
-  /** màu viền trái, dạng số thập phân (vd 0x10b981) */
+  /** left-border color, as a decimal number (e.g. 0x10b981) */
   color?: number;
   footer?: { text: string };
   fields?: { name: string; value: string; inline?: boolean }[];
@@ -24,7 +24,7 @@ export interface SendResult {
   error?: string;
 }
 
-// Giới hạn Discord (đã tra cứu): description ≤ 4096, title ≤ 256. Cắt cho an toàn.
+// Discord limits (looked up): description ≤ 4096, title ≤ 256. Truncate to be safe.
 const MAX_DESC = 4000;
 const MAX_TITLE = 250;
 
@@ -33,8 +33,8 @@ function clamp(s: string, max: number): string {
 }
 
 /**
- * POST một message lên webhook. KHÔNG ném lỗi — luôn trả {ok} để caller ghi log
- * và degrade mượt (mục 11.1). Xử lý 429 bằng cách báo lại để caller quyết định.
+ * POST a message to the webhook. Does NOT throw — always returns {ok} so the caller can log
+ * and degrade gracefully (section 11.1). Handles 429 by reporting back for the caller to decide.
  */
 export async function sendDiscord(
   webhookUrl: string,

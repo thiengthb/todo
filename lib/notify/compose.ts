@@ -4,11 +4,11 @@ import type { DiscordMessage } from '@/lib/notify/discord';
 import type { NotificationKind, NotificationSettingsDTO } from '@/lib/types';
 
 const COLOR: Record<NotificationKind, number> = {
-  morning: 0x10b981, // emerald — khởi đầu tích cực
-  streak_guard: 0xf59e0b, // amber — tín hiệu nhẹ "cần giữ"
-  random_nudge: 0x64748b, // slate trung tính
-  evening: 0x6366f1, // indigo dịu cho buổi tối
-  queue_nudge: 0x14b8a6, // teal — cơ hội nhẹ nhàng (mục 17)
+  morning: 0x10b981, // emerald — a positive start
+  streak_guard: 0xf59e0b, // amber — a gentle "needs keeping" signal
+  random_nudge: 0x64748b, // neutral slate
+  evening: 0x6366f1, // soft indigo for the evening
+  queue_nudge: 0x14b8a6, // teal — a gentle opportunity (section 17)
 };
 
 const TITLE: Record<NotificationKind, string> = {
@@ -23,13 +23,13 @@ export interface Composed {
   shouldSend: boolean;
   skipReason?: string;
   message: DiscordMessage;
-  /** xem trước ngắn để ghi log */
+  /** short preview for logging */
   preview: string;
 }
 
 /**
- * Quyết định CÓ nên gửi không (gating tự nhiên) + soạn nội dung embed.
- * `force` (gửi thử) bỏ qua gating — luôn tạo message để người dùng xem mẫu.
+ * Decide WHETHER to send (natural gating) + compose the embed content.
+ * `force` (test send) bypasses gating — always builds a message so the user can preview a sample.
  */
 export async function compose(
   facts: NotificationFacts,
@@ -37,24 +37,24 @@ export async function compose(
   recentMessages: string[],
   force: boolean,
 ): Promise<Composed> {
-  // ----- Gating tự nhiên theo từng loại (mục 11: không phiền nhiễu) -----
+  // ----- Natural per-kind gating (section 11: don't be annoying) -----
   let shouldSend = true;
   let skipReason: string | undefined;
   if (!force) {
     if (facts.kind === 'streak_guard') {
-      // chỉ nhắc khi chuỗi thật sự nguy hiểm và hôm nay chưa làm gì
+      // only remind when the streak is truly at risk and nothing was done today
       if (!facts.streakAtRisk || facts.doneCount > 0) {
         shouldSend = false;
         skipReason = facts.doneCount > 0 ? 'Hôm nay đã có việc xong' : 'Chuỗi đang an toàn';
       }
     } else if (facts.kind === 'random_nudge') {
-      // không có việc dở thì không hích (đừng làm phiền khi chẳng có gì để làm)
+      // no unfinished tasks → no nudge (don't bother when there's nothing to do)
       if (facts.undoneCount === 0) {
         shouldSend = false;
         skipReason = 'Không còn việc dở để nhắc';
       }
     } else if (facts.kind === 'queue_nudge') {
-      // CƠ HỘI, không nghĩa vụ (mục 17): chỉ nhắc khi còn mục Ấp ủ + quỹ giờ rảnh đủ rộng + sức không thấp
+      // OPPORTUNITY, not obligation (section 17): only remind when there are Incubating items + a wide enough free budget + energy not low
       if (facts.incubatingCount === 0) {
         shouldSend = false;
         skipReason = 'Không có mục tiêu nào đang ấp ủ';
@@ -68,7 +68,7 @@ export async function compose(
     }
   }
 
-  // ----- Giọng văn: AI trước, lỗi thì fallback tĩnh (degrade mượt) -----
+  // ----- Voice: AI first, on error fall back to static (graceful degrade) -----
   const seedKey = `${facts.doneCount}-${facts.undoneCount}-${facts.streakCurrent}`;
   const include = {
     motivation: settings.includeMotivation,
@@ -82,7 +82,7 @@ export async function compose(
     voice = fallbackVoice(facts, include, seedKey);
   }
 
-  // ----- Dựng embed -----
+  // ----- Build the embed -----
   const factLine = buildFactLine(facts);
   const parts = [voice.message];
   if (factLine) parts.push(`\n${factLine}`);
@@ -109,13 +109,13 @@ export async function compose(
   };
 }
 
-/** Dòng dữ kiện thật, gắn dưới phần giọng văn để minh bạch (mục 11.1) */
+/** A line of real facts, attached under the voice for transparency (section 11.1) */
 function buildFactLine(f: NotificationFacts): string {
   const bits: string[] = [];
   if (f.totalCount > 0) bits.push(`✅ ${f.doneCount}/${f.totalCount} việc hôm nay`);
   if (f.streakCurrent > 0) bits.push(`🔥 chuỗi ${f.streakCurrent} ngày`);
   if (f.behindPlans.length > 0) bits.push(`📌 kế hoạch chậm: ${f.behindPlans.join(', ')}`);
-  // minh bạch cho nudge Ấp ủ (mục 17): số điều ấp ủ + quỹ giờ rảnh thật
+  // transparency for the Incubating nudge (section 17): number of incubating items + real free budget
   if (f.kind === 'queue_nudge') {
     if (f.incubatingCount > 0) bits.push(`🌿 ${f.incubatingCount} điều đang ấp ủ`);
     if (f.freeMinutesToday > 0)

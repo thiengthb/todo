@@ -1,17 +1,17 @@
 /**
- * "Phản chiếu danh tính" + feedback thông tin (mục 11).
+ * "Identity reflection" + informational feedback (section 11).
  *
- * Bằng chứng: phần thưởng ngoại lai (điểm/badge) bào mòn động lực nội tại, NHƯNG feedback
- * mang tính THÔNG TIN thì an toàn và còn củng cố cảm giác năng lực. "Identity-as-evidence"
- * (Atomic Habits) hiệu quả khi PHẢN CHIẾU pattern thật, KHÔNG bắt người dùng tự nhận vai.
- * → Trả về một câu ngắn suy từ dữ liệu thật, hoặc null nếu chưa đủ tín hiệu.
+ * Evidence: extrinsic rewards (points/badges) erode intrinsic motivation, BUT INFORMATIONAL feedback
+ * is safe and even reinforces a sense of competence. "Identity-as-evidence"
+ * (Atomic Habits) works when it REFLECTS a real pattern, NOT when it forces the user to claim a role.
+ * → Returns a short sentence inferred from real data, or null if there isn't enough signal.
  */
 export function buildReflection(input: {
-  /** số ngày có việc xong trong 7 ngày gần đây (kể cả hôm nay) */
+  /** number of days with a done task in the last 7 days (including today) */
   activeDays7: number;
-  /** số việc "hard" đã xong trong 7 ngày */
+  /** number of "hard" tasks done in the last 7 days */
   hardDone7: number;
-  /** tổng việc đã xong trong 7 ngày */
+  /** total tasks done in the last 7 days */
   done7: number;
 }): string | null {
   const { activeDays7, hardDone7, done7 } = input;

@@ -2,14 +2,14 @@ import { daysBetween, toDateStr, todayStr } from './dates';
 import type { FreeSlot } from './types';
 
 /**
- * Logic thuần cho "Ấp ủ" (mục 17) — hàng đợi mục tiêu chưa cam kết.
+ * Pure logic for "Incubating" (section 17) — the queue of uncommitted goals.
  *
- * Mọi chỉ số (tuổi, độ-cũ, thứ tự gợi ý) tính ĐỘNG ở đây, KHÔNG lưu cột — giống
- * cách tính delay/streak/plan-progress. Không side-effect, dễ test, tái dùng cho
+ * Every metric (age, staleness, suggestion order) is computed DYNAMICALLY here, NOT stored in a column — like
+ * the way delay/streak/plan-progress are computed. Side-effect-free, easy to test, reusable across
  * UI + notification + MCP.
  */
 
-/** Tối thiểu để tính các chỉ số — khớp cả Prisma row lẫn DTO */
+/** Minimum needed to compute the metrics — matches both a Prisma row and a DTO */
 export interface GoalLite {
   title: string;
   note?: string | null;
@@ -19,12 +19,12 @@ export interface GoalLite {
   createdAt: Date;
 }
 
-/** Số ngày kể từ lúc bắt giữ mục tiêu (tuổi động) */
+/** Number of days since the goal was captured (dynamic age) */
 export function goalAgeDays(goal: { createdAt: Date }, today: string = todayStr()): number {
   return Math.max(0, daysBetween(toDateStr(goal.createdAt), today));
 }
 
-/** Mốc snooze còn hiệu lực? (chưa tới ngày đã hẹn hoãn) */
+/** Is the snooze still in effect? (the scheduled snooze date hasn't arrived) */
 export function isSnoozed(
   goal: { snoozedUntil: string | null },
   today: string = todayStr(),
@@ -33,8 +33,8 @@ export function isSnoozed(
 }
 
 /**
- * "Lòng trắc ẩn với việc cũ" (mục 11.2): mục tiêu nằm im ≥30 ngày, chưa ghim, không snooze
- * → bật gợi ý nhẹ "còn muốn không? giữ / buông". Không phán xét, bỏ qua được.
+ * "Compassion for old items" (section 11.2): a goal sitting idle ≥30 days, not pinned, not snoozed
+ * → enable a gentle "still want this? keep / drop" hint. Non-judgmental, dismissible.
  */
 export function isStale(goal: GoalLite, today: string = todayStr()): boolean {
   if (goal.pinned || isSnoozed(goal, today)) return false;
@@ -42,9 +42,9 @@ export function isStale(goal: GoalLite, today: string = todayStr()): boolean {
 }
 
 /**
- * Ước lượng "cỡ" mục tiêu từ văn bản — tín hiệu MỀM chỉ để khớp với khe rảnh khi xếp thứ tự
- * gợi ý. KHÔNG phải phán quyết task/plan (AI lo việc đó, mục 17). Heuristic: nhiều chữ / có
- * ghi chú → có vẻ lớn hơn.
+ * Estimate a goal's "size" from text — a SOFT signal only, to match against free slots when ordering
+ * suggestions. NOT a task/plan verdict (the AI handles that, section 17). Heuristic: more words / has
+ * a note → seems larger.
  */
 export function estimateGoalSize(goal: {
   title: string;
@@ -58,23 +58,23 @@ export function estimateGoalSize(goal: {
   return 'large';
 }
 
-/** Điểm khớp giữa cỡ mục tiêu và khe rảnh dài nhất + capacity (0..100) */
+/** Fit score between goal size and the longest free slot + capacity (0..100) */
 function fitScore(
   size: 'small' | 'medium' | 'large',
   longestSlotMin: number,
-  capacity: number, // 0..100 (đã thay null bằng trung tính)
+  capacity: number, // 0..100 (null already replaced with a neutral value)
 ): number {
-  const roomy = longestSlotMin >= 120 && capacity >= 55; // khe dài + sức tốt → hợp việc lớn
-  const tight = longestSlotMin < 60 || capacity < 40; // khe ngắn / mệt → hợp việc nhỏ
+  const roomy = longestSlotMin >= 120 && capacity >= 55; // long slot + good energy → fits big tasks
+  const tight = longestSlotMin < 60 || capacity < 40; // short slot / tired → fits small tasks
   if (roomy) return size === 'large' ? 100 : size === 'medium' ? 70 : 40;
   if (tight) return size === 'small' ? 100 : size === 'medium' ? 60 : 20;
-  return size === 'medium' ? 90 : 70; // khoảng giữa: ưu tiên việc vừa
+  return size === 'medium' ? 90 : 70; // in between: prefer medium tasks
 }
 
 /**
- * Xếp thứ tự mục tiêu để GỢI Ý (notification, thẻ Today, context suggest) — "khớp quỹ giờ &
- * năng lượng" (mục 17). Ưu tiên: đã ghim › chưa nudge gần đây › khớp khe rảnh/sức › mới hơn.
- * Loại mục tiêu đang snooze. Trả mảng mới (không đụng input).
+ * Order goals for SUGGESTION (notification, Today card, suggest context) — "fit to time budget &
+ * energy" (section 17). Priority: pinned › not nudged recently › fits free slot/energy › newer.
+ * Filters out snoozed goals. Returns a new array (does not touch the input).
  */
 export function rankGoalsForNudge<T extends GoalLite>(
   goals: T[],
@@ -83,15 +83,15 @@ export function rankGoalsForNudge<T extends GoalLite>(
   today: string = todayStr(),
 ): T[] {
   const longestSlotMin = freeSlots.reduce((m, s) => Math.max(m, s.durationMin), 0);
-  const capacity = capacityScore ?? 60; // null = trung tính nghiêng tốt
+  const capacity = capacityScore ?? 60; // null = neutral, leaning positive
   const candidates = goals.filter((g) => !isSnoozed(g, today));
 
   const scored = candidates.map((g) => {
     let score = fitScore(estimateGoalSize(g), longestSlotMin, capacity);
     if (g.pinned) score += 1000;
-    // tiết chế: vừa nudge trong 3 ngày → hạ mạnh để không lặp
+    // throttle: nudged within the last 3 days → drop hard to avoid repeating
     if (g.lastNudgedAt && daysBetween(toDateStr(g.lastNudgedAt), today) < 3) score -= 500;
-    // mới hơn nhỉnh hơn để phá hoà (mục tiêu vừa bắt còn "nóng")
+    // newer ones edge ahead as a tie-breaker (a freshly captured goal is still "hot")
     score += Math.max(0, 30 - goalAgeDays(g, today)) * 0.1;
     return { g, score };
   });

@@ -21,18 +21,18 @@ import type {
 import type { Prisma } from '@prisma/client';
 
 /**
- * Data layer cho MCP (mục 15) — đóng gói MỌI thao tác DB, zod-validate, tái dùng lib/*.
- * QUY TẮC ĐỒNG BỘ (để app cũ không vỡ — app lọc theo `done`/`date`, không theo status):
- *  - set `scheduledFor` ⇒ set `date` = ngày địa phương của nó.
- *  - `status=DONE` (hoặc completeTask) ⇒ `done=true` + `completedAt`. status khác ⇒ `done=false`.
- *  - set `priority` ⇒ map sang `impact` (logic 80/20 của app dùng impact).
+ * Data layer for MCP (section 15) — wraps ALL DB operations, zod-validates, reuses lib/*.
+ * SYNC RULES (so the old app doesn't break — the app filters by `done`/`date`, not by status):
+ *  - setting `scheduledFor` ⇒ set `date` = its local day.
+ *  - `status=DONE` (or completeTask) ⇒ `done=true` + `completedAt`. other status ⇒ `done=false`.
+ *  - setting `priority` ⇒ map to `impact` (the app's 80/20 logic uses impact).
  */
 
 // ---------- enums & schema ----------
 export const PRIORITY = z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
 export const STATUS = z.enum(['TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED']);
 export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Cần dạng YYYY-MM-DD');
-// KHOAN DUNG: nhận cả ngày "YYYY-MM-DD" lẫn ISO 8601 đầy đủ (coerce ở deriveFields/createProject).
+// LENIENT: accept both "YYYY-MM-DD" dates and full ISO 8601 (coerced in deriveFields/createProject).
 const flexibleDate = z.string().refine(isDateOrIso, 'Cần ngày YYYY-MM-DD hoặc thời điểm ISO 8601');
 
 export const taskCreateSchema = z.object({
@@ -42,10 +42,10 @@ export const taskCreateSchema = z.object({
   scheduledFor: flexibleDate.optional(),
   dueDate: flexibleDate.optional(),
   estimatedMinutes: z.number().int().min(0).optional(),
-  deepWork: z.boolean().optional(), // ưu tiên khe sáng (mục 14)
+  deepWork: z.boolean().optional(), // prioritize a morning slot (section 14)
   priority: PRIORITY.optional(),
   status: STATUS.optional(),
-  // gắn task vào kế hoạch dài hạn (mục 10) — để task hiện trong /plans + được AI rót
+  // attach the task to a long-term plan (section 10) — so it shows in /plans + gets fed by the AI
   planId: z.string().optional(),
   milestoneId: z.string().optional(),
   tags: z.array(z.string().min(1)).optional(),
@@ -65,7 +65,7 @@ const PRIORITY_TO_IMPACT: Record<string, Priority> = {
   URGENT: 'high',
 };
 
-/** Suy các field DB từ input chung cho create/update (đồng bộ done/date/impact). */
+/** Derive the DB fields from a shared create/update input (syncing done/date/impact). */
 function deriveFields(
   input: Partial<TaskCreateInput> & { done?: boolean },
 ): Prisma.TaskUncheckedCreateInput {
@@ -78,7 +78,7 @@ function deriveFields(
   if (input.milestoneId !== undefined) out.milestoneId = input.milestoneId || null;
   if (input.dueDate !== undefined) out.dueDate = coerceToInstant(input.dueDate);
 
-  // scheduledFor ⇒ đồng bộ date
+  // scheduledFor ⇒ sync date
   if (input.scheduledFor !== undefined) {
     const sf = coerceToInstant(input.scheduledFor);
     out.scheduledFor = sf;
@@ -92,7 +92,7 @@ function deriveFields(
     out.impact = PRIORITY_TO_IMPACT[input.priority];
   }
 
-  // status / done đồng bộ 2 chiều
+  // status / done synced both ways
   const status = input.status;
   const done = input.done;
   if (status !== undefined || done !== undefined) {
@@ -119,7 +119,7 @@ type TaskWithRel = Prisma.TaskGetPayload<{
   include: { tags: true };
 }>;
 
-/** Serialize task cho MCP (gọn, ISO 8601, kèm delayDays động). */
+/** Serialize a task for MCP (compact, ISO 8601, with dynamic delayDays). */
 export function serializeTask(t: TaskWithRel) {
   const today = todayLocal();
   return {
@@ -135,7 +135,7 @@ export function serializeTask(t: TaskWithRel) {
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
     estimatedMinutes: t.estimatedMinutes,
     deepWork: t.deepWork,
-    actualBucket: t.actualBucket, // "faster"|"asExpected"|"slower"|null (1 chạm khi xong)
+    actualBucket: t.actualBucket, // "faster"|"asExpected"|"slower"|null (one-tap on completion)
     tags: t.tags.map((tag) => tag.name),
     cue: t.cue,
     planId: t.planId,
@@ -150,7 +150,7 @@ export const INCLUDE = { tags: true } as const;
 export async function createTask(raw: unknown) {
   const input = taskCreateSchema.parse(raw);
   const base = deriveFields(input);
-  if (base.date === undefined) base.date = todayLocal(); // luôn có date cho UI app
+  if (base.date === undefined) base.date = todayLocal(); // always have a date for the app UI
   if (base.status === undefined) {
     base.status = 'TODO';
     base.done = false;
@@ -193,7 +193,7 @@ export async function completeTask(id: string) {
   return serializeTask(task);
 }
 
-/** HARD delete (đã chốt: không soft-delete vì app lọc theo done/date, không theo status). */
+/** HARD delete (decided: no soft-delete since the app filters by done/date, not by status). */
 export async function deleteTask(id: string) {
   await prisma.task.delete({ where: { id } });
   return { id, deleted: true };
@@ -252,11 +252,11 @@ export async function listTasks(raw: unknown) {
   return tasks.map(serializeTask);
 }
 
-// Project (gom nhóm generic) đã GỠ khỏi MCP — gây lẫn với Plan (§10) và không có UI.
-// Mọi mục tiêu nhiều bước dùng Plan/Milestone (lib/mcp/plan-repository.ts). Bảng DB Project
-// giữ nguyên (không migration) nhưng không còn expose qua tool MCP.
+// Project (generic grouping) has been REMOVED from MCP — it conflicted with Plan (§10) and had no UI.
+// Any multi-step goal uses Plan/Milestone (lib/mcp/plan-repository.ts). The Project DB table is
+// kept as-is (no migration) but no longer exposed via an MCP tool.
 
-// ---------- schedule & workload (tái dùng lib/schedule) ----------
+// ---------- schedule & workload (reusing lib/schedule) ----------
 async function loadScheduleSources(from: string, to: string) {
   const [commitmentRows, softRows, eventRows] = await Promise.all([
     prisma.commitment.findMany({ where: { active: true } }),
@@ -303,10 +303,10 @@ function* eachDay(from: string, to: string) {
   for (let d = from; d <= to; d = addDays(d, 1)) yield d;
 }
 
-// `to` tùy chọn — mặc định = `from` (Claude xem 1 ngày chỉ cần truyền `from`).
+// `to` optional — defaults to `from` (to view 1 day, Claude only needs to pass `from`).
 export const rangeSchema = z.object({ from: isoDate, to: isoDate.optional() });
 
-/** Chuẩn hóa khoảng ngày: bù `to` = `from` nếu thiếu, đảm bảo from ≤ to. */
+/** Normalize a date range: default `to` = `from` if missing, ensure from ≤ to. */
 function normalizeRange(raw: unknown): { from: string; to: string } {
   const { from, to } = rangeSchema.parse(raw);
   const end = to ?? from;

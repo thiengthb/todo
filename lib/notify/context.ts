@@ -7,28 +7,28 @@ import { blocksForDate, computeFreeSlots } from '@/lib/schedule';
 import type { NotificationFacts } from '@/lib/ai';
 import type { CommitmentDTO, NotificationKind, ScheduleEventDTO, ScheduleKind } from '@/lib/types';
 
-// task "container" (có ≥1 con) là nhóm, không tính vào stats/streak (mục 11)
+// a "container" task (with ≥1 child) is a group, not counted in stats/streak (section 11)
 const NOT_CONTAINER = { subtasks: { none: {} } };
 
 const IMPACT_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
 /**
- * Lắp DỮ KIỆN THẬT cho thông báo (mục 13). Đây là phần "code" — mọi con số/tên việc
- * truy ngược được về DB; AI chỉ viết giọng văn quanh đây, không tự bịa.
+ * Assemble the REAL FACTS for a notification (section 13). This is the "code" part — every number/task name
+ * is traceable back to the DB; the AI only writes the voice around it, making nothing up.
  */
 export async function buildNotificationFacts(kind: NotificationKind): Promise<NotificationFacts> {
   const today = todayStr();
 
   const [todayLeaves, undoneLeaves, activeDayRows, plans, commitmentRows, eventRows, goalRows] =
     await Promise.all([
-      // việc lá hôm nay (bỏ container)
+      // today's leaf tasks (excluding containers)
       prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
-      // việc còn dở đến hôm nay (bỏ container) — để cú hích bám vào
+      // tasks unfinished as of today (excluding containers) — for the nudge to ground on
       prisma.task.findMany({
         where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
         orderBy: { createdAt: 'asc' },
       }),
-      // ngày có việc done → tính streak động
+      // days with a done task → compute the dynamic streak
       prisma.task.findMany({
         where: { done: true },
         select: { date: true },
@@ -40,11 +40,11 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
       }),
       prisma.commitment.findMany({ where: { active: true } }),
       prisma.scheduleEvent.findMany({ where: { date: today } }),
-      // mục tiêu "Ấp ủ" còn trong hàng đợi (mục 17) — để nhắc lấy ra khi rảnh
+      // "Incubating" goals still in the queue (section 17) — to nudge pulling one out when free
       prisma.goal.findMany({ where: { status: 'incubating' } }),
     ]);
 
-  // lịch cứng hôm nay → quỹ giờ rảnh + tóm tắt cho giọng văn (mục 14)
+  // today's hard schedule → free-time budget + a summary for the voice (section 14)
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
     id: c.id,
     title: c.title,
@@ -80,8 +80,8 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
 
   const doneToday = todayLeaves.filter((t) => t.done);
 
-  // "việc chính" (MIT): việc CHƯA xong điểm tác động cao nhất — ưu tiên việc hôm nay,
-  // nếu hôm nay không có thì lấy trong các việc dở chung.
+  // the "main task" (MIT): the NOT-done task with the highest impact score — prefer today's tasks,
+  // and if there are none today, take from the general pool of unfinished tasks.
   const undoneToday = todayLeaves.filter((t) => !t.done);
   const mitPool = undoneToday.length > 0 ? undoneToday : undoneLeaves;
   let mit = mitPool[0] ?? null;
@@ -91,12 +91,12 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
     if (score > bestScore) mit = t;
   }
 
-  // kế hoạch đang chậm (behindDays ≥ 1) — tính động
+  // plans behind schedule (behindDays ≥ 1) — computed dynamically
   const behindPlans = plans
     .filter((p) => computePlanProgress(p, p.milestones, today).behindDays >= 1)
     .map((p) => p.title);
 
-  // capacity hôm nay nếu có check-in
+  // today's capacity if there's a check-in
   const checkin = await prisma.dayCheckin.findUnique({
     where: { date: today },
   });
@@ -106,7 +106,7 @@ export async function buildNotificationFacts(kind: NotificationKind): Promise<No
     capacityScore = computeCapacity(checkin);
   }
 
-  // Ấp ủ (mục 17): xếp theo độ hợp quỹ giờ rảnh + sức hôm nay; mục đầu là gợi ý lấy ra làm
+  // Incubating (section 17): sort by fit to today's free budget + energy; the first one is the suggestion to pull out
   const rankedGoals = rankGoalsForNudge(goalRows, todayCap.slots, capacityScore, today);
   const topGoal = rankedGoals[0] ?? null;
 

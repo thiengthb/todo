@@ -2,8 +2,8 @@ import { hmToMinutes } from '@/lib/notify/time';
 import type { ScheduleBlock } from '@/lib/types';
 
 /**
- * Helper thuần cho lưới lịch tuần kéo-thả (mục 14, đại tu 2026-06) — không React, dễ test.
- * Pixel-per-minute khớp DayTimeline để hai nơi nhìn nhất quán; snap 15′.
+ * Pure helpers for the drag-and-drop weekly schedule grid (section 14, 2026-06 overhaul) — no React, easy to test.
+ * Pixel-per-minute matches DayTimeline so the two places look consistent; snap 15′.
  */
 export const PX_PER_MIN = 0.8;
 export const SNAP_MIN = 15;
@@ -16,7 +16,7 @@ export function clampToBounds(min: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, min));
 }
 
-/** localY (px tính từ đỉnh vùng giờ) → phút trong ngày */
+/** localY (px from the top of the hour area) → minute of the day */
 export function yToMinutes(localY: number, wakeMin: number): number {
   return wakeMin + localY / PX_PER_MIN;
 }
@@ -29,7 +29,7 @@ export function durationToHeightPx(startMin: number, endMin: number): number {
   return Math.max(0, (endMin - startMin) * PX_PER_MIN);
 }
 
-/** Cột ngày (0..6) từ toạ độ X, dựa trên rect của vùng 7 cột (không gồm trục giờ) */
+/** Day column (0..6) from the X coordinate, based on the rect of the 7-column area (excluding the hour axis) */
 export function columnIndexFromX(clientX: number, lanesLeft: number, lanesWidth: number): number {
   const colWidth = lanesWidth / 7;
   return Math.max(0, Math.min(6, Math.floor((clientX - lanesLeft) / colWidth)));
@@ -42,8 +42,8 @@ export interface LaidOut {
 }
 
 /**
- * Xếp các block CHỒNG GIỜ thành lane cạnh nhau (greedy) để không đè lên nhau.
- * Chỉ tính block có giờ; trả lane (cột con) + tổng số lane của cụm chứa nó.
+ * Lay out OVERLAPPING blocks into side-by-side lanes (greedy) so they don't cover each other.
+ * Only counts timed blocks; returns the lane (sub-column) + total lanes of the cluster containing it.
  */
 export function layoutOverlaps(blocks: ScheduleBlock[]): LaidOut[] {
   const timed = blocks.filter((b) => b.startTime && b.endTime);
@@ -55,7 +55,7 @@ export function layoutOverlaps(blocks: ScheduleBlock[]): LaidOut[] {
 
   const flush = () => {
     if (cluster.length === 0) return;
-    const laneEnds: number[] = []; // phút kết thúc của block cuối mỗi lane
+    const laneEnds: number[] = []; // end minute of the last block in each lane
     const laneOf = new Map<string, number>();
     for (const b of cluster) {
       const s = hmToMinutes(b.startTime!);

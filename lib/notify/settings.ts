@@ -3,7 +3,7 @@ import type { NotificationIntensity, NotificationSettingsDTO } from '@/lib/types
 
 const SINGLETON_ID = 'singleton';
 
-/** Giá trị mặc định khi chưa có hàng nào trong DB (khớp default của schema) */
+/** Default values when there is no row in the DB yet (matches the schema defaults) */
 const DEFAULTS: NotificationSettingsDTO = {
   enabled: false,
   discordWebhookUrl: '',
@@ -26,8 +26,8 @@ const DEFAULTS: NotificationSettingsDTO = {
 };
 
 /**
- * Đọc cấu hình (1 hàng singleton). Nếu chưa có thì trả mặc định.
- * Webhook ưu tiên DB; nếu DB trống thì rơi về biến môi trường DISCORD_WEBHOOK_URL.
+ * Read the config (1 singleton row). If none exists, return defaults.
+ * Webhook prefers the DB; if the DB is empty, fall back to the DISCORD_WEBHOOK_URL env var.
  */
 export async function getSettings(): Promise<NotificationSettingsDTO> {
   const row = await prisma.notificationSettings.findUnique({
@@ -61,7 +61,7 @@ export async function getSettings(): Promise<NotificationSettingsDTO> {
   };
 }
 
-/** Lưu cấu hình (upsert hàng singleton). Webhook lưu nguyên văn (rỗng = dùng env). */
+/** Save the config (upsert the singleton row). Webhook stored verbatim (empty = use env). */
 export async function saveSettings(data: NotificationSettingsDTO): Promise<void> {
   const payload = {
     enabled: data.enabled,

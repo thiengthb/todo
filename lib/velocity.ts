@@ -1,14 +1,14 @@
 /**
- * Tốc độ thật (velocity) tính ĐỘNG — khớp đúng cách `/api/suggest` tính `weeklyAvg.avgDonePerDay`
- * để con số hiện trên trang Hôm nay TRÙNG với con số AI dùng (minh bạch, không lệch).
+ * Real velocity computed DYNAMICALLY — matches exactly how `/api/suggest` computes `weeklyAvg.avgDonePerDay`
+ * so the number shown on the Today page MATCHES the number the AI uses (transparent, no drift).
  *
- * Chỉ tính trên những ngày THỰC SỰ có task (daysWithData) — bỏ ngày trống để không kéo tụt
- * trung bình. Nhận task lá (đã lọc container ở nơi gọi), mỗi task có `date` + `done`.
+ * Only counts days that ACTUALLY have tasks (daysWithData) — skip empty days so they don't drag down
+ * the average. Takes leaf tasks (containers already filtered at the call site), each with `date` + `done`.
  */
 export interface Velocity {
-  /** trung bình số việc xong mỗi ngày-có-dữ-liệu (làm tròn 1 chữ số thập phân) */
+  /** average tasks done per day-with-data (rounded to 1 decimal) */
   avgDonePerDay: number;
-  /** số ngày có ít nhất 1 task trong cửa sổ — độ tin cậy của con số */
+  /** number of days with at least 1 task in the window — confidence of the number */
   daysWithData: number;
 }
 

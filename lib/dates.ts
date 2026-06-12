@@ -1,4 +1,4 @@
-/** Định dạng Date → "YYYY-MM-DD" theo giờ địa phương (không dùng UTC để khỏi lệch ngày) */
+/** Format Date → "YYYY-MM-DD" in local time (not UTC, to avoid date drift) */
 export function toDateStr(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -16,7 +16,7 @@ export function tomorrowStr(): string {
   return toDateStr(d);
 }
 
-/** Số ngày nguyên giữa 2 chuỗi "YYYY-MM-DD" (to - from) */
+/** Whole number of days between 2 "YYYY-MM-DD" strings (to - from) */
 export function daysBetween(from: string, to: string): number {
   const f = new Date(`${from}T00:00:00`);
   const t = new Date(`${to}T00:00:00`);
@@ -24,15 +24,15 @@ export function daysBetween(from: string, to: string): number {
 }
 
 /**
- * Mức trì hoãn của một task chưa xong — tính động theo spec:
- * số ngày từ carriedFrom (nếu có) hoặc ngày tạo, đến hôm nay.
+ * The delay of an unfinished task — computed dynamically per the spec:
+ * number of days from carriedFrom (if present) or the creation date, to today.
  */
 export function delayDays(task: { carriedFrom: string | null; createdAt: Date }): number {
   const origin = task.carriedFrom ?? toDateStr(task.createdAt);
   return Math.max(0, daysBetween(origin, todayStr()));
 }
 
-/** "Thứ Bảy, 7 tháng 6" — hiển thị tiêu đề ngày */
+/** "Thứ Bảy, 7 tháng 6" — display for a day title */
 export function formatDateVN(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString('vi-VN', {
     weekday: 'long',
@@ -41,14 +41,14 @@ export function formatDateVN(dateStr: string): string {
   });
 }
 
-/** Cộng/trừ n ngày trên chuỗi "YYYY-MM-DD" */
+/** Add/subtract n days on a "YYYY-MM-DD" string */
 export function addDays(dateStr: string, n: number): string {
   const d = new Date(`${dateStr}T00:00:00`);
   d.setDate(d.getDate() + n);
   return toDateStr(d);
 }
 
-/** Nhãn thân thiện: Hôm nay / Ngày mai / Hôm qua / thứ trong tuần */
+/** Friendly label: Today / Tomorrow / Yesterday / weekday */
 export function dayLabel(dateStr: string): string {
   const diff = daysBetween(todayStr(), dateStr);
   if (diff === 0) return 'Hôm nay';
@@ -59,7 +59,7 @@ export function dayLabel(dateStr: string): string {
   });
 }
 
-/** "06/06" — dạng ngắn cho dòng timeline */
+/** "06/06" — short form for the timeline row */
 export function formatDateShort(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString('vi-VN', {
     day: '2-digit',
@@ -67,21 +67,21 @@ export function formatDateShort(dateStr: string): string {
   });
 }
 
-/** Chuỗi hợp lệ dạng YYYY-MM-DD? */
+/** Valid YYYY-MM-DD string? */
 export function isValidDateStr(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(`${s}T00:00:00`).getTime());
 }
 
 const WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
-/** Nhãn thứ ngắn tiếng Việt: CN, T2..T7 */
+/** Short Vietnamese weekday label: CN, T2..T7 */
 export function weekdayShortVN(dayOfWeek: number): string {
   return WEEKDAY_SHORT[((dayOfWeek % 7) + 7) % 7];
 }
 
-/** Ngày thứ Hai của tuần chứa dateStr (tuần bắt đầu T2) */
+/** The Monday of the week containing dateStr (week starts Monday) */
 export function mondayOf(dateStr: string): string {
-  const dow = new Date(`${dateStr}T00:00:00`).getDay(); // 0=CN..6=T7
+  const dow = new Date(`${dateStr}T00:00:00`).getDay(); // 0=Sun..6=Sat
   const offset = dow === 0 ? -6 : 1 - dow;
   return addDays(dateStr, offset);
 }
