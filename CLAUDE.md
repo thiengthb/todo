@@ -289,6 +289,9 @@ liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
 
 > Đại tu 2026-06: app dùng **app-shell** thay nav ngang. Giữ trung tính kiểu Notion nhưng tận dụng
 > desktop, ít ngợp. Dựa trên nghiên cứu (NN/g, Refactoring UI). Mọi trang/feature mới phải bám.
+> **Nền chung:** §12 là lớp quy ước RIÊNG của `todo`, CHỒNG LÊN chuẩn kỹ thuật chung skill `/react-ui-craft`
+> (quy trình 7 bước + quality floor + composition + UX states + security — xem `MiniServer/CLAUDE.md`). Khi
+> hai bên trùng, theo §12 (cụ thể hơn cho app này); phần §12 không nói tới, theo react-ui-craft.
 
 - **Khung (đại tu 2026-06):** `components/app-shell.tsx` bọc toàn app (render ở `layout.tsx`).
   Desktop ≥`lg`: **sidebar trái 7 mục** thu gọn được, nhóm 3 cụm (Hằng ngày: Hôm nay/Lịch tuần/Kế
@@ -319,9 +322,15 @@ transition-colors` nếu bấm/tương tác được. Section cách nhau `space-
 - **KHÔNG breadcrumb** (app nông): dùng tiêu đề trang + link "‹ …" ở trang con.
 - **Thanh cuộn** tùy biến theo theme (đã set global trong `globals.css`); vùng bounded dùng shadcn
   `ScrollArea`.
-- **Motion = CSS + Radix `data-[state]` + (tùy chọn) View Transitions** — **KHÔNG thêm framer-motion**.
-  Micro-interaction nhẹ (`transition-colors`, `active:scale-*`); hiệu ứng cuộn-hiện dùng
-  `components/reveal.tsx`. LUÔN tôn trọng `prefers-reduced-motion` (đã có guard global).
+- **Motion = Motion v12** (`motion`, `import { motion, AnimatePresence } from "motion/react"`) theo chuẩn
+  chung `/react-ui-craft` (`references/motion.md`) — **đã BỎ lệnh cấm framer-motion (chốt 2026-06; trước
+  đây §12 cấm)**. File dùng `motion.*` cần `"use client"` — giữ ranh giới đó NHỎ (bọc đúng phần động, không
+  cả trang). Vẫn ưu tiên TIẾT CHẾ (đúng tinh thần motion.md): micro-interaction nhẹ vẫn nên dùng CSS thuần
+  (`transition-colors`, `active:scale-*`); CHỈ animate `transform`/`opacity`; mỗi màn 1 khoảnh khắc đáng
+  chú ý; 150–250ms micro / 300–500ms entrance; dùng cùng easing/duration toàn app (`MotionConfig`).
+  Cuộn-hiện: `components/reveal.tsx` hoặc `whileInView` (`viewport={{ once: true }}`). LUÔN tôn trọng
+  `prefers-reduced-motion` (`MotionConfig reducedMotion="user"` / `useReducedMotion`; guard global đã có).
+  View Transitions vẫn dùng được cho chuyển trang.
 - **Màu:** trung tính thuần; chỉ dùng màu **ngữ nghĩa** (amber quá hạn, emerald xong/phục hồi, rose mệt).
   Hành động chính = nút `default` (đen/trắng). KHÔNG thêm accent thương hiệu, KHÔNG gradient.
 - **iPhone / mobile (chốt 2026-06):** `layout.tsx` export `viewport` với `viewportFit: "cover"`. Bottom
