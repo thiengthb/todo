@@ -48,7 +48,7 @@ export default async function DayPage({ searchParams }: PageProps) {
   const { date: raw, view: rawView } = await searchParams;
   const today = todayStr();
   const date = raw && isValidDateStr(raw) ? raw : today;
-  // chuỗi ISO so sánh từ điển = so sánh thời gian
+  // lexical comparison of ISO strings = time comparison
   const isToday = date === today;
   const isPast = date < today;
 
@@ -69,7 +69,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     habitCheckRows,
     incubatingGoalRows,
   ] = await Promise.all([
-    // chỉ lấy task gốc của ngày; task con (đã chia nhỏ) nằm trong subtasks (mục 11)
+    // only fetch the day's root tasks; child tasks (broken down) live in subtasks (section 11)
     prisma.task.findMany({
       where: { date, parentId: null },
       orderBy: { createdAt: 'asc' },
@@ -82,9 +82,9 @@ export default async function DayPage({ searchParams }: PageProps) {
       },
     }),
     prisma.dailyNote.findUnique({ where: { date } }),
-    // check-in chỉ cần cho hôm nay (Personal OS, mục 11)
+    // check-in only needed for today (Personal OS, section 11)
     isToday ? prisma.dayCheckin.findUnique({ where: { date } }) : Promise.resolve(null),
-    // việc xong 7 ngày gần đây (bỏ container) để phản chiếu danh tính (mục 11)
+    // tasks done in the last 7 days (excluding containers) to reflect identity (section 11)
     isToday
       ? prisma.task.findMany({
           where: {
@@ -95,13 +95,13 @@ export default async function DayPage({ searchParams }: PageProps) {
           select: { date: true, emotion: true },
         })
       : Promise.resolve([]),
-    // lịch trình (mục 14): commitment đang bật + event của ngày đang xem + khung mềm + cấu hình
+    // schedule (section 14): active commitments + events of the viewed day + soft blocks + settings
     prisma.commitment.findMany({ where: { active: true } }),
     prisma.scheduleEvent.findMany({ where: { date } }),
     prisma.softBlock.findMany({ where: { active: true } }),
     getScheduleSettings(),
-    // các tín hiệu "thông minh" — chỉ cần cho hôm nay (mục 11/12)
-    // ngày "giữ lửa" → tính streak (banner nhắc khi sắp đứt)
+    // the "smart" signals — only needed for today (sections 11/12)
+    // "active" days → compute streak (banner reminds when about to break)
     isToday
       ? prisma.task.findMany({
           where: { done: true },
@@ -109,7 +109,7 @@ export default async function DayPage({ searchParams }: PageProps) {
           distinct: ['date'],
         })
       : Promise.resolve([]),
-    // task lá ~7 ngày trước → tốc độ thật (khớp weeklyAvg của /api/suggest)
+    // leaf tasks ~last 7 days → real velocity (matches weeklyAvg of /api/suggest)
     isToday
       ? prisma.task.findMany({
           where: {
@@ -119,7 +119,7 @@ export default async function DayPage({ searchParams }: PageProps) {
           select: { date: true, done: true },
         })
       : Promise.resolve([]),
-    // task lá đã chấm cảm xúc ~14 ngày → suy chủ đề "hay mệt" (difficulty hints)
+    // leaf tasks rated with an emotion ~14 days → infer "often tiring" topics (difficulty hints)
     isToday
       ? prisma.task.findMany({
           where: {
@@ -130,14 +130,14 @@ export default async function DayPage({ searchParams }: PageProps) {
           select: { title: true, emotion: true },
         })
       : Promise.resolve([]),
-    // kế hoạch đang chạy → momentum card + tiến độ động
+    // active plans → momentum card + dynamic progress
     isToday
       ? prisma.plan.findMany({
           where: { status: 'active' },
           include: { milestones: { orderBy: { order: 'asc' } } },
         })
       : Promise.resolve([]),
-    // thói quen đang bật + lần tick hôm nay (mục 11) — chỉ cho hôm nay
+    // active habits + today's ticks (section 11) — only for today
     isToday ? prisma.habit.findMany({ where: { active: true } }) : Promise.resolve([]),
     isToday
       ? prisma.habitCheck.findMany({
@@ -145,11 +145,11 @@ export default async function DayPage({ searchParams }: PageProps) {
           select: { habitId: true },
         })
       : Promise.resolve([]),
-    // mục tiêu "Ấp ủ" còn trong hàng đợi (mục 17) — để gợi lấy ra khi rảnh
+    // "Incubating" goals still in the queue (section 17) — to suggest pulling out when free
     isToday ? prisma.goal.findMany({ where: { status: 'incubating' } }) : Promise.resolve([]),
   ]);
 
-  // dải lịch cứng của ngày đang xem (read-only) + quỹ giờ rảnh động
+  // the viewed day's hard-schedule strip (read-only) + dynamic free time
   const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
     id: c.id,
     title: c.title,
@@ -184,10 +184,10 @@ export default async function DayPage({ searchParams }: PageProps) {
     weekParity: s.weekParity,
   }));
   const anchor = scheduleSettings.termAnchorMonday;
-  // khe trống + quỹ giờ rảnh động (mục 14) cho ngày đang xem
+  // free slots + dynamic free time (section 14) for the viewed day
   const capacity = computeFreeSlots(date, commitments, scheduleEvents, scheduleSettings);
   const scheduleFree = capacity.capacityMin;
-  // khối hiển thị: lịch cứng + khung mềm (cho dải chip + timeline)
+  // display blocks: hard commitments + soft blocks (for the chip strip + timeline)
   const scheduleBlocks = [
     ...blocksForDate(date, commitments, scheduleEvents, anchor),
     ...softBlocksForDate(date, softBlocks, scheduleEvents, anchor),
@@ -218,7 +218,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     return {
       id: t.id,
       title: t.title,
-      // task cha "container": done = mọi bước con done; không chấm cảm xúc / không badge trì hoãn
+      // "container" parent task: done = all child steps done; no emotion rating / no delay badge
       done: isContainer ? subtasks.every((s) => s.done) : t.done,
       emotion: isContainer ? null : (t.emotion as Emotion | null),
       delay: isContainer || t.done || isPast ? 0 : delayDays(t),
@@ -234,13 +234,13 @@ export default async function DayPage({ searchParams }: PageProps) {
     };
   });
 
-  // stats đếm theo việc thật (bước con + việc đơn), bỏ qua container — mục 11
+  // stats count real tasks (child steps + single tasks), skipping containers — section 11
   const leaves = dtos.flatMap((t) => t.subtasks ?? [t]);
   const doneCount = leaves.filter((t) => t.done).length;
-  // "việc chính" hôm nay (MIT, 80/20) — chỉ làm nổi bật, không đổi thứ tự
+  // today's "main task" (MIT, 80/20) — only highlights it, does not reorder
   const mitId = isToday ? pickMitId(leaves) : null;
 
-  // phản chiếu danh tính + feedback thông tin (mục 11) — suy từ 7 ngày gần đây
+  // identity reflection + informational feedback (section 11) — inferred from the last 7 days
   const reflection = isToday
     ? buildReflection({
         activeDays7: new Set(recentDone7.map((t) => t.date)).size,
@@ -249,7 +249,7 @@ export default async function DayPage({ searchParams }: PageProps) {
       })
     : null;
 
-  // Tín hiệu "thông minh" khác (chỉ hôm nay) — mỗi cái TỰ ẩn khi thiếu dữ liệu (mục 11/12)
+  // Other "smart" signals (today only) — each one self-hides when data is missing (sections 11/12)
   const streak = isToday
     ? computeStreaks(
         activeDayRows.map((r) => r.date),
@@ -270,10 +270,10 @@ export default async function DayPage({ searchParams }: PageProps) {
         };
       })
     : [];
-  // banner nhắc giữ lửa: chỉ khi chuỗi sắp đứt VÀ hôm nay chưa xong việc nào
+  // streak reminder banner: only when the streak is about to break AND nothing is done today
   const showStreakBanner = isToday && !!streak?.atRisk && doneCount === 0;
 
-  // thói quen đến hạn hôm nay (mục 11) — 1 chạm, không điểm
+  // habits due today (section 11) — one tap, no points
   const checkedHabitIds = new Set(habitCheckRows.map((r) => r.habitId));
   const todayHabits = isToday
     ? habitRows
@@ -285,7 +285,7 @@ export default async function DayPage({ searchParams }: PageProps) {
         }))
     : [];
 
-  // Ấp ủ (mục 17): khi quỹ giờ rảnh cao & còn mục trong hàng đợi → gợi nhẹ lấy 1 điều ra làm
+  // Incubating (section 17): when free time is high & there are queued items → gently suggest pulling one out
   const nudgeCapacity = isToday
     ? computeCapacity(
         checkin
@@ -312,14 +312,14 @@ export default async function DayPage({ searchParams }: PageProps) {
         }
       : null;
 
-  // ── Timeline (mục 14): tách việc đã xếp giờ vs chưa; chọn chế độ xem ──
+  // ── Timeline (section 14): split scheduled vs unscheduled tasks; pick the view mode ──
   const timelineTasks = dtos.filter((t) => !t.subtasks && t.scheduledFor);
   const unscheduledTasks = dtos.filter((t) => t.subtasks || !t.scheduledFor);
-  // tổng ước lượng việc CHƯA xong (cho cảnh báo quá tải)
+  // total estimate of unfinished tasks (for the overload warning)
   const plannedMin = leaves
     .filter((t) => !t.done && t.estimatedMinutes)
     .reduce((s, t) => s + (t.estimatedMinutes ?? 0), 0);
-  // mặc định: có dữ liệu lịch/việc-đã-xếp → timeline; quá khứ → ép list
+  // default: has schedule/scheduled-task data → timeline; past → force list
   const hasTimelineData = scheduleBlocks.length > 0 || timelineTasks.length > 0;
   const view: 'list' | 'timeline' = isPast
     ? 'list'

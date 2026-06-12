@@ -15,11 +15,11 @@ const KINDS: NotificationKind[] = [
   'queue_nudge',
 ];
 
-/** Lưu cấu hình thông báo. Ép kiểu/định dạng giờ về an toàn trước khi ghi DB. */
+/** Save the notification settings. Coerce types/time formats to safe values before writing to the DB. */
 export async function saveNotificationSettings(
   input: NotificationSettingsDTO,
 ): Promise<{ ok: boolean; error?: string }> {
-  // chỉ nhận HH:MM hợp lệ; sai thì giữ giá trị mặc định an toàn
+  // only accept valid HH:MM; otherwise keep the safe default value
   const time = (v: string, fallback: string) => (isValidHm(v) ? v : fallback);
   const intensity: NotificationIntensity = INTENSITIES.includes(input.intensity)
     ? input.intensity
@@ -46,7 +46,7 @@ export async function saveNotificationSettings(
     includeTip: !!input.includeTip,
   };
 
-  // bật thông báo mà chưa có webhook → báo lỗi rõ ràng
+  // enabling notifications without a webhook → return a clear error
   if (safe.enabled && !safe.discordWebhookUrl && !process.env.DISCORD_WEBHOOK_URL) {
     return { ok: false, error: 'Cần dán Webhook URL trước khi bật thông báo.' };
   }
@@ -56,7 +56,7 @@ export async function saveNotificationSettings(
   return { ok: true };
 }
 
-/** Gửi thử một loại thông báo ngay lập tức (bỏ qua gating). */
+/** Send a test of one notification kind immediately (bypassing gating). */
 export async function sendTestNotification(kind: NotificationKind): Promise<RunResult> {
   if (!KINDS.includes(kind)) {
     return { kind: 'morning', status: 'error', detail: 'Loại không hợp lệ' };

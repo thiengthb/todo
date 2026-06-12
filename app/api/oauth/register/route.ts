@@ -4,14 +4,14 @@ import { jsonCors, CORS_HEADERS } from '@/lib/mcp/oauth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// RFC 7591 — Dynamic Client Registration. Client công khai + PKCE nên KHÔNG cần lưu/secret:
-// chỉ cấp client_id và phản hồi metadata client gửi lên (echo redirect_uris).
+// RFC 7591 — Dynamic Client Registration. Public client + PKCE so NO storage/secret needed:
+// just issue a client_id and echo back the metadata the client sent (echo redirect_uris).
 export async function POST(req: Request): Promise<Response> {
   let body: Record<string, unknown> = {};
   try {
     body = (await req.json()) as Record<string, unknown>;
   } catch {
-    /* body rỗng cũng được */
+    /* an empty body is fine too */
   }
   const redirectUris = Array.isArray(body.redirect_uris) ? body.redirect_uris : [];
   return jsonCors(

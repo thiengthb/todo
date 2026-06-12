@@ -1,6 +1,6 @@
 import { PageHeaderSkeleton, ListSkeleton } from '@/components/skeletons';
 
-/** Skeleton trang Ấp ủ — danh sách mục tiêu. */
+/** Incubating page skeleton — list of goals. */
 export default function Loading() {
   return (
     <div className="py-8">

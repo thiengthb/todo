@@ -11,8 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { isValidDateStr, toDateStr } from '@/lib/dates';
 
 /**
- * DatePicker dùng CHUNG toàn app (mục giao diện) — Popover + shadcn Calendar.
- * value/onChange là chuỗi "YYYY-MM-DD" ĐỊA PHƯƠNG (không UTC). Mặc định nút `w-full` để fill grid.
+ * DatePicker SHARED across the app (UI section) — Popover + shadcn Calendar.
+ * value/onChange is a LOCAL "YYYY-MM-DD" string (not UTC). The button defaults to `w-full` to fill the grid.
  */
 export function DatePicker({
   value,
@@ -27,7 +27,7 @@ export function DatePicker({
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  /** Cho phép bỏ chọn (về null) */
+  /** Allow clearing the selection (to null) */
   clearable?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);

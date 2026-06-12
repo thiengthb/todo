@@ -6,9 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 
 /**
- * Icon ⓘ mở Popover khi BẤM/CHẠM (mục giao diện) — thay các đoạn mô tả dài để bớt ngợp.
- * Dùng Popover (không phải tooltip-hover) để hoạt động trên cảm ứng + đúng a11y (focus, Esc).
- * Chỉ giấu phần GIẢI THÍCH; nhãn thao tác vẫn hiển thị bên cạnh.
+ * ⓘ icon opening a Popover on CLICK/TAP (UI section) — replaces long descriptions to reduce clutter.
+ * Uses a Popover (not a hover-tooltip) so it works on touch + proper a11y (focus, Esc).
+ * Only hides the EXPLANATION; the action label still shows next to it.
  */
 export function InfoHint({
   children,

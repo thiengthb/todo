@@ -3,7 +3,7 @@ import { getOrigin, jsonCors, CORS_HEADERS } from '@/lib/mcp/oauth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// RFC 8414 — Authorization Server Metadata (Claude đọc để biết các endpoint OAuth)
+// RFC 8414 — Authorization Server Metadata (Claude reads it to discover the OAuth endpoints)
 export function GET(req: Request): Response {
   const o = getOrigin(req);
   return jsonCors({

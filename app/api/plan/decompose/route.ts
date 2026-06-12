@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const INTENSITIES: readonly Intensity[] = ['nhẹ', 'vừa', 'dồn'];
 
-/** Decompose mục tiêu → roadmap milestone (mục 10.7). Không lưu DB — chỉ trả nháp để xem trước. */
+/** Decompose a goal → roadmap milestones (section 10.7). Does not save to the DB — returns a draft for preview only. */
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const body = (await req.json()) as Partial<{

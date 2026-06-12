@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils';
 import { InfoHint } from '@/components/info-hint';
 
 /**
- * Field dùng chung cho MỌI form (mục giao diện): nhãn + control + hint/info.
- * Control nằm trong grid `sm:grid-cols-2` luôn `w-full` → các ô bằng nhau, fill hết grid.
- * Dùng <div> (không bọc <label>) để không xung đột với control kiểu Popover (DatePicker/TimePicker).
+ * Shared Field for EVERY form (UI section): label + control + hint/info.
+ * A control inside a `sm:grid-cols-2` grid is always `w-full` → equal cells filling the grid.
+ * Uses a <div> (not a wrapping <label>) so it doesn't conflict with Popover-style controls (DatePicker/TimePicker).
  */
 export function Field({
   label,
@@ -15,9 +15,9 @@ export function Field({
   children,
 }: {
   label: ReactNode;
-  /** Ghi chú ngắn dưới control */
+  /** Short note below the control */
   hint?: ReactNode;
-  /** Giải thích dài → icon ⓘ cạnh nhãn (Popover) */
+  /** Long explanation → ⓘ icon next to the label (Popover) */
   info?: ReactNode;
   className?: string;
   children: ReactNode;

@@ -14,14 +14,14 @@ export interface CheckinValues {
   sleepHours: number | null;
 }
 
-/** Diễn giải mềm điểm capacity 0..100 — không phán xét, chỉ gợi ý điều chỉnh tải */
+/** Soft interpretation of the 0..100 capacity score — no judgment, just a hint to adjust load */
 function capacityLabel(score: number): { text: string; tone: string } {
   if (score >= 66) return { text: 'Sức tốt', tone: 'text-emerald-600 dark:text-emerald-400' };
   if (score >= 40) return { text: 'Sức vừa', tone: 'text-muted-foreground' };
   return { text: 'Sức thấp', tone: 'text-amber-600 dark:text-amber-400' };
 }
 
-/** Một thang 1..5, 1 chạm để chọn; chạm lại giá trị đang chọn = bỏ */
+/** A 1..5 scale, one tap to select; tapping the selected value again = clear */
 function Scale({
   label,
   value,
@@ -56,12 +56,12 @@ function Scale({
 }
 
 /**
- * Check-in Personal OS (mục 11) — tất cả tùy chọn, 1 chạm, bỏ qua được.
- * AI dùng để suy capacity → giảm tải / đề xuất ngày phục hồi khi sức thấp.
+ * Personal OS check-in (section 11) — all optional, one tap, skippable.
+ * The AI uses it to infer capacity → reduce load / suggest a recovery day when energy is low.
  */
 export function CheckinBox({ initial }: { initial: CheckinValues }) {
   const [v, setV] = useState<CheckinValues>(initial);
-  // progressive disclosure: mở sẵn khi chưa chấm gì, gập lại khi đã có (đỡ chiếm chỗ)
+  // progressive disclosure: open by default when nothing is rated, collapse once it is (saves space)
   const [open, setOpen] = useState(() => computeCapacity(initial) == null);
   const [, startTransition] = useTransition();
 
@@ -74,7 +74,7 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
 
   const SLEEP = [5, 6, 7, 8];
 
-  // capacity tính ĐỘNG ngay trên client từ check-in hiện tại (mục 11) — null khi chưa nhập gì
+  // capacity computed DYNAMICALLY on the client from the current check-in (section 11) — null when nothing entered
   const capacity = computeCapacity(v);
   const cap = capacity != null ? capacityLabel(capacity) : null;
 

@@ -9,8 +9,8 @@ import { deleteGoal, restoreGoal } from '@/app/incubating/actions';
 import type { GoalDTO } from '@/lib/types';
 
 /**
- * Khối "Đã buông" gập lại (mục 17 / 11.2): buông không tội lỗi, vẫn khôi phục được.
- * Mặc định đóng để không níu kéo sự chú ý.
+ * Collapsible "Dropped" block (section 17 / 11.2): guilt-free dropping, still recoverable.
+ * Closed by default so it doesn't pull attention.
  */
 export function DroppedSection({ goals }: { goals: GoalDTO[] }) {
   const [open, setOpen] = useState(false);

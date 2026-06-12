@@ -1,7 +1,7 @@
 import { PageHeaderSkeleton } from '@/components/skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Skeleton trang Lịch tuần — khối lưới giờ cao. */
+/** Weekly schedule page skeleton — tall time-grid block. */
 export default function Loading() {
   return (
     <div className="py-8">

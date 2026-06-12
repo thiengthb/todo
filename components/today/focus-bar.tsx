@@ -5,9 +5,9 @@ import { formatMinutes } from '@/lib/schedule';
 import { InfoHint } from '@/components/info-hint';
 
 /**
- * Thanh tiêu điểm (mục giao diện, đại tu 2026-06) — gộp quỹ-thời-gian + toggle Danh sách/Dòng giờ
- * vào MỘT hàng, thay 2 dải rời (CapacityBanner + ViewToggle) để trang Hôm nay đỡ chồng card.
- * Chỉ hiện cho ngày không-quá-khứ.
+ * Focus bar (UI section, 2026-06 overhaul) — combines the time budget + List/Timeline toggle
+ * into ONE row, replacing 2 separate strips (CapacityBanner + ViewToggle) so the Today page stacks fewer cards.
+ * Shown only for non-past days.
  */
 export function FocusBar({
   date,
@@ -20,7 +20,7 @@ export function FocusBar({
   view: 'list' | 'timeline';
   freeMin: number;
   slotCount: number;
-  /** tổng estimatedMinutes của việc CHƯA xong — cảnh báo quá tải */
+  /** total estimatedMinutes of unfinished tasks — overload warning */
   plannedMin: number;
 }) {
   const over = plannedMin > freeMin && freeMin > 0;

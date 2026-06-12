@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
-/** Điều hướng chính desktop — 7 mục, nhóm nhẹ bằng divider (mục giao diện, đại tu 2026-06). */
+/** Main desktop navigation — 7 items, lightly grouped by dividers (UI section, 2026-06 overhaul). */
 const NAV_GROUPS: NavItem[][] = [
   [
     { href: '/', label: 'Hôm nay', icon: Home },
@@ -40,7 +40,7 @@ const NAV_GROUPS: NavItem[][] = [
   ],
 ];
 
-/** 5 tab bottom bar mobile — các điểm đến dùng hằng ngày (mục giao diện). */
+/** 5 mobile bottom-bar tabs — the daily-use destinations (UI section). */
 const MOBILE_TABS: NavItem[] = [
   { href: '/', label: 'Hôm nay', icon: Home },
   { href: '/schedule', label: 'Lịch', icon: CalendarDays },
@@ -49,7 +49,7 @@ const MOBILE_TABS: NavItem[] = [
   { href: '/history', label: 'Lịch sử', icon: History },
 ];
 
-/** Mục "hệ thống" làm icon trên top-bar mobile (không vào bottom bar). */
+/** "System" items shown as icons on the mobile top-bar (not in the bottom bar). */
 const MOBILE_SECONDARY: NavItem[] = [
   { href: '/notifications', label: 'Thông báo', icon: Bell },
   { href: '/guide', label: 'Hướng dẫn', icon: BookOpen },
@@ -80,8 +80,8 @@ function SecondaryLink({ href, label, icon: Icon, active }: NavItem & { active: 
 }
 
 /**
- * Khung app (mục giao diện, đại tu 2026-06): sidebar trái 7 mục trên desktop (thu gọn được),
- * top-bar + bottom tab bar 5 mục trên mobile. Nội dung căn giữa max-w-5xl.
+ * App shell (UI section, 2026-06 overhaul): left sidebar with 7 items on desktop (collapsible),
+ * top-bar + 5-item bottom tab bar on mobile. Content centered at max-w-5xl.
  */
 export function AppShell({ streak, children }: { streak: StreakProps; children: ReactNode }) {
   const isActive = useIsActive();

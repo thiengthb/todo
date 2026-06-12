@@ -43,7 +43,7 @@ import {
 } from '@/app/actions';
 import type { Emotion, FreeSlot, Priority, TaskDTO } from '@/lib/types';
 
-// ── Hằng dùng chung (gom từ task-item cũ) ──
+// ── Shared constants (gathered from the old task-item) ──
 
 export const EMOTIONS: {
   value: Emotion;
@@ -98,7 +98,7 @@ const BUCKETS: { value: ActualBucket; icon: LucideIcon; label: string }[] = [
   { value: 'faster', icon: ChevronsDown, label: 'Nhanh hơn dự kiến' },
 ];
 
-/** Một hàng cấu hình: nhãn trái + control phải, kẻ vạch dưới (bộ card chuẩn §12) */
+/** A settings row: label on the left + control on the right, underline rule (standard §12 card set) */
 function Row({
   label,
   hint,
@@ -108,7 +108,7 @@ function Row({
   label: string;
   hint?: string;
   children: ReactNode;
-  /** xếp control xuống dòng dưới (cho input dài) */
+  /** stack the control on the next line (for long inputs) */
   stacked?: boolean;
 }) {
   return (
@@ -124,7 +124,7 @@ function Row({
   );
 }
 
-/** nút chip chọn 1-trong-nhiều (dùng cho estimate / impact / slip) */
+/** chip button for a one-of-many choice (used for estimate / impact / slip) */
 function Chip({
   active,
   onClick,
@@ -153,9 +153,9 @@ function Chip({
 }
 
 /**
- * Modal tùy chỉnh một việc (mục giao diện §12): gom MỌI nút (giờ làm, dự kiến xong, cảm xúc, mức
- * tác động, tập trung sâu, gợi ý khi-nào, lý do trượt, xoá) — để thẻ ngoài chỉ còn tên + trạng thái.
- * Mọi thay đổi gọi server action + toast minh bạch (sonner). Controlled qua open/onOpenChange.
+ * Task detail modal (UI section §12): gathers ALL buttons (work time, estimate, emotion, impact
+ * level, deep focus, when-cue, slip reason, delete) — so the outer card keeps only the name + status.
+ * Every change calls a server action + a transparent toast (sonner). Controlled via open/onOpenChange.
  */
 export function TaskDetailDialog({
   task,
@@ -164,7 +164,7 @@ export function TaskDetailDialog({
   onOpenChange,
 }: {
   task: TaskDTO;
-  /** có → cho xếp/đổi giờ làm (mục 14) */
+  /** present → allow scheduling/changing the work time (section 14) */
   freeSlots?: FreeSlot[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -381,8 +381,8 @@ export function TaskDetailDialog({
 }
 
 /**
- * Prompt chấm cảm xúc 1-chạm bật lên NGAY khi tick xong việc (yêu cầu UX): 3 nút + bỏ qua.
- * Tách khỏi modal chi tiết để ít ma sát — chọn xong tự đóng.
+ * One-tap emotion prompt that pops up RIGHT when a task is ticked done (UX requirement): 3 buttons + skip.
+ * Separate from the detail modal for low friction — auto-closes after a choice.
  */
 export function EmotionPrompt({
   taskId,

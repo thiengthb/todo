@@ -10,8 +10,8 @@ import { scheduleTaskAt } from '@/app/actions';
 import type { FreeSlot } from '@/lib/types';
 
 /**
- * Primitive xếp một việc vào khe giờ (mục 14) — Popover liệt kê khe rảnh 1-chạm.
- * Khe ngắn hơn ước lượng → disabled + gợi ý. Có ô giờ thủ công. Không drag-drop.
+ * Primitive to schedule a task into a time slot (section 14) — Popover listing free slots, one tap.
+ * A slot shorter than the estimate → disabled + a hint. Has a manual time field. No drag-drop.
  */
 export function SlotPicker({
   taskId,
@@ -24,7 +24,7 @@ export function SlotPicker({
   estimatedMinutes?: number | null;
   freeSlots: FreeSlot[];
   trigger: React.ReactNode;
-  /** đã xếp giờ rồi → cho phép bỏ giờ */
+  /** already scheduled → allow clearing the time */
   hasSlot?: boolean;
 }) {
   const [open, setOpen] = useState(false);

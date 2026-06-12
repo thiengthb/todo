@@ -1,9 +1,9 @@
 import { Flame } from 'lucide-react';
 
 /**
- * Dải nhắc mềm khi chuỗi giữ lửa SẮP ĐỨT (streak.atRisk) mà hôm nay chưa xong việc nào.
- * Giọng tử tế, không trách — chỉ cần 1 việc là nối tiếp (ân hạn 1 ngày, mục 11).
- * Trang Hôm nay chỉ render khi: isToday && atRisk && doneCount === 0 → component này không tự ẩn.
+ * Soft reminder banner when the streak is ABOUT TO BREAK (streak.atRisk) and nothing is done today.
+ * Kind tone, no blame — just 1 task keeps it going (1-day grace, section 11).
+ * The Today page renders it only when: isToday && atRisk && doneCount === 0 → this component does not self-hide.
  */
 export function StreakBanner({ current }: { current: number }) {
   return (

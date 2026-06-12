@@ -41,7 +41,7 @@ const IMPACT_CLASS: Record<Priority, string> = {
   low: 'text-muted-foreground',
 };
 
-/** Chỉ báo read-only gọn (icon + số) — tiết kiệm diện tích thẻ; chi tiết nằm trong modal */
+/** Compact read-only indicator (icon + number) — saves card space; details live in the modal */
 function Meta({
   label,
   className,
@@ -65,7 +65,7 @@ function Meta({
   );
 }
 
-/** Cụm chỉ báo phải thẻ — tất cả compact, hover ra tooltip; bấm vào mở modal tùy chỉnh */
+/** Indicator cluster on the right of the card — all compact, hover for a tooltip; click opens the detail modal */
 function MetaCluster({ task, isMit }: { task: TaskDTO; isMit?: boolean }) {
   const emotion = EMOTIONS.find((e) => e.value === task.emotion);
   return (
@@ -121,7 +121,7 @@ function MetaCluster({ task, isMit }: { task: TaskDTO; isMit?: boolean }) {
   );
 }
 
-/** Một dòng việc đơn (leaf): tick + tên + chỉ báo gọn. Bấm vào (trừ tick) → modal tùy chỉnh. */
+/** A single leaf task row: tick + name + compact indicators. Clicking (except the tick) → detail modal. */
 function LeafRow({
   task,
   isMit,
@@ -142,7 +142,7 @@ function LeafRow({
       await toggleTask(task.id, next);
       if (next) {
         toast.success('Hoàn thành!', { description: task.title });
-        // bật prompt chấm cảm xúc 1-chạm sau khi việc đã chuyển sang "xong"
+        // open the one-tap emotion prompt after the task has switched to "done"
         setEmotionOpen(true);
       }
     });
@@ -201,7 +201,7 @@ function LeafRow({
   );
 }
 
-/** Task đã chia nhỏ (mục 11): header nhóm + các bước con. Goal-gradient: "còn N bước". */
+/** A broken-down task (section 11): group header + child steps. Goal-gradient: "N steps left". */
 function ContainerRow({ task, mitId }: { task: TaskDTO; mitId?: string | null }) {
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -304,7 +304,7 @@ export function TaskItem({
 }: {
   task: TaskDTO;
   mitId?: string | null;
-  /** truyền xuống để hiện nút xếp giờ (danh sách "chưa xếp giờ" ở chế độ timeline) */
+  /** passed down to show the schedule button (the "unscheduled" list in timeline mode) */
   freeSlots?: FreeSlot[];
 }) {
   if (task.subtasks && task.subtasks.length > 0) {

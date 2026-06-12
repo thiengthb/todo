@@ -1,7 +1,7 @@
 import { PageHeaderSkeleton, ListSkeleton } from '@/components/skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Skeleton trang Lịch sử — streak + dải hoạt động + danh sách ngày. */
+/** History page skeleton — streak + activity strip + list of days. */
 export default function Loading() {
   return (
     <div className="py-8">

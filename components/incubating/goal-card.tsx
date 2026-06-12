@@ -13,7 +13,7 @@ import { dropGoal, pinGoal, snoozeGoal, updateGoal } from '@/app/incubating/acti
 import type { GoalDTO } from '@/lib/types';
 import { PromoteMenu } from '@/components/incubating/promote-menu';
 
-/** Một hàng mục tiêu trong "Ấp ủ" (mục 17) — bộ row chuẩn §12. */
+/** A goal row in "Incubating" (section 17) — the standard §12 row set. */
 export function GoalCard({ goal }: { goal: GoalDTO }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(goal.title);
@@ -43,7 +43,7 @@ export function GoalCard({ goal }: { goal: GoalDTO }) {
   }
 
   function keep() {
-    // "giữ" = ghim → reset độ-cũ, tắt gợi ý hỏi-cũ
+    // "keep" = pin → reset staleness, turn off the stale prompt
     startTransition(() => pinGoal(goal.id, true));
   }
 

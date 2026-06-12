@@ -13,7 +13,7 @@ export function AddTask({
 }: {
   date: string;
   isToday: boolean;
-  /** chủ đề hay bị chấm "hard" (lib/difficulty.ts) — để gợi ý chia nhỏ khi gõ trúng */
+  /** topics often rated "hard" (lib/difficulty.ts) — to suggest breaking down when one is typed */
   hardTopics?: string[];
 }) {
   const [title, setTitle] = useState('');
@@ -29,7 +29,7 @@ export function AddTask({
     });
   }
 
-  // chủ đề "hay mệt" khớp trong tiêu đề đang gõ → gợi ý hạ rào (mục 11), không chặn
+  // an "often tiring" topic matched in the typed title → suggest lowering the bar (section 11), non-blocking
   const lower = title.toLowerCase();
   const matched = title.trim().length >= 3 ? hardTopics.find((w) => lower.includes(w)) : undefined;
 

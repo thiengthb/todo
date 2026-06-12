@@ -11,9 +11,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { addDays, toDateStr } from '@/lib/dates';
 
 interface DayNavProps {
-  /** ngày đang xem, "YYYY-MM-DD" */
+  /** the viewed day, "YYYY-MM-DD" */
   date: string;
-  /** hôm nay, "YYYY-MM-DD" — truyền từ server để tránh lệch múi giờ */
+  /** today, "YYYY-MM-DD" — passed from the server to avoid timezone drift */
   today: string;
 }
 

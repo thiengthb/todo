@@ -12,7 +12,7 @@ import { EmptyState } from '@/components/empty-state';
 import type { FreeSlot, ScheduleBlock, ScheduleKind, TaskDTO } from '@/lib/types';
 
 const PX_PER_MIN = 0.75;
-const MIN_CARD_MIN = 36; // chiều cao tối thiểu một thẻ (≈ tap target)
+const MIN_CARD_MIN = 36; // minimum height of a card (≈ tap target)
 
 const KIND_BORDER: Record<ScheduleKind, string> = {
   hoc: 'border-l-sky-400/70',
@@ -21,8 +21,8 @@ const KIND_BORDER: Record<ScheduleKind, string> = {
 };
 
 /**
- * Dòng thời gian theo giờ (mục 14) — trung tâm trang Hôm nay. Hiển thị lịch cứng (khóa),
- * khung mềm (dời được), khe rảnh, và việc đã xếp giờ. Không drag-drop: đổi giờ qua SlotPicker.
+ * Hour-by-hour timeline (section 14) — the center of the Today page. Shows hard commitments (locked),
+ * soft blocks (movable), free slots, and scheduled tasks. No drag-drop: change the time via SlotPicker.
  */
 export function DayTimeline({
   isToday,
@@ -38,7 +38,7 @@ export function DayTimeline({
   sleep: string;
   blocks: ScheduleBlock[];
   freeSlots: FreeSlot[];
-  /** việc lá đã có scheduledFor (HH:MM) */
+  /** leaf tasks that already have scheduledFor (HH:MM) */
   tasks: TaskDTO[];
   mitId?: string | null;
 }) {
@@ -69,7 +69,7 @@ export function DayTimeline({
     );
   }
 
-  // nhãn giờ tròn từ wake → sleep
+  // whole-hour labels from wake → sleep
   const hours: number[] = [];
   for (let h = Math.ceil(wakeMin / 60); h * 60 <= sleepMin; h++) hours.push(h);
 

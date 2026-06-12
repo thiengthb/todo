@@ -5,26 +5,26 @@ import { cn } from '@/lib/utils';
 import { InfoHint } from '@/components/info-hint';
 
 interface PageHeaderProps {
-  /** Dòng nhỏ phía trên tiêu đề (eyebrow) */
+  /** Small line above the title (eyebrow) */
   eyebrow?: string;
   title: ReactNode;
-  /** Mô tả ngắn dưới tiêu đề. Phần giải thích DÀI nên dùng `info` thay vì `description`. */
+  /** Short description below the title. LONG explanations should use `info` instead of `description`. */
   description?: ReactNode;
-  /** Giải thích dài → icon ⓘ cạnh tiêu đề (Popover) — giữ tiêu đề sạch (mục giao diện) */
+  /** Long explanation → ⓘ icon next to the title (Popover) — keeps the title clean (UI section) */
   info?: ReactNode;
-  /** Hành động cấp trang, căn phải (vd nút "Kế hoạch mới") */
+  /** Page-level action, right-aligned (e.g. a "New plan" button) */
   action?: ReactNode;
-  /** Link "‹ …" cho trang con — đóng vai breadcrumb-nhẹ (mục giao diện) */
+  /** "‹ …" link for sub-pages — acts as a lightweight breadcrumb (UI section) */
   backHref?: string;
   backLabel?: string;
-  /** Cho phép tiêu đề viết hoa chữ cái đầu (trang Hôm nay) */
+  /** Allow capitalizing the title's first letter (Today page) */
   titleClassName?: string;
   className?: string;
 }
 
 /**
- * Header trang dùng chung (mục giao diện): eyebrow + h1 + mô tả + action phải, kèm back-link tùy chọn.
- * Mọi trang dùng cùng component này để nhịp/độ lớn tiêu đề đồng nhất, không "mỗi trang một kiểu".
+ * Shared page header (UI section): eyebrow + h1 + description + right action, plus an optional back-link.
+ * Every page uses this component so title rhythm/size stays consistent, not "each page its own way".
  */
 export function PageHeader({
   eyebrow,

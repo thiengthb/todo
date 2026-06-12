@@ -11,7 +11,7 @@ export interface StreakProps {
   longest: number;
 }
 
-/** Câu giải thích ngắn cho tooltip của chip lửa — giọng tử tế, không trách (mục 11) */
+/** Short explanation for the flame chip's tooltip — kind tone, no blame (section 11) */
 function streakMessage({ current, atRisk, longest }: StreakProps): string {
   if (current === 0) {
     return longest > 0
@@ -26,7 +26,7 @@ function streakMessage({ current, atRisk, longest }: StreakProps): string {
     : `${current} ngày liên tiếp — đang là kỷ lục!`;
 }
 
-/** Chip lửa giữ streak — bấm vào xem lịch sử chuỗi */
+/** Flame chip for the streak — click to view streak history */
 export function StreakChip(streak: StreakProps) {
   const { current, atRisk } = streak;
   const live = current > 0;

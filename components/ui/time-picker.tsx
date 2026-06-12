@@ -9,8 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { isValidHm, minutesToHm } from '@/lib/notify/time';
 
 /**
- * TimePicker dùng CHUNG toàn app (mục giao diện) — Input gõ tay + Popover các mốc giờ (mặc định 15′).
- * value/onChange là chuỗi "HH:MM" ĐỊA PHƯƠNG. Mặc định `w-full` để fill grid; gõ tay vẫn được.
+ * TimePicker SHARED across the app (UI section) — typed Input + Popover of time marks (default 15′).
+ * value/onChange is a LOCAL "HH:MM" string. Defaults to `w-full` to fill the grid; typing still works.
  */
 export function TimePicker({
   value,

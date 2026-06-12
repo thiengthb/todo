@@ -2,8 +2,8 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /**
- * Khối skeleton tái dùng (mục giao diện) cho loading.tsx + <Suspense> — khớp bộ card/row chuẩn §12,
- * giúp chuyển trang không trắng/khựng. Tĩnh, chỉ animate-pulse (tôn trọng reduced-motion qua global).
+ * Reusable skeleton blocks (UI section) for loading.tsx + <Suspense> — match the standard card/row set of §12,
+ * keeping navigation from going blank/janky. Static, only animate-pulse (respects reduced-motion via global).
  */
 
 export function PageHeaderSkeleton() {

@@ -24,14 +24,14 @@ import { promoteGoalToPlan } from '@/app/incubating/actions';
 import type { DecomposeResult, Intensity, MilestoneDraft } from '@/lib/types';
 
 interface CreatePlanDialogProps {
-  /** Khi nâng từ một mục tiêu "Ấp ủ" (mục 17): lưu xong sẽ đánh dấu goal promoted + truy ngược */
+  /** When promoting from an "Incubating" goal (section 17): on save, mark the goal promoted + traceable */
   goalId?: string;
-  /** Prefill tiêu đề/mục tiêu (vd từ goal) */
+  /** Prefill title/goal (e.g. from a goal) */
   defaultTitle?: string;
   defaultGoal?: string;
-  /** Trigger tuỳ biến thay nút "Kế hoạch mới" mặc định */
+  /** Custom trigger replacing the default "New plan" button */
   trigger?: ReactNode;
-  /** Gọi khi nâng thành công (để đóng menu cha) */
+  /** Called on successful promotion (to close the parent menu) */
   onPromoted?: () => void;
 }
 
@@ -106,7 +106,7 @@ export function CreatePlanDialog({
     startSave(async () => {
       try {
         const input = { title, goal, startDate, endDate, intensity, milestones: clean };
-        // nâng từ "Ấp ủ" (mục 17): tái dùng createPlan + đánh dấu goal promoted
+        // promote from "Incubating" (section 17): reuse createPlan + mark the goal promoted
         const id = goalId ? await promoteGoalToPlan(goalId, input) : await createPlan(input);
         toast.success(goalId ? 'Đã nâng thành kế hoạch' : 'Đã tạo kế hoạch');
         setOpen(false);

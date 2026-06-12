@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { extendPlanDeadline } from '@/app/actions';
 
 /**
- * Cảnh báo chậm tiến độ + lựa chọn (mục 10.4) — KHÔNG tự co giãn ngầm,
- * nói rõ chậm bao nhiêu rồi để người dùng chọn hướng xử lý.
+ * Behind-schedule alert + options (section 10.4) — does NOT silently auto-adjust,
+ * states clearly how far behind it is and lets the user choose how to handle it.
  */
 export function BehindAlert({ id, behindDays }: { id: string; behindDays: number }) {
   const [pending, startTransition] = useTransition();

@@ -31,7 +31,7 @@ export async function POST(req: Request): Promise<Response> {
     if (!payload || payload.typ !== 'code') return err('invalid_grant');
     if (payload.ru !== redirectUri) return err('invalid_grant');
     if (typeof payload.cc !== 'string' || !verifyPkceS256(verifier, payload.cc)) {
-      return err('invalid_grant'); // PKCE không khớp
+      return err('invalid_grant'); // PKCE mismatch
     }
     return jsonCors({
       access_token: await signAccess(key),

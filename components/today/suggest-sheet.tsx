@@ -105,7 +105,7 @@ function SuggestionRow({
               planLink,
               item.subtasks,
               item.cue,
-              item.priority, // priority đề xuất = tín hiệu 80/20 (mục 11)
+              item.priority, // suggestion priority = an 80/20 signal (section 11)
               {
                 slotStart: item.slotStart ?? null,
                 estimatedMinutes: item.estimatedMinutes ?? null,
@@ -137,7 +137,7 @@ function SuggestionRow({
   );
 }
 
-/** Một gợi ý lấy mục tiêu "Ấp ủ" ra làm (mục 17) — kéo thành việc hoặc nâng thành kế hoạch */
+/** A suggestion to pull an "Incubating" goal out to work on (section 17) — drag into a task or promote to a plan */
 function QueuePullRow({ item }: { item: QueuePullItem }) {
   const [added, setAdded] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -199,7 +199,7 @@ function QueuePullRow({ item }: { item: QueuePullItem }) {
           <Check className="size-3.5" /> Đã thêm
         </Button>
       ) : (
-        // nút chính theo gợi ý cỡ; nút phụ là ngõ còn lại
+        // the primary button follows the suggested size; the secondary button is the other exit
         <div className="flex shrink-0 flex-col gap-1">
           {isPlan ? (
             <>
@@ -227,8 +227,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * "Đề xuất ngày mai" — Sheet phải rộng (mục giao diện): tham chiếu được list hôm nay,
- * header/footer cố định, danh sách cuộn trong ScrollArea (thanh cuộn đẹp), không cuộn cả modal.
+ * "Tomorrow suggestion" — wide right-side Sheet (UI section): can reference today's list,
+ * fixed header/footer, the list scrolls inside a ScrollArea (nice scrollbar), not the whole modal.
  */
 export function SuggestSheet() {
   const [open, setOpen] = useState(false);

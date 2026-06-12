@@ -47,9 +47,9 @@ interface Preview {
 }
 
 /**
- * Lưới lịch tuần kiểu Google Calendar (mục 14, đại tu 2026-06) — kéo-tạo + kéo-di-chuyển/resize.
- * Pointer Events thuần (chuột + chạm), snap 15′, KHÔNG thư viện kéo-thả. Logic kéo gom một chỗ qua
- * event-delegation trên vùng 7 cột. Chỉ hiển thị lịch (commitment/soft/event) — KHÔNG task (§14).
+ * Google-Calendar-style week grid (section 14, 2026-06 overhaul) — drag-create + drag-move/resize.
+ * Pure Pointer Events (mouse + touch), 15′ snap, NO drag library. Drag logic centralized via
+ * event-delegation over the 7-column area. Shows only the schedule (commitment/soft/event) — NO tasks (§14).
  */
 export function WeekGrid({
   days,
@@ -81,7 +81,7 @@ export function WeekGrid({
   });
   const [preview, setPreview] = useState<Preview | null>(null);
 
-  // bản đồ block (có giờ) → cột, để biết block thuộc ngày nào khi kéo
+  // map of timed blocks → column, to know which day a block belongs to when dragging
   const blockIndex = useMemo(() => {
     const map = new Map<string, { block: ScheduleBlock; dayIndex: number }>();
     days.forEach((d, ci) => {
@@ -92,7 +92,7 @@ export function WeekGrid({
     return map;
   }, [days]);
 
-  // đường "bây giờ" — chỉ ở cột hôm nay
+  // the "now" line — only in today's column
   const [nowMin, setNowMin] = useState<number | null>(null);
   useEffect(() => {
     const tick = () => {
@@ -143,7 +143,7 @@ export function WeekGrid({
       const anchorMin = clampToBounds(snap(rawMin), wakeMin, sleepMin);
       gesture.current = { mode: 'create', dayIndex, anchorMin };
       setPreview({ dayIndex, startMin: anchorMin, endMin: anchorMin });
-      // chuột: bắt pointer để kéo chọn khoảng; chạm: KHÔNG bắt (để vuốt cuộn được)
+      // mouse: capture the pointer to drag-select a range; touch: do NOT capture (so swipe-scroll works)
       if (e.pointerType === 'mouse') lanesRef.current?.setPointerCapture(e.pointerId);
     }
   }
@@ -159,7 +159,7 @@ export function WeekGrid({
     const rawMin = yToMinutes(e.clientY - rect.top, wakeMin);
 
     if (g.mode === 'create') {
-      // chạm: chỉ "kéo chọn" khi đã nhấc khỏi ngưỡng (nếu không, để cuộn)
+      // touch: only "drag-select" once moved past the threshold (otherwise allow scrolling)
       if (e.pointerType !== 'mouse' && !startPt.current.moved) return;
       const cur = clampToBounds(snap(rawMin), wakeMin, sleepMin);
       setPreview({
@@ -191,13 +191,13 @@ export function WeekGrid({
     try {
       lanesRef.current?.releasePointerCapture(e.pointerId);
     } catch {
-      // pointer chưa được capture (vd create trên chạm) — bỏ qua
+      // pointer was not captured (e.g. create on touch) — ignore
     }
     if (!g) return;
     const moved = startPt.current.moved;
 
     if (g.mode === 'create') {
-      // tap/không kéo → tạo block mặc định 60′; có kéo → dùng khoảng đã chọn
+      // tap/no drag → create a default 60′ block; dragged → use the selected range
       let s: number;
       let en: number;
       if (!moved || !p || p.endMin - p.startMin < SNAP_MIN) {
@@ -220,7 +220,7 @@ export function WeekGrid({
 
     // move / resize
     if (!moved || !p) {
-      onOpen(g.block); // chỉ chạm/click (không kéo) → mở dialog sửa
+      onOpen(g.block); // just tap/click (no drag) → open the edit dialog
       return;
     }
     const tgt = days[p.dayIndex] ?? days[0];
@@ -232,7 +232,7 @@ export function WeekGrid({
     });
   }
 
-  // nhãn giờ tròn
+  // whole-hour labels
   const hours: number[] = [];
   for (let h = Math.ceil(wakeMin / 60); h * 60 <= sleepMin; h++) hours.push(h);
 
@@ -334,7 +334,7 @@ export function WeekGrid({
   );
 }
 
-/** Một cột ngày: free-slot + block định giờ + chip cả-ngày + now-line. */
+/** A single day column: free-slot + timed block + all-day chip + now-line. */
 function DayColumnCell({
   day,
   colIndex,

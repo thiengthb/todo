@@ -7,8 +7,8 @@ import { HabitManager, type HabitRow } from '@/components/schedule/habit-manager
 import { ScheduleSettingsForm } from '@/components/schedule/schedule-settings-form';
 
 /**
- * Trang "Nhịp sống" (mục giao diện, đại tu 2026-06) — gom Thói quen + Giờ thức/quỹ thời gian
- * tách khỏi /schedule. Đây là các thiết lập NỀN cho nhịp sống hằng ngày, nuôi capacity của AI.
+ * "Routines" page (UI section, 2026-06 overhaul) — groups Habits + Wake hours/time budget,
+ * split out from /schedule. These are the FOUNDATIONAL settings for the daily rhythm, feeding the AI's capacity.
  */
 export const dynamic = 'force-dynamic';
 

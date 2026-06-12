@@ -12,8 +12,8 @@ import { todayStr, tomorrowStr } from '@/lib/dates';
 import type { GoalDTO } from '@/lib/types';
 
 /**
- * Đưa một mục tiêu ra khỏi "Ấp ủ" (mục 17): kéo vào một ngày → Task, hoặc nâng thành Kế hoạch.
- * Cả 2 ngõ luôn hiện; AI chỉ _gợi ý_ cỡ (mục đề xuất ngày mai), người dùng quyết ở đây.
+ * Move a goal out of "Incubating" (section 17): drag into a day → Task, or promote to a Plan.
+ * Both exits always show; the AI only _suggests_ the size (in the tomorrow suggestion), the user decides here.
  */
 export function PromoteMenu({ goal }: { goal: GoalDTO }) {
   const [open, setOpen] = useState(false);

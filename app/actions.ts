@@ -20,21 +20,21 @@ export async function toggleTask(id: string, done: boolean): Promise<void> {
     data: {
       done,
       completedAt: done ? new Date() : null,
-      // bỏ done thì cảm xúc cũng không còn ý nghĩa
+      // unsetting done makes the emotion meaningless too
       ...(done ? {} : { emotion: null }),
     },
   });
-  // "layout" để chip streak trên thanh menu (render ở root layout) cập nhật theo
+  // "layout" so the streak chip in the menu bar (rendered in root layout) updates accordingly
   revalidatePath('/', 'layout');
 }
 
 export async function setEmotion(id: string, emotion: Emotion): Promise<void> {
   const task = await prisma.task.findUnique({ where: { id } });
-  // chỉ chấm cảm xúc cho task đã xong (spec: đánh giá việc chưa làm là vô nghĩa)
+  // only rate the emotion for a done task (spec: rating an undone task is meaningless)
   if (!task?.done) return;
   await prisma.task.update({
     where: { id },
-    // chạm lại cảm xúc đang chọn = bỏ chọn
+    // tapping the already-selected emotion again = deselect
     data: { emotion: task.emotion === emotion ? null : emotion },
   });
   revalidatePath('/');
@@ -42,18 +42,18 @@ export async function setEmotion(id: string, emotion: Emotion): Promise<void> {
 
 export async function deleteTask(id: string): Promise<void> {
   await prisma.task.delete({ where: { id } });
-  // xoá task done có thể làm đứt streak → revalidate cả layout cho chip trên menu
+  // deleting a done task can break the streak → revalidate the layout too for the menu chip
   revalidatePath('/', 'layout');
 }
 
-/** Đặt/xoá gợi ý "khi nào/ở đâu" (implementation intention, mục 11) */
+/** Set/clear the "when/where" cue (implementation intention, section 11) */
 export async function setCue(id: string, cue: string): Promise<void> {
   const c = cue.trim();
   await prisma.task.update({ where: { id }, data: { cue: c || null } });
   revalidatePath('/');
 }
 
-/** Đặt mức tác động 80/20 (mục 11). null = bỏ đánh dấu. */
+/** Set the 80/20 impact level (section 11). null = clear the marker. */
 export async function setImpact(
   id: string,
   impact: 'high' | 'medium' | 'low' | null,
@@ -64,20 +64,20 @@ export async function setImpact(
 
 export type SlipReason = 'tired' | 'too_hard' | 'no_time' | 'unclear' | 'deprioritized';
 
-/** Ghi lý do trượt 1 chạm (mục 11) — AI học để chia nhỏ / giảm tải. null = bỏ. */
+/** Record the one-tap slip reason (section 11) — the AI learns to break down / reduce load. null = clear. */
 export async function setSlipReason(id: string, reason: SlipReason | null): Promise<void> {
   await prisma.task.update({ where: { id }, data: { slipReason: reason } });
   revalidatePath('/');
 }
 
-/** Ước lượng thời lượng (phút) — null = bỏ. AI dùng để khớp khe giờ + tính quá tải (mục 14). */
+/** Estimate the duration (minutes) — null = clear. The AI uses it to match time slots + compute overload (section 14). */
 export async function setEstimate(id: string, minutes: number | null): Promise<void> {
   const m = minutes != null && minutes > 0 ? Math.min(600, Math.round(minutes)) : null;
   await prisma.task.update({ where: { id }, data: { estimatedMinutes: m } });
   revalidatePath('/');
 }
 
-/** Cờ "việc cần tập trung sâu" → AI ưu tiên khe sáng (mục 14). */
+/** "Deep-work task" flag → the AI prioritizes morning slots (section 14). */
 export async function setDeepWork(id: string, value: boolean): Promise<void> {
   await prisma.task.update({ where: { id }, data: { deepWork: value } });
   revalidatePath('/');
@@ -85,19 +85,19 @@ export async function setDeepWork(id: string, value: boolean): Promise<void> {
 
 export type ActualBucket = 'faster' | 'asExpected' | 'slower';
 
-/** Phản hồi thời lượng 1-chạm khi xong (mục 14) — AI hiệu chỉnh ước lượng. null = bỏ. */
+/** One-tap duration feedback on completion (section 14) — the AI calibrates the estimate. null = clear. */
 export async function setActualBucket(id: string, bucket: ActualBucket | null): Promise<void> {
   await prisma.task.update({ where: { id }, data: { actualBucket: bucket } });
   revalidatePath('/');
 }
 
 /**
- * Thêm một đề xuất của AI vào ngày mai.
- * Với carry_over: tìm task dở gốc (cùng title) để giữ chuỗi carriedFrom —
- * mức trì hoãn tiếp tục tính từ ngày gốc, không reset.
- * Với plan_task: gắn planId/milestoneId để hiện chip + nối tiến độ.
- * Với subtasks (mục 11): tạo task cha "container" + các task con (parentId);
- * cha không tính vào stats, con là việc thật để tick từng bước.
+ * Add an AI suggestion to tomorrow.
+ * For carry_over: find the original unfinished task (same title) to keep the carriedFrom chain —
+ * the procrastination level keeps counting from the original date, no reset.
+ * For plan_task: attach planId/milestoneId to show the chip + link progress.
+ * For subtasks (section 11): create a "container" parent task + the child tasks (parentId);
+ * the parent does not count toward stats, the children are the real tasks to tick step by step.
  */
 export async function addTomorrowTask(
   title: string,
@@ -106,7 +106,7 @@ export async function addTomorrowTask(
   subtasks?: string[],
   cue?: string | null,
   impact?: string | null,
-  // xếp giờ (mục 14) — đề xuất của AI đã được server validate
+  // scheduling (section 14) — the AI suggestion has already been server-validated
   extra?: {
     slotStart?: string | null;
     estimatedMinutes?: number | null;
@@ -129,7 +129,7 @@ export async function addTomorrowTask(
   const planId = link?.planId ?? null;
   const milestoneId = link?.milestoneId ?? null;
   const steps = (subtasks ?? []).map((s) => s.trim()).filter(Boolean);
-  // giờ dự kiến làm (mục 14): ghép date ngày mai + slotStart → DateTime địa phương
+  // planned time (section 14): combine tomorrow's date + slotStart → local DateTime
   const scheduledFor =
     extra?.slotStart && isValidHm(extra.slotStart)
       ? new Date(`${date}T${extra.slotStart}:00`)
@@ -143,7 +143,7 @@ export async function addTomorrowTask(
       planId,
       milestoneId,
       cue: cue?.trim() || null,
-      // priority của đề xuất = tín hiệu 80/20 → lưu thành impact (mục 11)
+      // the suggestion's priority = an 80/20 signal → store it as impact (section 11)
       impact: impact ?? null,
       scheduledFor,
       estimatedMinutes:
@@ -154,7 +154,7 @@ export async function addTomorrowTask(
     },
   });
 
-  // các bước con kế thừa liên kết plan để nối tiến độ; cha thành container
+  // child steps inherit the plan link to feed progress; the parent becomes a container
   if (steps.length > 0) {
     await prisma.task.createMany({
       data: steps.map((s) => ({
@@ -169,7 +169,7 @@ export async function addTomorrowTask(
   revalidatePath('/');
 }
 
-/** Xếp một việc đã có vào khe giờ (mục 14): set scheduledFor theo `date` của task. null = bỏ giờ. */
+/** Schedule an existing task into a time slot (section 14): set scheduledFor based on the task's `date`. null = clear the time. */
 export async function scheduleTaskAt(id: string, hm: string | null): Promise<void> {
   const task = await prisma.task.findUnique({
     where: { id },
@@ -181,7 +181,7 @@ export async function scheduleTaskAt(id: string, hm: string | null): Promise<voi
   revalidatePath('/');
 }
 
-/** Check-in Personal OS (mục 11) — tất cả tùy chọn; null xoá field đó. Upsert theo ngày hôm nay. */
+/** Personal OS check-in (section 11) — all optional; null clears that field. Upsert by today's date. */
 export async function upsertCheckin(input: {
   energy?: number | null;
   mood?: number | null;
@@ -207,7 +207,7 @@ export async function saveNote(note: string): Promise<void> {
   const date = todayStr();
   const trimmed = note.trim();
   if (!trimmed) {
-    // xoá note rỗng để DB sạch
+    // delete an empty note to keep the DB clean
     await prisma.dailyNote.deleteMany({ where: { date } });
   } else {
     await prisma.dailyNote.upsert({
@@ -219,7 +219,7 @@ export async function saveNote(note: string): Promise<void> {
   revalidatePath('/');
 }
 
-// ---- Kế hoạch (mục 10) ----
+// ---- Plans (section 10) ----
 
 export interface CreatePlanInput {
   title: string;
@@ -230,7 +230,7 @@ export interface CreatePlanInput {
   milestones: MilestoneDraft[];
 }
 
-/** Tạo plan + roadmap milestone (đã xem trước/chỉnh ở dialog). Trả id để điều hướng. */
+/** Create a plan + roadmap milestones (previewed/edited in the dialog). Returns the id for navigation. */
 export async function createPlan(input: CreatePlanInput): Promise<string> {
   const title = input.title.trim();
   const goal = input.goal.trim();
@@ -268,13 +268,13 @@ export async function toggleMilestone(id: string, done: boolean): Promise<void> 
   revalidatePath('/plans');
 }
 
-/** Bỏ một cột mốc (lựa chọn "bỏ bớt milestone" khi chậm, mục 10.4) */
+/** Drop a milestone (the "trim milestones" option when behind, section 10.4) */
 export async function deleteMilestone(id: string): Promise<void> {
   await prisma.milestone.delete({ where: { id } });
   revalidatePath('/plans');
 }
 
-/** Thêm một cột mốc vào cuối roadmap */
+/** Add a milestone to the end of the roadmap */
 export async function addMilestone(planId: string, title: string): Promise<void> {
   const t = title.trim();
   if (!t) return;
@@ -293,7 +293,7 @@ export async function setPlanStatus(id: string, status: PlanStatus): Promise<voi
   revalidatePath('/plans');
 }
 
-/** Giãn deadline plan thêm n ngày (lựa chọn khi chậm tiến độ, mục 10.4) */
+/** Extend the plan deadline by n days (an option when behind schedule, section 10.4) */
 export async function extendPlanDeadline(id: string, days: number): Promise<void> {
   const plan = await prisma.plan.findUnique({ where: { id } });
   if (!plan) return;
@@ -305,7 +305,7 @@ export async function extendPlanDeadline(id: string, days: number): Promise<void
 }
 
 export async function deletePlan(id: string): Promise<void> {
-  // gỡ liên kết ở task trước (onDelete: SetNull lo phần này, nhưng làm rõ ý định)
+  // unlink from tasks first (onDelete: SetNull handles this, but make the intent explicit)
   await prisma.plan.delete({ where: { id } });
   revalidatePath('/plans');
 }

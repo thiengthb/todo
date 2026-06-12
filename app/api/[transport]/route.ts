@@ -1,7 +1,7 @@
 import { mcpHandler } from '@/lib/mcp/server';
 import { checkMcpAuth } from '@/lib/mcp/auth';
 
-// MCP cần dữ liệu thật mỗi request + chạy ở Node runtime (Prisma, SDK)
+// MCP needs real data on every request + runs in the Node runtime (Prisma, SDK)
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;

@@ -25,19 +25,19 @@ import type {
 
 export const dynamic = 'force-dynamic';
 
-// task "container" (có ≥1 con) là nhóm, không tính vào stats/tốc độ thật (mục 11)
+// a "container" task (with ≥1 child) is a group, not counted toward stats/real velocity (section 11)
 const NOT_CONTAINER = { subtasks: { none: {} } };
 
 export async function POST(): Promise<NextResponse> {
   try {
     const today = todayStr();
 
-    // 7 ngày gần nhất (không tính hôm nay) để tính tốc độ thực tế
+    // the last 7 days (excluding today) to compute real velocity
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekAgoStr = toDateStr(weekAgo);
 
-    // 14 ngày để lắp "reference class" độ khó (mục 11)
+    // 14 days to assemble the difficulty "reference class" (section 11)
     const twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
     const twoWeeksAgoStr = toDateStr(twoWeeksAgo);
@@ -61,7 +61,7 @@ export async function POST(): Promise<NextResponse> {
       incubatingGoalRows,
     ] = await Promise.all([
       prisma.task.findMany({ where: { date: today, ...NOT_CONTAINER } }),
-      // việc còn dở: mọi task chưa done có date đến hôm nay (bỏ container)
+      // unfinished tasks: all not-done tasks with a date up to today (excluding containers)
       prisma.task.findMany({
         where: { done: false, date: { lte: today }, ...NOT_CONTAINER },
         orderBy: { createdAt: 'asc' },
@@ -69,7 +69,7 @@ export async function POST(): Promise<NextResponse> {
       prisma.task.findMany({
         where: { date: { gte: weekAgoStr, lt: today }, ...NOT_CONTAINER },
       }),
-      // việc đã chấm cảm xúc/thời lượng ~14 ngày → suy độ khó + chậm/nhanh (mục 11/14)
+      // tasks rated with emotion/duration ~14 days → infer difficulty + slower/faster (sections 11/14)
       prisma.task.findMany({
         where: {
           date: { gte: twoWeeksAgoStr, lte: today },
@@ -93,11 +93,11 @@ export async function POST(): Promise<NextResponse> {
         where: { date: today },
         select: { habitId: true },
       }),
-      // mục tiêu "Ấp ủ" còn trong hàng đợi (mục 17) — để gợi lấy ra khi rảnh
+      // "Incubating" goals still in the queue (section 17) — to suggest pulling out when free
       prisma.goal.findMany({ where: { status: 'incubating' } }),
     ]);
 
-    // Lịch cứng ngày mai → quỹ giờ rảnh thật (mục 14)
+    // Tomorrow's hard commitments → real free time (section 14)
     const commitments: CommitmentDTO[] = commitmentRows.map((c) => ({
       id: c.id,
       title: c.title,
@@ -133,21 +133,21 @@ export async function POST(): Promise<NextResponse> {
     }));
     const anchor = scheduleSettings.termAnchorMonday;
     const tomorrowBlocks = blocksForDate(tomorrow, commitments, tomorrowEvents, anchor);
-    // khe trống + quỹ giờ ngày mai (mục 14)
+    // tomorrow's free slots + time budget (section 14)
     const capacity = computeFreeSlots(tomorrow, commitments, tomorrowEvents, scheduleSettings);
-    // khung mềm ngày mai → giảm "quỹ gợi ý" + làm preferred windows cho AI
+    // tomorrow's soft blocks → reduce the "suggested budget" + serve as preferred windows for the AI
     const tomorrowSoft = softBlocksForDate(tomorrow, softBlocks, tomorrowEvents, anchor);
     const suggestedCapacityMin = Math.max(
       0,
       capacity.capacityMin - softLoadMinutes(capacity.slots, tomorrowSoft),
     );
-    // thói quen hôm nay (thông tin) — chỉ thói quen đến hạn
+    // today's habits (informational) — only habits that are due
     const checkedHabitIds = new Set(habitCheckRows.map((r) => r.habitId));
     const habitsToday = habitRows
       .filter((h) => habitDueOn(h, today))
       .map((h) => ({ title: h.title, doneToday: checkedHabitIds.has(h.id) }));
 
-    // Trung bình ~7 ngày: chỉ tính những ngày thực sự có task
+    // ~7-day average: only count days that actually have tasks
     const byDate = new Map<string, { done: number; total: number }>();
     for (const t of recentTasks) {
       const d = byDate.get(t.date) ?? { done: 0, total: 0 };
@@ -176,7 +176,7 @@ export async function POST(): Promise<NextResponse> {
       .filter((t) => t.done)
       .map((t) => ({ title: t.title, emotion: t.emotion }));
 
-    // Kế hoạch đang chạy + tiến độ động → ngữ cảnh cho model rót việc kế tiếp
+    // Active plans + dynamic progress → context for the model to feed the next task
     const progressById = new Map(
       plans.map((p) => [p.id, computePlanProgress(p, p.milestones, today)]),
     );
@@ -195,7 +195,7 @@ export async function POST(): Promise<NextResponse> {
       };
     });
 
-    // sức/ngày suy động (mục 11) — dùng cho cả ctx lẫn xếp thứ tự mục tiêu Ấp ủ
+    // dynamically derived capacity/day (section 11) — used for both ctx and ranking Incubating goals
     const capacityScore = computeCapacity(
       checkin
         ? {
@@ -207,7 +207,7 @@ export async function POST(): Promise<NextResponse> {
         : null,
     );
 
-    // Ấp ủ (mục 17): xếp theo độ hợp quỹ giờ rảnh + sức ngày mai (loại mục đang snooze); cap 8 cho gọn
+    // Incubating (section 17): rank by fit to free time + tomorrow's capacity (excluding snoozed items); cap 8 for brevity
     const incubatingGoals = rankGoalsForNudge(
       incubatingGoalRows,
       capacity.slots,
@@ -230,10 +230,10 @@ export async function POST(): Promise<NextResponse> {
       weeklyAvg,
       note: note?.note ?? null,
       activePlans,
-      // reference class độ khó (mục 11): cap ~40 mục gần nhất cho gọn prompt
+      // difficulty reference class (section 11): cap ~40 most recent items to keep the prompt short
       recentDone: ratedTasks.slice(-40).map((t) => ({ title: t.title, emotion: t.emotion })),
       difficultyHints: computeDifficultyHints(ratedTasks),
-      // Personal OS (mục 11): check-in hôm nay + capacity động
+      // Personal OS (section 11): today's check-in + dynamic capacity
       todayCheckin: checkin
         ? {
             energy: checkin.energy,
@@ -243,7 +243,7 @@ export async function POST(): Promise<NextResponse> {
           }
         : null,
       capacityScore,
-      // lịch cứng ngày mai (mục 14) → AI hiệu chỉnh khối lượng theo quỹ giờ rảnh
+      // tomorrow's hard commitments (section 14) → the AI calibrates the load to free time
       tomorrowSchedule: tomorrowBlocks.map((b) => ({
         title: b.title,
         startTime: b.startTime,
@@ -264,8 +264,8 @@ export async function POST(): Promise<NextResponse> {
 
     const result = await suggestTomorrow(ctx);
 
-    // TRUST BOUNDARY (mục 14): loại slotStart model đặt NGOÀI khe rảnh thật (vd đè lịch cứng).
-    // Server recompute slots, chỉ giữ slotStart rơi vào một khe; sai → bỏ (không đặt giờ).
+    // TRUST BOUNDARY (section 14): reject slotStart the model placed OUTSIDE a real free slot (e.g. overlapping a hard commitment).
+    // The server recomputes slots, keeping only slotStart that falls inside a slot; invalid → drop (no time set).
     const slotRanges = capacity.slots.map(
       (s) => [hmToMinutes(s.start), hmToMinutes(s.end)] as const,
     );
@@ -278,15 +278,15 @@ export async function POST(): Promise<NextResponse> {
       if (item.slotStart && !slotOk(item.slotStart)) item.slotStart = undefined;
     }
 
-    // Chỉ giữ plan_task có planId hợp lệ (tránh model bịa id)
+    // Keep only plan_tasks with a valid planId (prevent the model from fabricating ids)
     const validPlanIds = new Set(plans.map((p) => p.id));
     result.plan_tasks = result.plan_tasks.filter((t) => validPlanIds.has(t.planId));
 
-    // TRUST BOUNDARY (mục 17): chỉ giữ queue_pull trỏ đúng mục tiêu còn trong hàng đợi (tránh bịa goalId)
+    // TRUST BOUNDARY (section 17): keep only queue_pulls pointing at a goal still in the queue (prevent fabricated goalId)
     const validGoalIds = new Set(incubatingGoalRows.map((g) => g.id));
     result.queue_pulls = result.queue_pulls.filter((q) => validGoalIds.has(q.goalId));
 
-    // Cảnh báo chậm: tính ĐỘNG ở server, không để model bịa số (mục 10.4)
+    // Behind-schedule alert: computed dynamically on the server, never let the model fabricate numbers (section 10.4)
     result.plan_alerts = plans
       .map((p): PlanAlert | null => {
         const prog = progressById.get(p.id)!;

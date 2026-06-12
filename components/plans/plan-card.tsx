@@ -20,7 +20,7 @@ interface PlanCardProps {
   progress: PlanProgress;
 }
 
-/** Thẻ tóm tắt một kế hoạch trong danh sách — vòng % + cột mốc hiện tại + cảnh báo chậm */
+/** Summary card for a plan in the list — % ring + current milestone + behind-schedule alert */
 export function PlanCard({ id, title, status, daysLeftLabel, progress }: PlanCardProps) {
   const behind = status === 'active' && progress.behindDays >= 1;
 
@@ -67,7 +67,7 @@ export function PlanCard({ id, title, status, daysLeftLabel, progress }: PlanCar
   );
 }
 
-/** Vòng tròn tiến độ nhỏ bằng conic-gradient — không cần lib */
+/** Small progress ring via conic-gradient — no lib needed */
 function ProgressRing({ pct }: { pct: number }) {
   return (
     <div

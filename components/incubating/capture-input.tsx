@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { addGoal } from '@/app/incubating/actions';
 
 /**
- * Bắt giữ mục tiêu 1 chạm (mục 17): chỉ cần tiêu đề + Enter. Ghi chú/cỡ để sau — giữ ma sát thấp (§11).
+ * One-tap goal capture (section 17): title + Enter is all it takes. Note/size come later — keep friction low (§11).
  */
 export function CaptureInput() {
   const [title, setTitle] = useState('');

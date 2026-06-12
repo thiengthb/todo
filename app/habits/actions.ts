@@ -9,7 +9,7 @@ function revalidate() {
   revalidatePath('/schedule');
 }
 
-/** Chuẩn hoá CSV thứ trong tuần ("1,2,3"), bỏ giá trị ngoài 0..6; rỗng → null (hằng ngày) */
+/** Normalize the weekday CSV ("1,2,3"), drop values outside 0..6; empty → null (daily) */
 function normalizeDays(daysOfWeek: string | null | undefined): string | null {
   if (!daysOfWeek) return null;
   const days = [
@@ -62,7 +62,7 @@ export async function deleteHabit(id: string): Promise<void> {
   revalidate();
 }
 
-/** Tick/bỏ tick thói quen cho HÔM NAY — idempotent qua unique (habitId, date), 1 chạm. */
+/** Tick/untick a habit for TODAY — idempotent via unique (habitId, date), one tap. */
 export async function toggleHabitToday(id: string): Promise<void> {
   const date = todayStr();
   const existing = await prisma.habitCheck.findUnique({

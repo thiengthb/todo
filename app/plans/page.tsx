@@ -9,14 +9,14 @@ import { EmptyState } from '@/components/empty-state';
 
 export const dynamic = 'force-dynamic';
 
-/** Nhãn ngày còn lại từ progress.daysLeft */
+/** Label for the remaining days from progress.daysLeft */
 function daysLeftLabel(daysLeft: number): string {
   if (daysLeft > 0) return `còn ${daysLeft}d`;
   if (daysLeft === 0) return 'hạn hôm nay';
   return `quá hạn ${-daysLeft}d`;
 }
 
-// active lên đầu, rồi paused, done, archived
+// active first, then paused, done, archived
 const STATUS_ORDER: Record<PlanStatus, number> = {
   active: 0,
   paused: 1,

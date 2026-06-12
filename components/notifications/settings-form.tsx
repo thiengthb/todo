@@ -91,7 +91,7 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
     });
   }
 
-  // Gửi thử: lưu trạng thái hiện tại trước (để dùng webhook mới nhất), rồi bắn
+  // Test send: save the current state first (to use the latest webhook), then fire
   async function test(kind: NotificationKind) {
     setTesting(kind);
     try {
@@ -305,7 +305,7 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
   );
 }
 
-/* ───────── mảnh con ───────── */
+/* ───────── sub-pieces ───────── */
 
 function TimeField({
   label,

@@ -1,6 +1,6 @@
 import { PageHeaderSkeleton, ListSkeleton, CardSkeleton } from '@/components/skeletons';
 
-/** Skeleton trang Nhịp sống — thói quen + cấu hình giờ. */
+/** Routines page skeleton — habits + time settings. */
 export default function Loading() {
   return (
     <div className="py-8">

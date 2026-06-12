@@ -64,7 +64,7 @@ const KIND_LABEL: Record<ScheduleKind, string> = {
   khac: 'Khác',
 };
 
-// thứ tự T2..CN cho lưới (getDay: 1..6,0)
+// Mon..Sun order for the grid (getDay: 1..6,0)
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 type Editing =
@@ -111,7 +111,7 @@ export function WeekView({
   const [editing, setEditing] = useState<Editing | null>(null);
   const [, startGridTransition] = useTransition();
 
-  // tra ngược object gốc khi bấm vào một khối trong lưới
+  // look up the original object when a block in the grid is clicked
   function openBlock(b: ScheduleBlock) {
     if (b.source === 'commitment') {
       const c = commitments.find((x) => x.id === b.id);
@@ -125,7 +125,7 @@ export function WeekView({
     }
   }
 
-  // kéo-thả lịch trên lưới → gửi lại ĐẦY ĐỦ field (giữ parity/validity), chỉ đổi hình học
+  // drag-and-drop a block on the grid → resend ALL fields (keep parity/validity), only geometry changes
   function handleMoveResize(block: ScheduleBlock, change: GridChange) {
     startGridTransition(async () => {
       let res: { ok: boolean; error?: string };
@@ -249,7 +249,7 @@ export function WeekView({
   );
 }
 
-/* ───────── Quản lý lịch cứng ───────── */
+/* ───────── Hard-commitment management ───────── */
 
 function CommitmentManager({
   commitments,
@@ -275,7 +275,7 @@ function CommitmentManager({
     );
   }
 
-  // nhóm theo thứ, sắp T2..CN
+  // group by weekday, sorted Mon..Sun
   const byDow = [...commitments].sort(
     (a, b) =>
       WEEK_ORDER.indexOf(a.dayOfWeek) - WEEK_ORDER.indexOf(b.dayOfWeek) ||
@@ -348,7 +348,7 @@ function CommitmentManager({
   );
 }
 
-/* ───────── Quản lý khung giờ mềm (time-blocking) ───────── */
+/* ───────── Soft-block management (time-blocking) ───────── */
 
 function SoftBlockManager({
   softBlocks,
@@ -466,7 +466,7 @@ function SoftBlockManager({
   );
 }
 
-/* ───────── Form thêm/sửa ───────── */
+/* ───────── Add/edit form ───────── */
 
 type FormType = 'commitment' | 'soft' | 'event';
 type EventMode = 'timed' | 'allday' | 'off';
@@ -484,7 +484,7 @@ function ScheduleForm({
   const editingSoft = editing.kind === 'edit-soft' ? editing.data : null;
   const editingEvent = editing.kind === 'edit-event' ? editing.data : null;
 
-  // loại form: cố định khi sửa; khi thêm thì chọn được (mặc định theo ngữ cảnh)
+  // form type: fixed when editing; selectable when adding (default from context)
   const initialType: FormType =
     editing.kind === 'edit-event' || editing.kind === 'new-event'
       ? 'event'
@@ -503,7 +503,7 @@ function ScheduleForm({
   const [kind, setKind] = useState<ScheduleKind>(
     editingCommitment?.kind ?? editingSoft?.kind ?? editingEvent?.kind ?? 'hoc',
   );
-  // commitment + soft (dùng chung các field thứ/giờ)
+  // commitment + soft (share the weekday/time fields)
   const [dayOfWeek, setDayOfWeek] = useState<number>(
     editingCommitment?.dayOfWeek ??
       editingSoft?.dayOfWeek ??
@@ -523,7 +523,7 @@ function ScheduleForm({
       editingSoft?.endTime ??
       (editing.kind === 'new-from-grid' ? editing.end : '10:00'),
   );
-  // kỳ học (mục 14) — tùy chọn, dùng chung cho commitment & soft
+  // semester (section 14) — optional, shared by commitment & soft
   const [validFrom, setValidFrom] = useState(
     editingCommitment?.validFrom ?? editingSoft?.validFrom ?? '',
   );

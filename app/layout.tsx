@@ -9,10 +9,10 @@ import { todayStr } from '@/lib/dates';
 import { computeStreaks } from '@/lib/streak';
 import './globals.css';
 
-// Streak hiện trên thanh menu => layout phải render động theo dữ liệu mỗi request
+// The streak shows on the menu bar => the layout must render dynamically from data on every request
 export const dynamic = 'force-dynamic';
 
-// Inter hỗ trợ subset tiếng Việt (Geist trên Google Fonts thì không)
+// Inter supports the Vietnamese subset (Geist on Google Fonts does not)
 const interSans = Inter({
   variable: '--font-sans',
   subsets: ['latin', 'vietnamese'],
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   description: 'Todo list cá nhân thông minh — AI đề xuất ngày mai từ dữ liệu thật',
 };
 
-// viewport-fit=cover để dùng được env(safe-area-inset-*) trên iPhone (notch + home-indicator)
+// viewport-fit=cover to enable env(safe-area-inset-*) on iPhone (notch + home-indicator)
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -40,7 +40,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // các ngày "giữ lửa" — tính streak một lần ở đây cho chip trên thanh menu
+  // the "active" days — compute the streak once here for the chip on the menu bar
   const activeRows = await prisma.task.findMany({
     where: { done: true },
     select: { date: true },

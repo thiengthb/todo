@@ -12,7 +12,7 @@ import { InfoHint } from '@/components/info-hint';
 import { updateScheduleSettings } from '@/app/schedule/actions';
 import type { ScheduleSettingsDTO } from '@/lib/types';
 
-/** Cấu hình giờ thức + buffer (mục 14) — nuôi computeFreeSlots tính quỹ giờ rảnh thật. */
+/** Wake-hours + buffer settings (section 14) — feeds computeFreeSlots to compute real free time. */
 export function ScheduleSettingsForm({ initial }: { initial: ScheduleSettingsDTO }) {
   const [v, setV] = useState(initial);
   const [pending, startTransition] = useTransition();

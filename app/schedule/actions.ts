@@ -13,12 +13,12 @@ const toKind = (k: string): ScheduleKind =>
   (KINDS as string[]).includes(k) ? (k as ScheduleKind) : 'khac';
 
 function revalidate() {
-  // /schedule cho trang lịch, / cho dải lịch hôm nay
+  // /schedule for the calendar page, / for today's schedule strip
   revalidatePath('/schedule');
   revalidatePath('/');
 }
 
-/** Field kỳ học dùng chung cho lịch cứng & khung mềm (mục 14) — tất cả tùy chọn */
+/** Semester fields shared by hard commitments & soft blocks (section 14) — all optional */
 interface SemesterInput {
   validFrom?: string | null;
   validUntil?: string | null;
@@ -33,12 +33,12 @@ export interface CommitmentInput extends SemesterInput {
   kind: string;
 }
 
-/** Kiểm tra chung cho khối có giờ: giờ hợp lệ + bắt đầu < kết thúc */
+/** Shared check for timed blocks: valid times + start < end */
 function validTimes(start: string, end: string): boolean {
   return isValidHm(start) && isValidHm(end) && hmToMinutes(start) < hmToMinutes(end);
 }
 
-/** Chuẩn hoá + kiểm tra field kỳ học. Trả data đã sạch hoặc lỗi. */
+/** Normalize + validate the semester fields. Returns cleaned data or an error. */
 function normalizeSemester(i: SemesterInput):
   | {
       ok: true;
@@ -122,7 +122,7 @@ export async function deleteCommitment(id: string): Promise<void> {
   revalidate();
 }
 
-/* ───────── Soft block (khung giờ mềm, mục 14) ───────── */
+/* ───────── Soft block (flexible time block, section 14) ───────── */
 
 export interface SoftBlockInput extends SemesterInput {
   title: string;
@@ -209,7 +209,7 @@ export async function addScheduleEvent(
   if (!title) return { ok: false, error: 'Cần tên sự kiện' };
   if (!isValidDateStr(input.date)) return { ok: false, error: 'Ngày không hợp lệ' };
 
-  // có giờ thì phải hợp lệ; cả ngày (không giờ) hoặc cancels thì bỏ qua
+  // if timed it must be valid; all-day (no time) or cancels is skipped
   const hasTime = !!input.startTime && !!input.endTime;
   if (hasTime && !validTimes(input.startTime!, input.endTime!))
     return { ok: false, error: 'Giờ bắt đầu phải trước giờ kết thúc' };
@@ -260,7 +260,7 @@ export async function deleteScheduleEvent(id: string): Promise<void> {
   revalidate();
 }
 
-/** Lưu cấu hình giờ thức / buffer / ngưỡng khe (mục 14) */
+/** Save the wake-hours / buffer / slot-threshold settings (section 14) */
 export async function updateScheduleSettings(
   input: ScheduleSettingsDTO,
 ): Promise<{ ok: boolean; error?: string }> {

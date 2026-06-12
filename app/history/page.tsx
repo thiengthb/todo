@@ -26,7 +26,7 @@ interface DaySummary {
   percent: number;
   emotions: { love: number; meh: number; hard: number };
   note: string | null;
-  /** vài tiêu đề đầu — preview cho ngày tương lai */
+  /** the first few titles — preview for a future day */
   titles: string[];
 }
 
@@ -119,7 +119,7 @@ export default async function HistoryPage() {
   ]);
   const noteByDate = new Map(notes.map((n) => [n.date, n.note]));
 
-  // Gom theo ngày
+  // Group by date
   const byDate = new Map<string, typeof tasks>();
   for (const t of tasks) {
     const arr = byDate.get(t.date) ?? [];
@@ -145,16 +145,16 @@ export default async function HistoryPage() {
     };
   });
 
-  const future = days.filter((d) => d.date > today); // đã asc theo query
-  const pastAndToday = days.filter((d) => d.date <= today).reverse(); // mới nhất trước
+  const future = days.filter((d) => d.date > today); // already asc per query
+  const pastAndToday = days.filter((d) => d.date <= today).reverse(); // most recent first
 
-  // Chuỗi giữ lửa — tính động từ các ngày có ≥1 việc done
+  // Streak — computed dynamically from days with ≥1 done task
   const streak = computeStreaks(
     days.filter((d) => d.done > 0).map((d) => d.date),
     today,
   );
 
-  // Dải hoạt động 14 ngày gần nhất (kết thúc hôm nay)
+  // Activity strip for the last 14 days (ending today)
   const strip = Array.from({ length: 14 }, (_, i) => {
     const date = addDays(today, i - 13);
     const day = days.find((d) => d.date === date);
@@ -204,7 +204,7 @@ export default async function HistoryPage() {
               className="py-10"
             />
           ) : (
-            // Các đợt giữ lửa gập lại — tránh lặp streak quá nhiều (mục giao diện)
+            // Collapsed streak runs — avoid repeating the streak too much (UI section)
             <details className="group">
               <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground">
                 <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
@@ -212,7 +212,7 @@ export default async function HistoryPage() {
               </summary>
               <ul className="mt-1">
                 {streak.runs.map((run, i) => {
-                  // run mới nhất (i===0) đang chạy khi current>0
+                  // the most recent run (i===0) is live when current>0
                   const isLive = i === 0 && streak.current > 0;
                   return (
                     <li

@@ -7,13 +7,13 @@ export interface PlanMomentumItem {
   title: string;
   currentMilestone: string | null;
   progressPct: number;
-  /** > 0: đang chậm (mục 10.5) */
+  /** > 0: behind schedule (section 10.5) */
   behindDays: number;
 }
 
 /**
- * Thẻ "Kế hoạch đang chạy" ở cột phải trang Hôm nay — đưa plan momentum (tiến độ + chậm Nd)
- * vào tầm mắt hằng ngày thay vì phải mở trang /plans. Trang chỉ render khi có ≥1 plan active.
+ * "Active plans" card in the right column of the Today page — surfaces plan momentum (progress + N days behind)
+ * into daily view instead of having to open /plans. Renders only when there is ≥1 active plan.
  */
 export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
   if (plans.length === 0) return null;
@@ -60,7 +60,7 @@ export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
   );
 }
 
-/** Vòng % nhỏ bằng conic-gradient — cùng pattern với plan-card.tsx, không cần lib */
+/** Small % ring via conic-gradient — same pattern as plan-card.tsx, no lib needed */
 function Ring({ pct }: { pct: number }) {
   return (
     <div

@@ -32,7 +32,7 @@ function readParams(sp: URLSearchParams): AuthParams {
 }
 
 function invalid(p: AuthParams, error: string): Response {
-  // có redirect_uri hợp lệ → trả lỗi theo OAuth; không thì 400 thuần
+  // valid redirect_uri → return the error per OAuth; otherwise a plain 400
   if (/^https?:\/\//.test(p.redirectUri)) {
     const u = new URL(p.redirectUri);
     u.searchParams.set('error', error);
@@ -85,7 +85,7 @@ export function GET(req: Request): Response {
     return new Response('OAuth chưa bật (thiếu MCP_AUTH_TOKEN)', { status: 403 });
   }
   if (p.responseType !== 'code') return invalid(p, 'unsupported_response_type');
-  if (!p.codeChallenge || p.codeChallengeMethod !== 'S256') return invalid(p, 'invalid_request'); // bắt buộc PKCE S256
+  if (!p.codeChallenge || p.codeChallengeMethod !== 'S256') return invalid(p, 'invalid_request'); // PKCE S256 required
   if (!/^https?:\/\//.test(p.redirectUri)) return invalid(p, 'invalid_request');
   return consentPage(p);
 }

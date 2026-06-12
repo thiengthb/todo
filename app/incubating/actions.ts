@@ -6,11 +6,11 @@ import { addDays, isValidDateStr, tomorrowStr, todayStr } from '@/lib/dates';
 import { createPlan, type CreatePlanInput } from '@/app/actions';
 
 /**
- * Server actions cho "Ấp ủ" (mục 17) — hàng đợi mục tiêu chưa cam kết.
- * Bắt giữ 1 chạm; ngõ ra: kéo thành Task hoặc nâng thành Plan (tái dùng máy cũ); buông không tội lỗi.
+ * Server actions for "Incubating" (section 17) — the queue of uncommitted goals.
+ * One-tap capture; exits: drag into a Task or promote to a Plan (reusing the existing machinery); guilt-free drop.
  */
 
-/** Bắt giữ một mục tiêu mới (chỉ cần title; note tùy chọn) */
+/** Capture a new goal (title only; note optional) */
 export async function addGoal(title: string, note?: string): Promise<void> {
   const t = title.trim();
   if (!t) return;
@@ -25,7 +25,7 @@ export async function updateGoal(
   const patch: { title?: string; note?: string | null } = {};
   if (data.title !== undefined) {
     const t = data.title.trim();
-    if (!t) return; // không cho xoá trắng tiêu đề
+    if (!t) return; // don't allow blanking out the title
     patch.title = t;
   }
   if (data.note !== undefined) patch.note = data.note?.trim() || null;
@@ -33,7 +33,7 @@ export async function updateGoal(
   revalidatePath('/incubating');
 }
 
-/** Buông (soft) — vào khối "Đã buông", khôi phục được */
+/** Drop (soft) — moves to the "Dropped" block, recoverable */
 export async function dropGoal(id: string): Promise<void> {
   await prisma.goal.update({ where: { id }, data: { status: 'dropped' } });
   revalidatePath('/incubating');
@@ -47,13 +47,13 @@ export async function restoreGoal(id: string): Promise<void> {
   revalidatePath('/incubating');
 }
 
-/** Xoá hẳn (từ khối "Đã buông") */
+/** Permanently delete (from the "Dropped" block) */
 export async function deleteGoal(id: string): Promise<void> {
   await prisma.goal.delete({ where: { id } });
   revalidatePath('/incubating');
 }
 
-/** Ghim "muốn làm sớm" → reset độ-cũ + bỏ snooze */
+/** Pin "want to do soon" → reset staleness + clear snooze */
 export async function pinGoal(id: string, pinned: boolean): Promise<void> {
   await prisma.goal.update({
     where: { id },
@@ -62,7 +62,7 @@ export async function pinGoal(id: string, pinned: boolean): Promise<void> {
   revalidatePath('/incubating');
 }
 
-/** Hoãn nhắc/hỏi-cũ thêm n ngày (mặc định 30) — lòng trắc ẩn, không xoá */
+/** Snooze the reminder/stale-prompt by n days (default 30) — compassion, not deletion */
 export async function snoozeGoal(id: string, days = 30): Promise<void> {
   const until = addDays(todayStr(), Math.max(1, days));
   await prisma.goal.update({ where: { id }, data: { snoozedUntil: until } });
@@ -70,8 +70,8 @@ export async function snoozeGoal(id: string, days = 30): Promise<void> {
 }
 
 /**
- * Kéo mục tiêu vào một ngày → tạo Task (việc nhỏ). Đánh dấu goal `promoted` + truy ngược.
- * Task vào trang Hôm nay/Lịch sử như mọi việc thường; goal rời hàng đợi.
+ * Drag a goal into a day → create a Task (small task). Mark the goal `promoted` + traceable.
+ * The task appears on Today/History like any normal task; the goal leaves the queue.
  */
 export async function promoteGoalToTask(
   id: string,
@@ -102,8 +102,8 @@ export async function promoteGoalToTask(
 }
 
 /**
- * Nâng mục tiêu thành Kế hoạch (việc lớn, nhiều bước) — tái dùng `createPlan` (mục 10), KHÔNG
- * đẻ luồng riêng. Đánh dấu goal `promoted` + truy ngược. Trả planId để điều hướng.
+ * Promote a goal to a Plan (big, multi-step work) — reuses `createPlan` (section 10), does NOT
+ * spawn a separate flow. Mark the goal `promoted` + traceable. Returns the planId for navigation.
  */
 export async function promoteGoalToPlan(id: string, input: CreatePlanInput): Promise<string> {
   const goal = await prisma.goal.findUnique({ where: { id } });

@@ -7,13 +7,13 @@ export const dynamic = 'force-dynamic';
 const KINDS: NotificationKind[] = ['morning', 'streak_guard', 'random_nudge', 'evening'];
 
 /**
- * Endpoint kích hoạt thông báo từ BÊN NGOÀI (mục 13) — fallback cho scheduler nội bộ
- * (Windows Task Scheduler / cron / GitHub Actions). Bảo vệ bằng NOTIFY_SECRET.
+ * Endpoint to trigger notifications from the OUTSIDE (section 13) — a fallback for the internal scheduler
+ * (Windows Task Scheduler / cron / GitHub Actions). Protected by NOTIFY_SECRET.
  *
- *   POST /api/notify/run?kind=morning&secret=...   (hoặc header x-notify-secret)
- *   ?force=1  → bỏ qua gating/giờ yên/idempotency (gửi thử)
+ *   POST /api/notify/run?kind=morning&secret=...   (or the x-notify-secret header)
+ *   ?force=1  → bypass gating/quiet-hours/idempotency (test send)
  *
- * Nếu NOTIFY_SECRET chưa đặt → endpoint TẮT (tránh ai cũng spam được).
+ * If NOTIFY_SECRET is not set → the endpoint is OFF (prevents anyone from spamming it).
  */
 async function handle(req: NextRequest): Promise<NextResponse> {
   const secret = process.env.NOTIFY_SECRET;
@@ -28,7 +28,7 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   const kindParam = req.nextUrl.searchParams.get('kind');
   const force = req.nextUrl.searchParams.get('force') === '1';
 
-  // không có kind → chạy tất cả loại (để 1 cron ngoài lo hết)
+  // no kind → run all kinds (so a single external cron handles everything)
   const kinds = kindParam ? KINDS.filter((k) => k === kindParam) : KINDS;
   if (kindParam && kinds.length === 0) {
     return NextResponse.json({ error: 'kind không hợp lệ' }, { status: 400 });

@@ -1,7 +1,7 @@
 import { GridSkeleton } from '@/components/skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Skeleton trang Hướng dẫn — hero + lưới thẻ. */
+/** Guide page skeleton — hero + grid of cards. */
 export default function Loading() {
   return (
     <div className="py-8">

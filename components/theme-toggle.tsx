@@ -9,7 +9,7 @@ const emptySubscribe = () => () => {};
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  // tránh hydration mismatch — server render luôn coi như chưa mounted
+  // avoid hydration mismatch — server render always treats it as not mounted
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,

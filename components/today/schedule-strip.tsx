@@ -10,8 +10,8 @@ const KIND_BORDER: Record<ScheduleKind, string> = {
 };
 
 /**
- * Dải lịch cứng của ngày đang xem (chỉ-đọc, mục 14) — hiện trên danh sách việc
- * để thấy "khung ngày" trước khi làm việc. Ẩn khi không có lịch nào.
+ * The viewed day's hard-schedule strip (read-only, section 14) — shown above the task list
+ * to see the "day frame" before working. Hidden when there is no schedule.
  */
 export function ScheduleStrip({ blocks }: { blocks: ScheduleBlock[] }) {
   if (blocks.length === 0) return null;

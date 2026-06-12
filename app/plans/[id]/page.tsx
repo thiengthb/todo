@@ -35,7 +35,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
     where: { id },
     include: {
       milestones: { orderBy: { order: 'asc' } },
-      // bỏ task "container" (đã chia nhỏ) khỏi đếm tiến độ việc (mục 11)
+      // exclude "container" tasks (broken down) from the task progress count (section 11)
       tasks: {
         where: { subtasks: { none: {} } },
         select: { id: true, done: true },

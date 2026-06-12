@@ -7,8 +7,8 @@ import { InfoHint } from '@/components/info-hint';
 import { saveNote } from '@/app/actions';
 
 /**
- * Ghi chú cuối ngày (mục giao diện, đại tu 2026-06) — progressive disclosure: khi chưa có ghi chú
- * chỉ hiện 1 dòng "+ Ghi chú hôm nay", bấm mới mở Textarea → trang Hôm nay đỡ dài.
+ * End-of-day note (UI section, 2026-06 overhaul) — progressive disclosure: when there's no note
+ * it shows just one line "+ Today's note", clicking opens the Textarea → keeps the Today page shorter.
  */
 export function NoteBox({ initialNote }: { initialNote: string }) {
   const [note, setNote] = useState(initialNote);

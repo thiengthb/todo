@@ -12,12 +12,12 @@ export interface HabitStripItem {
 }
 
 /**
- * Dải thói quen hôm nay (mục 11) — pill 1 chạm. KHÔNG điểm/streak (giữ phản hồi thông tin).
- * Trang chỉ truyền các thói quen ĐẾN HẠN hôm nay; rỗng → component không render.
+ * Today's habit strip (section 11) — one-tap pills. NO points/streak (keep informational feedback).
+ * The page passes only the habits DUE today; empty → the component doesn't render.
  */
 export function HabitStrip({ habits }: { habits: HabitStripItem[] }) {
   const [pending, startTransition] = useTransition();
-  // trạng thái lạc quan để bấm thấy phản hồi ngay
+  // optimistic state so a tap shows feedback immediately
   const [done, setDone] = useState<Record<string, boolean>>(
     Object.fromEntries(habits.map((h) => [h.id, h.doneToday])),
   );

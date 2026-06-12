@@ -15,8 +15,8 @@ interface NudgeGoal {
 }
 
 /**
- * Thẻ "Lúc rảnh" trên trang Hôm nay (mục 17): khi quỹ giờ rảnh cao & còn mục Ấp ủ, gợi nhẹ lấy
- * một điều ra làm. Cơ hội, không hối thúc — chỉ hiện 1 mục hợp nhất + link xem phần còn lại.
+ * "When free" card on the Today page (section 17): when free time is high & Incubating items remain, gently suggest
+ * pulling one out to work on. An opportunity, not a push — shows just 1 best-fit item + a link to see the rest.
  */
 export function IncubatingNudge({
   goal,

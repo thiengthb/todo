@@ -1,7 +1,7 @@
 import { PageHeaderSkeleton, CardSkeleton } from '@/components/skeletons';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Skeleton trang Thông báo (tab + form). */
+/** Notifications page skeleton (tabs + form). */
 export default function Loading() {
   return (
     <div className="py-8">

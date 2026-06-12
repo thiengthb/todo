@@ -28,7 +28,7 @@ export const metadata = {
   description: 'Cách Smart Todo giúp bạn lập kế hoạch và duy trì kỷ luật bền vững.',
 };
 
-// ---- Dữ liệu nội dung (tách khỏi layout cho gọn) ----
+// ---- Content data (split out from layout for brevity) ----
 
 const STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
@@ -110,7 +110,7 @@ const SCIENCE: { title: string; desc: string }[] = [
   },
 ];
 
-// ---- Nội dung tab MCP (dùng Claude lập kế hoạch trên dữ liệu thật, mục 15) ----
+// ---- MCP tab content (use Claude to plan on real data, section 15) ----
 
 const MCP_STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
@@ -130,7 +130,7 @@ const MCP_STEPS: { icon: LucideIcon; title: string; desc: string }[] = [
   },
 ];
 
-// Lệnh kết nối trực tiếp (không cần cầu nối mcp-remote)
+// Direct connection command (no mcp-remote bridge needed)
 const MCP_CONNECT_CLI =
   'claude mcp add --transport http todo https://<tên-miền>/api/mcp \\\n  --header "Authorization: Bearer <MCP_AUTH_TOKEN>"';
 

@@ -1,6 +1,6 @@
 import { PageHeaderSkeleton, CardSkeleton, ListSkeleton } from '@/components/skeletons';
 
-/** Skeleton trang Hôm nay (dashboard 2 cột) — tránh khựng khi điều hướng. */
+/** Today page skeleton (2-column dashboard) — avoids a janky navigation. */
 export default function Loading() {
   return (
     <div className="py-8">

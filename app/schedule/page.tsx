@@ -20,12 +20,12 @@ import type {
   SoftBlockDTO,
 } from '@/lib/types';
 
-/** focus → khac (ScheduleKind chỉ có hoc/lam/khac) */
+/** focus → khac (ScheduleKind only has hoc/lam/khac) */
 function toScheduleKind(k: string): ScheduleKind {
   return k === 'hoc' || k === 'lam' ? k : 'khac';
 }
 
-/** Sắp khối theo giờ; khối cả ngày (null) lên đầu — "HH:MM" so lexical = thời gian */
+/** Sort blocks by time; all-day blocks (null) go first — "HH:MM" lexical compare = time order */
 function byStart(a: ScheduleBlock, b: ScheduleBlock): number {
   if (a.startTime === b.startTime) return 0;
   if (a.startTime === null) return -1;
@@ -104,7 +104,7 @@ export default async function SchedulePage({ searchParams }: PageProps) {
       label: weekdayShortVN(new Date(`${date}T00:00:00`).getDay()),
       dateShort: formatDateShort(date),
       isToday: date === today,
-      // lưới hiển thị cả lịch cứng + khung mềm (soft); quỹ rảnh chỉ tính lịch cứng
+      // the grid shows both hard commitments + soft blocks; free time only counts hard commitments
       blocks: [
         ...blocksForDate(date, commitments, events, settings.termAnchorMonday),
         ...softBlocksForDate(date, softBlocks, events, settings.termAnchorMonday),

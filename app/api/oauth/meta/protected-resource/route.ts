@@ -3,7 +3,7 @@ import { getOrigin, jsonCors, CORS_HEADERS } from '@/lib/mcp/oauth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// RFC 9728 — Protected Resource Metadata: chỉ ra Authorization Server cho /api/mcp
+// RFC 9728 — Protected Resource Metadata: points to the Authorization Server for /api/mcp
 export function GET(req: Request): Response {
   const o = getOrigin(req);
   return jsonCors({

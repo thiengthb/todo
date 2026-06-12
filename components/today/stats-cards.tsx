@@ -1,6 +1,6 @@
 import { InfoHint } from '@/components/info-hint';
 
-/** Vòng % bằng conic-gradient — cùng pattern Ring của plan-momentum, không cần lib. */
+/** % ring via conic-gradient — same Ring pattern as plan-momentum, no lib needed. */
 function ProgressRing({ pct, label }: { pct: number; label: string }) {
   return (
     <div
@@ -18,8 +18,8 @@ function ProgressRing({ pct, label }: { pct: number; label: string }) {
 }
 
 /**
- * Thẻ "Tiến độ hôm nay" (mục giao diện, đại tu 2026-06) — gộp 3 ô số rời thành 1 card đặc:
- * vòng % + đã xong/tổng + còn dở + tốc độ thật. Dùng khoảng trống tốt hơn, bớt "chồng card".
+ * "Today's progress" card (UI section, 2026-06 overhaul) — merges 3 separate number cells into 1 solid card:
+ * % ring + done/total + remaining + real velocity. Uses whitespace better, fewer "stacked cards".
  */
 export function StatsCards({
   done,
@@ -28,12 +28,12 @@ export function StatsCards({
 }: {
   done: number;
   total: number;
-  /** tốc độ thật ~7 ngày (lib/velocity.ts) — null khi chưa đủ dữ liệu, sẽ ẩn caption */
+  /** real velocity ~7 days (lib/velocity.ts) — null when not enough data, hides the caption */
   velocity?: { avgDonePerDay: number; daysWithData: number } | null;
 }) {
   const percent = total === 0 ? 0 : Math.round((done / total) * 100);
   const remaining = total - done;
-  // goal-gradient (mục 11): khi gần xong, nhấn QUÃNG ĐƯỜNG CÒN LẠI (động lực mạnh hơn % đã đi)
+  // goal-gradient (section 11): when nearly done, emphasize the DISTANCE REMAINING (stronger motivation than % completed)
   const nearDone = total >= 3 && remaining > 0 && remaining <= 2 && done > 0;
 
   return (

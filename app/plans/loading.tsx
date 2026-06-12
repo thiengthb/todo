@@ -1,6 +1,6 @@
 import { PageHeaderSkeleton, GridSkeleton } from '@/components/skeletons';
 
-/** Skeleton trang Kế hoạch — lưới thẻ plan. */
+/** Plans page skeleton — grid of plan cards. */
 export default function Loading() {
   return (
     <div className="py-8">
