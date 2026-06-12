@@ -5,6 +5,7 @@ import { Loader2, Pencil, Plus, Repeat, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Truncate } from '@/components/ui/truncate';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -76,7 +77,7 @@ export function HabitManager({ habits }: { habits: HabitRow[] }) {
                 !h.active && 'opacity-50',
               )}
             >
-              <span className="min-w-0 flex-1 truncate text-sm">{h.title}</span>
+              <Truncate className="flex-1 text-sm">{h.title}</Truncate>
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {daysLabel(h.daysOfWeek)}
               </span>

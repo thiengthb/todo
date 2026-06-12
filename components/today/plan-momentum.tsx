@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AlertTriangle, Target } from 'lucide-react';
+import { Truncate } from '@/components/ui/truncate';
 
 export interface PlanMomentumItem {
   id: string;
@@ -39,10 +40,10 @@ export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
           >
             <Ring pct={p.progressPct} />
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 truncate text-xs font-medium">{p.title}</p>
-              <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
+              <Truncate className="text-xs font-medium">{p.title}</Truncate>
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                 <Target className="size-3 shrink-0" />
-                {p.currentMilestone ?? 'Đã xong mọi cột mốc'}
+                <Truncate>{p.currentMilestone ?? 'Đã xong mọi cột mốc'}</Truncate>
               </p>
             </div>
             {p.behindDays >= 1 && (

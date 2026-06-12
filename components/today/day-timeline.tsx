@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import { Brain, Check, Clock, Lock, Move, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Truncate } from '@/components/ui/truncate';
 import { hmToMinutes, minutesToHm } from '@/lib/notify/time';
 import { toggleTask } from '@/app/actions';
-import { SlotPicker } from '@/components/today/slot-picker';
+import { EmotionPrompt, TaskDetailDialog } from '@/components/today/task-detail-dialog';
 import { EmptyState } from '@/components/empty-state';
 import type { FreeSlot, ScheduleBlock, ScheduleKind, TaskDTO } from '@/lib/types';
 
@@ -178,7 +180,21 @@ function ScheduledCard({
   freeSlots: FreeSlot[];
 }) {
   const [, startTransition] = useTransition();
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [emotionOpen, setEmotionOpen] = useState(false);
   const h = Math.max(MIN_CARD_MIN, (task.estimatedMinutes ?? 30) * PX_PER_MIN);
+
+  function tick(e: React.MouseEvent) {
+    e.stopPropagation();
+    const next = !task.done;
+    startTransition(async () => {
+      await toggleTask(task.id, next);
+      if (next) {
+        toast.success('Hoàn thành!', { description: task.title });
+        setEmotionOpen(true);
+      }
+    });
+  }
 
   return (
     <div
@@ -191,7 +207,7 @@ function ScheduledCard({
       <button
         type="button"
         aria-label={task.done ? 'Đánh dấu chưa xong' : 'Đánh dấu đã xong'}
-        onClick={() => startTransition(() => toggleTask(task.id, !task.done))}
+        onClick={tick}
         className={cn(
           'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors',
           task.done
@@ -201,34 +217,44 @@ function ScheduledCard({
       >
         {task.done && <Check className="size-2.5" strokeWidth={3} />}
       </button>
-      <SlotPicker
-        taskId={task.id}
-        estimatedMinutes={task.estimatedMinutes}
+      <button
+        type="button"
+        className="min-w-0 flex-1 text-left"
+        aria-label={`Tùy chỉnh: ${task.title}`}
+        onClick={() => setDetailOpen(true)}
+      >
+        <span className="flex items-center gap-1">
+          {isMit && !task.done && (
+            <Star className="size-3 shrink-0 fill-amber-400 text-amber-500" />
+          )}
+          {task.deepWork && <Brain className="size-3 shrink-0 text-muted-foreground" />}
+          <Truncate
+            className={cn(
+              'flex-1 text-xs font-medium',
+              task.done && 'text-muted-foreground line-through',
+            )}
+          >
+            {task.title}
+          </Truncate>
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground tabular-nums">
+          <Clock className="size-2.5" />
+          {task.scheduledFor}
+          {task.estimatedMinutes ? ` · ${task.estimatedMinutes}′` : ''}
+        </span>
+      </button>
+
+      <TaskDetailDialog
+        task={task}
         freeSlots={freeSlots}
-        hasSlot
-        trigger={
-          <button type="button" className="min-w-0 flex-1 text-left" aria-label="Đổi giờ">
-            <span className="flex items-center gap-1">
-              {isMit && !task.done && (
-                <Star className="size-3 shrink-0 fill-amber-400 text-amber-500" />
-              )}
-              {task.deepWork && <Brain className="size-3 shrink-0 text-muted-foreground" />}
-              <span
-                className={cn(
-                  'truncate text-xs font-medium',
-                  task.done && 'text-muted-foreground line-through',
-                )}
-              >
-                {task.title}
-              </span>
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground tabular-nums">
-              <Clock className="size-2.5" />
-              {task.scheduledFor}
-              {task.estimatedMinutes ? ` · ${task.estimatedMinutes}′` : ''}
-            </span>
-          </button>
-        }
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
+      <EmotionPrompt
+        taskId={task.id}
+        title={task.title}
+        open={emotionOpen}
+        onOpenChange={setEmotionOpen}
       />
     </div>
   );

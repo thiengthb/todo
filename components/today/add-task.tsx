@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { addTask } from '@/app/actions';
@@ -22,7 +23,10 @@ export function AddTask({
     const t = title.trim();
     if (!t || pending) return;
     setTitle('');
-    startTransition(() => addTask(t, date));
+    startTransition(async () => {
+      await addTask(t, date);
+      toast.success('Đã thêm việc', { description: t });
+    });
   }
 
   // chủ đề "hay mệt" khớp trong tiêu đề đang gõ → gợi ý hạ rào (mục 11), không chặn

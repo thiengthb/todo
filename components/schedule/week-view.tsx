@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Truncate } from '@/components/ui/truncate';
 import { TimePicker } from '@/components/ui/time-picker';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -303,7 +304,7 @@ function CommitmentManager({
             <span className="w-24 shrink-0 text-xs text-muted-foreground tabular-nums">
               {c.startTime}–{c.endTime}
             </span>
-            <span className="min-w-0 flex-1 truncate text-sm">{c.title}</span>
+            <Truncate className="flex-1 text-sm">{c.title}</Truncate>
             <span className="shrink-0 text-[11px] text-muted-foreground">{KIND_LABEL[c.kind]}</span>
             <Switch
               checked={c.active}
@@ -421,7 +422,7 @@ function SoftBlockManager({
             <span className="w-24 shrink-0 text-xs text-muted-foreground tabular-nums">
               {s.startTime}–{s.endTime}
             </span>
-            <span className="min-w-0 flex-1 truncate text-sm">{s.title}</span>
+            <Truncate className="flex-1 text-sm">{s.title}</Truncate>
             <span className="shrink-0 text-[11px] text-muted-foreground">{KIND_LABEL[s.kind]}</span>
             <Switch
               checked={s.active}

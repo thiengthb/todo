@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle, ChevronRight, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Truncate } from '@/components/ui/truncate';
 import { cn } from '@/lib/utils';
 import type { PlanProgress, PlanStatus } from '@/lib/types';
 
@@ -32,7 +33,7 @@ export function PlanCard({ id, title, status, daysLeftLabel, progress }: PlanCar
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h3 className="truncate text-sm font-medium">{title}</h3>
+          <Truncate className="text-sm font-medium">{title}</Truncate>
           {status !== 'active' && (
             <Badge variant="outline" className="shrink-0 text-[11px] font-normal">
               {STATUS_LABEL[status]}
@@ -48,9 +49,9 @@ export function PlanCard({ id, title, status, daysLeftLabel, progress }: PlanCar
             </Badge>
           )}
         </div>
-        <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Target className="size-3 shrink-0" />
-          {progress.currentMilestone ?? 'Đã xong mọi cột mốc'}
+          <Truncate>{progress.currentMilestone ?? 'Đã xong mọi cột mốc'}</Truncate>
         </p>
         <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
           <span>

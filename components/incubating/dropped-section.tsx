@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { ChevronDown, RotateCcw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IconTooltip } from '@/components/icon-tooltip';
+import { Truncate } from '@/components/ui/truncate';
 import { deleteGoal, restoreGoal } from '@/app/incubating/actions';
 import type { GoalDTO } from '@/lib/types';
 
@@ -33,9 +34,9 @@ export function DroppedSection({ goals }: { goals: GoalDTO[] }) {
               key={g.id}
               className="flex items-center gap-3 border-b border-border/70 px-4 py-3 last:border-b-0"
             >
-              <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground line-through">
+              <Truncate className="flex-1 text-sm text-muted-foreground line-through">
                 {g.title}
-              </p>
+              </Truncate>
               <IconTooltip label="Khôi phục">
                 <button
                   type="button"

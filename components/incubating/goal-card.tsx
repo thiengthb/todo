@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { IconTooltip } from '@/components/icon-tooltip';
+import { Truncate } from '@/components/ui/truncate';
 import { cn } from '@/lib/utils';
 import { dropGoal, pinGoal, snoozeGoal, updateGoal } from '@/app/incubating/actions';
 import type { GoalDTO } from '@/lib/types';
@@ -96,9 +97,9 @@ export function GoalCard({ goal }: { goal: GoalDTO }) {
           </div>
         ) : (
           <>
-            <p className="truncate text-sm">{goal.title}</p>
+            <Truncate className="text-sm">{goal.title}</Truncate>
             {goal.note && (
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">{goal.note}</p>
+              <Truncate className="mt-0.5 text-xs text-muted-foreground">{goal.note}</Truncate>
             )}
             {goal.isStale && (
               <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">

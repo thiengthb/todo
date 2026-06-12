@@ -15,6 +15,7 @@ import { computeStreaks } from '@/lib/streak';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/empty-state';
+import { Truncate } from '@/components/ui/truncate';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,10 +70,10 @@ function DayRow({ day, isFuture }: { day: DaySummary; isFuture: boolean }) {
 
       <div className="min-w-0 flex-1">
         {isFuture ? (
-          <p className="truncate text-xs text-muted-foreground">
+          <Truncate className="text-xs text-muted-foreground" full={day.titles.join(' · ')}>
             {day.titles.slice(0, 3).join(' · ')}
             {day.titles.length > 3 && ` +${day.titles.length - 3}`}
-          </p>
+          </Truncate>
         ) : (
           <>
             <div className="h-1.5 overflow-hidden rounded-full bg-muted">
