@@ -1,68 +1,68 @@
-# Smart Todo — Đặc tả tính năng nâng cao (chi tiết)
+# Smart Todo — Advanced feature spec (detailed)
 
-> Tách ra từ `CLAUDE.md` (2026-06-12) để `CLAUDE.md` gọn lại (chỉ giữ rules + bất biến nạp mỗi
-> session). **Đây là nguồn đặc tả ĐẦY ĐỦ** cho 6 tầng tính năng dưới — đọc khi đụng đúng tính năng đó.
-> Bất biến cốt lõi vẫn được nhắc gọn trong `CLAUDE.md`; file này là chi tiết triển khai.
+> Extracted from `CLAUDE.md` (2026-06-12) to keep `CLAUDE.md` thin (rules + invariants that load every
+> session). **This is the FULL spec** for the 6 feature layers below — read it when you touch that feature.
+> The core invariants are still summarized in `CLAUDE.md`; this file is the implementation detail.
 >
-> Mục lục: §10 Kế hoạch (Plan) · §11 Tầng hành vi học · §13 Thông báo Discord · §14 Day Planner ·
-> §15 MCP Server · §17 Ấp ủ (Someday/Maybe). (§12 UI shell và §16 vai trò tab vẫn nằm trong `CLAUDE.md`
-> vì là quy ước/bất biến áp dụng thường xuyên.)
+> Contents: §10 Plan · §11 Behavioral layer · §13 Discord notifications · §14 Day Planner · §15 MCP Server ·
+> §17 Incubating (Someday/Maybe). (§12 UI shell and §16 tab roles stay in `CLAUDE.md` as frequently-applied
+> conventions/invariants.)
 
 ---
 
-## 10. Tính năng Kế hoạch (Plan)
+## 10. Plan feature
 
-> Mở rộng app sang **mục tiêu dài hạn** (vd "Học tiếng Nhật cơ bản trong 1 tháng").
-> Triết lý bất biến: **bám tốc độ thật, không theo mong muốn** — y như phần đề xuất ngày mai.
-> KHÔNG làm "lịch cứng 30 ngày" (đẻ sẵn mọi task → lệch là chất đống task quá hạn, đi ngược app).
+> Extends the app to **long-term goals** (e.g. "Learn basic Japanese in a month").
+> Invariant philosophy: **track real pace, not wishes** — just like the suggest-tomorrow part.
+> Do NOT build a "hard 30-day schedule" (pre-generate every task → any slip piles up overdue tasks, against the app).
 
-### 10.1 Cơ chế cốt lõi — Roadmap cuốn chiếu (rolling)
+### 10.1 Core mechanism — rolling roadmap
 
-Kế hoạch tách 2 tầng:
+A plan splits into 2 tiers:
 
-- **Roadmap (cột mốc)** — tương đối ổn định: mục tiêu + vài milestone lớn do AI sinh lúc tạo,
-  người dùng chỉnh được. VD: Tuần 1 Hiragana → Tuần 2 Katakana → Tuần 3: 100 từ vựng → Tuần 4: câu đơn.
-- **Task hằng ngày** — sinh động, cuốn chiếu: AI KHÔNG đẻ sẵn 30 ngày. Mỗi ngày chỉ rót 1–2 task
-  kế tiếp dựa trên _đang ở đâu trên roadmap_ + _tốc độ thật mấy hôm nay_ + _cảm xúc_. Đi nhanh → đẩy
-  tới; chậm → co task / giãn deadline.
+- **Roadmap (milestones)** — relatively stable: the goal + a few big milestones the AI generates at creation,
+  the user can edit. E.g. Week 1 Hiragana → Week 2 Katakana → Week 3: 100 vocab → Week 4: simple sentences.
+- **Daily tasks** — dynamic, rolling: the AI does NOT pre-generate 30 days. Each day it drips only the next
+  1–2 tasks based on _where you are on the roadmap_ + _your real pace lately_ + _emotion_. Fast → push ahead;
+  slow → shrink tasks / extend the deadline.
 
-### 10.2 Tích hợp — HÒA vào `/api/suggest`, không tạo luồng đề xuất riêng
+### 10.2 Integration — FOLDED into `/api/suggest`, no separate suggestion flow
 
-Task của plan chỉ là loại đề xuất thứ 3 bên cạnh `carry_over` và `suggested_tasks`. Một nút "Đề xuất
-ngày mai" ra cả 3 nhóm. `reason` của plan task truy ngược về **milestone** (thay vì việc hôm qua).
+A plan's tasks are just a 3rd suggestion type alongside `carry_over` and `suggested_tasks`. One "Suggest
+tomorrow" button yields all 3 groups. A plan task's `reason` traces back to a **milestone** (not yesterday's work).
 
-### 10.3 Nhiều plan song song — chia sức
+### 10.3 Multiple parallel plans — split capacity
 
-Cho phép nhiều plan `active` cùng lúc (vd vừa tiếng Nhật vừa gym). AI biết tổng sức/ngày có hạn
-(= `avgDonePerDay` thật) nên **chia đều giữa các plan**, không nhồi. Tổng (carry_over + suggested +
-plan_tasks) vẫn ≈ `avgDonePerDay` (±1).
+Allow multiple `active` plans at once (e.g. Japanese + gym). The AI knows total capacity/day is limited
+(= real `avgDonePerDay`) so it **splits evenly across plans**, no overloading. The total (carry_over +
+suggested + plan_tasks) still ≈ `avgDonePerDay` (±1).
 
-### 10.4 Khi chậm tiến độ — cảnh báo + để người dùng chọn
+### 10.4 When behind schedule — warn + let the user choose
 
-AI phát hiện trễ, nói rõ "chậm ~N ngày" rồi đưa 2–3 lựa chọn (giãn deadline / bỏ bớt milestone /
-giữ nguyên & tăng tốc) để người dùng bấm. **Không tự co giãn ngầm** (giữ minh bạch).
+The AI detects lateness, says clearly "~N days behind", then offers 2–3 choices (extend the deadline / drop a
+milestone / keep going & speed up) for the user to tap. **No silent rescaling** (keep it transparent).
 
-### 10.5 Đo tiến độ — ĐỘNG, không lưu cứng (giống `delay`, `streak`)
+### 10.5 Progress measurement — DYNAMIC, not stored (like `delay`, `streak`)
 
-Không có cột `progress` trong DB. Tính trên đường truyền (đặt trong `lib/plan.ts`):
+No `progress` column in the DB. Computed on the fly (in `lib/plan.ts`):
 
 ```
-milestoneKỳvọng = round( daysBetween(start, today) / daysBetween(start, end) × tổngMilestone )
-behindDays      = quy ra ngày từ chênh lệch giữa số milestone đã done thực tế và mốc kỳ vọng
-progressPct     = milestone done / tổng milestone
+expectedMilestone = round( daysBetween(start, today) / daysBetween(start, end) × totalMilestones )
+behindDays        = days derived from the gap between milestones actually done and the expected mark
+progressPct       = milestones done / total milestones
 ```
 
-### 10.6 Mô hình dữ liệu (Task gần như không đổi)
+### 10.6 Data model (Task barely changes)
 
 ```prisma
 model Plan {
   id        String   @id @default(cuid())
   title     String
-  goal      String   // định nghĩa "xong" + bối cảnh
+  goal      String   // definition of "done" + context
   startDate String   // "YYYY-MM-DD"
-  endDate   String   // mốc mục tiêu
+  endDate   String   // target date
   status    String   @default("active") // active | paused | done | archived
-  intensity String   @default("vừa")    // nhẹ | vừa | dồn — gợi ý mềm cho AI
+  intensity String   @default("vừa")    // light | normal | intense — a soft hint for the AI
   createdAt DateTime @default(now())
   milestones Milestone[]
   tasks      Task[]
@@ -73,331 +73,345 @@ model Milestone {
   planId     String
   plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
   title      String
-  order      Int      // thứ tự trong roadmap
+  order      Int      // order in the roadmap
   targetDate String?
   done       Boolean  @default(false)
   tasks      Task[]
 }
 
-// Task CHỈ thêm 2 cột optional + relation → streak/stats/emotion/delay chạy nguyên vẹn:
+// Task only ADDS 2 optional columns + relation → streak/stats/emotion/delay run unchanged:
 //   planId      String?
 //   milestoneId String?
 //   plan        Plan?      @relation(fields: [planId], references: [id])
 //   milestone   Milestone? @relation(fields: [milestoneId], references: [id])
 ```
 
-### 10.7 Hai lời gọi AI
+### 10.7 Two AI calls
 
-- **Decompose** — route mới `/api/plan/decompose`, chỉ chạy lúc tạo plan. Input: `title`, `goal`,
-  `durationDays`, `intensity`. Output JSON `{ milestones: [{ title, order, targetDate }] }`. ĐÂY là
-  chỗ AI ĐƯỢC dùng kiến thức chung (giáo trình chuẩn mực); mỗi milestone là kết quả kiểm chứng được
-  ("Thuộc bảng Hiragana"), không mơ hồ ("Học chăm chỉ"). Logic + prompt đặt trong `lib/ai.ts`.
-- **Daily inject** — mở rộng `/api/suggest`: `SuggestContext` thêm `activePlans` (id, title, goal,
-  currentMilestone, progressPct, behindDays); `RESPONSE_SCHEMA` thêm `plan_tasks` (kèm `planId`,
-  `milestoneId`) và `plan_alerts: [{ planId, behindDays, options: string[] }]`.
+- **Decompose** — new route `/api/plan/decompose`, runs only at plan creation. Input: `title`, `goal`,
+  `durationDays`, `intensity`. Output JSON `{ milestones: [{ title, order, targetDate }] }`. THIS is where the
+  AI MAY use general knowledge (standard curricula); each milestone is verifiable ("Memorize the Hiragana
+  table"), not vague ("Study hard"). Logic + prompt live in `lib/ai.ts`.
+- **Daily inject** — extends `/api/suggest`: `SuggestContext` adds `activePlans` (id, title, goal,
+  currentMilestone, progressPct, behindDays); `RESPONSE_SCHEMA` adds `plan_tasks` (with `planId`,
+  `milestoneId`) and `plan_alerts: [{ planId, behindDays, options: string[] }]`.
 
-### 10.8 Quy ước đã chốt (mặc định)
+### 10.8 Settled conventions (defaults)
 
-- **Sức chứa** lấy từ `avgDonePerDay` thật; `intensity` chỉ là gợi ý mềm — KHÔNG bắt nhập "phút/ngày".
-- **Milestone done**: người dùng tự tick trên trang chi tiết; AI chỉ được _gợi ý_, KHÔNG tự tick.
-- **Tạo plan xong KHÔNG tự sinh task hôm nay** — chỉ rót qua nút "Đề xuất ngày mai".
+- **Capacity** comes from real `avgDonePerDay`; `intensity` is only a soft hint — do NOT require "minutes/day" input.
+- **Milestone done**: the user ticks it on the detail page; the AI may only _suggest_, NOT auto-tick.
+- **Creating a plan does NOT auto-generate today's tasks** — they only drip in via "Suggest tomorrow".
 
-### 10.9 Màn hình
+### 10.9 Screens
 
-1. Nav thêm **"Kế hoạch"** → danh sách plan (card: vòng % tiến độ, milestone hiện tại, badge "chậm Nd").
-2. **Dialog tạo plan**: mục tiêu + số ngày + intensity → gọi decompose → xem trước/chỉnh roadmap → Lưu.
-3. **Chi tiết plan**: checklist milestone (tự tick), tiến độ động, khối cảnh báo "chậm + lựa chọn".
-4. **Dialog suggest** (đã có): thêm nhóm **"Theo kế hoạch"**; "Thêm vào ngày mai" gắn sẵn `planId`/`milestoneId`.
-5. **Task trang Hôm nay**: task thuộc plan hiện chip nhỏ tên plan (icon lucide).
+1. Nav adds **"Kế hoạch"** (Plans) → plan list (card: progress % ring, current milestone, "behind Nd" badge).
+2. **Create-plan dialog**: goal + days + intensity → call decompose → preview/edit the roadmap → Save.
+3. **Plan detail**: milestone checklist (self-tick), dynamic progress, a "behind + choices" alert block.
+4. **Suggest dialog** (existing): add a **"By plan"** group; "Add to tomorrow" pre-attaches `planId`/`milestoneId`.
+5. **Today-page task**: a task in a plan shows a small plan-name chip (lucide icon).
 
-### 10.10 Thứ tự build (commit từng bước)
+### 10.10 Build order (commit each step)
 
-1. Schema `Plan` + `Milestone` + 2 cột trên `Task` → `prisma migrate dev`.
-2. `lib/plan.ts` (tính tiến độ động) + decompose trong `lib/ai.ts` + route `/api/plan/decompose`.
-3. Trang danh sách "Kế hoạch" + dialog tạo plan (xem trước roadmap) + server actions CRUD plan.
-4. Trang chi tiết plan: milestone checklist, tiến độ, cảnh báo chậm.
-5. Mở rộng `/api/suggest`: `activePlans` vào context, `plan_tasks` + `plan_alerts` vào schema/prompt;
-   dialog suggest thêm nhóm "Theo kế hoạch"; chip plan trên task.
-
----
-
-## 11. Tầng hành vi học (Behavioral layer)
-
-> Nâng app từ "nhắc việc" thành hệ thống giúp **lập kế hoạch khoa học + duy trì kỷ luật bền vững**.
-> Dựa trên nghiên cứu (đã lọc, không nhồi framework). Tài liệu lộ trình đầy đủ: plan file đã duyệt.
-
-### 11.1 Nguyên tắc trung tâm — BẤT BIẾN
-
-App KHÔNG tối ưu _số task hoàn thành_, mà tối ưu **xác suất người dùng còn duy trì kế hoạch sau
-nhiều năm mà không kiệt sức**. Mọi cơ chế mới phải qua 3 cửa: (1) **ma sát thấp** — input mới phải
-tùy chọn / 1 chạm / bỏ qua được, AI degrade mượt khi thiếu; (2) **minh bạch** — reason truy về dữ
-liệu thật; (3) **đạo đức** — qua "regret test", không dark pattern.
-
-### 11.2 LÀM vs KHÔNG (kết luận từ bằng chứng)
-
-- **LÀM (mạnh × rẻ):** calibrate theo actuals thật (reference-class, chống _planning fallacy_);
-  học **độ khó** từ lịch sử emotion → **chia nhỏ** việc hay trượt (Fogg-Ability); **if-then cue**
-  tùy chọn (d≈0.65); **self-compassion** khi trượt (co nhỏ + bắt đầu lại, không phạt/đỏ); streak
-  **loss-soft** (ân hạn 1 ngày, framing thành tích); **80/20 value-score** + 1 MIT; **goal-gradient**
-  ("còn N việc"); **identity-as-evidence** (phản chiếu pattern thật, không bắt role-play);
-  reward = **feedback thông tin** (vd "tuần này xong 4 việc 'khó'").
-- **KHÔNG:** XP/level/badge/điểm số gắn vào hoàn thành task, variable reward, phạt, push gây lo âu
-  (bằng chứng: phản tác dụng — _overjustification effect_ d≈−0.34); tầng weekly-planning rườm rà
-  (mục tiêu xa ít tác dụng động lực); nhử việc dở để tạo căng thẳng (_Zeigarnik_ yếu/bị bác).
-
-### 11.3 Quy ước dữ liệu
-
-- **Độ khó** và **capacity** KHÔNG lưu cột — suy ĐỘNG từ lịch sử `emotion` + completion-rate
-  (+ `DayCheckin` nếu có), giống `delay`/`streak`. Đặt ở `lib/difficulty.ts`, `lib/capacity.ts`.
-- **Task chia nhỏ** = Task con (`parentId`, self-relation, cascade). Task cha có ≥1 con là "container":
-  KHÔNG tính vào stats/streak/completion-rate (lọc `subtasks: { none: {} }` ở các query đếm); `done`
-  của cha là **suy ra** (mọi con done), không chấm emotion cho cha.
+1. Schema `Plan` + `Milestone` + 2 columns on `Task` → `prisma migrate dev`.
+2. `lib/plan.ts` (dynamic progress) + decompose in `lib/ai.ts` + route `/api/plan/decompose`.
+3. The "Plans" list page + create-plan dialog (roadmap preview) + plan CRUD server actions.
+4. Plan detail page: milestone checklist, progress, behind warning.
+5. Extend `/api/suggest`: `activePlans` into context, `plan_tasks` + `plan_alerts` into schema/prompt; the
+   suggest dialog adds a "By plan" group; plan chip on the task.
 
 ---
 
-## 13. Thông báo Discord thông minh
+## 11. Behavioral layer
 
-> Đẩy app từ "mở mới thấy" sang **chủ động nhắc** qua Discord. Triết lý §11 BẤT BIẾN: thông báo phải
-> **nâng đỡ, không hối thúc, không gây lo âu** (overjustification d≈−0.34 → cấm push áp lực). Số liệu
-> do CODE tính thật; AI chỉ viết **giọng văn** (động lực / câu nói hay / mẹo), không bịa.
+> Raises the app from "task reminder" to a system that helps **plan scientifically + sustain discipline**.
+> Based on research (filtered, no framework-stuffing). Full roadmap doc: the approved plan file.
 
-### 13.1 Kênh & lên lịch
+### 11.1 Central principle — INVARIANT
 
-- **Discord webhook** (một chiều, không bot/OAuth). Tầng gửi tách ở `lib/notify/discord.ts` để sau
-  dễ thêm Telegram/Slack. Webhook lưu trong DB (trang `/notifications`) hoặc fallback env `DISCORD_WEBHOOK_URL`.
-- **Cron nội bộ**: `instrumentation.ts` → `lib/notify/scheduler.ts` (node-cron, tick **mỗi phút**, so giờ
-  với cấu hình). Server always-on (Docker) nên scheduler sống cùng app, KHÔNG cần dịch vụ ngoài.
-  `serverExternalPackages: ["node-cron"]` trong `next.config.ts`. Guard `NEXT_PHASE` để không chạy lúc build.
-- **Endpoint fallback** `/api/notify/run?kind=&secret=&force=1` (POST/GET) cho scheduler ngoài / "Gửi thử".
-  Bảo vệ bằng `NOTIFY_SECRET`; chưa đặt secret = endpoint TẮT.
+The app does NOT optimize _task count_, it optimizes **the probability the user keeps adhering for years
+without burning out**. Every new mechanic passes 3 gates: (1) **low friction** — new input must be optional /
+one-tap / skippable, the AI degrades gracefully when it's missing; (2) **transparency** — the reason traces to
+real data; (3) **ethics** — passes the "regret test", no dark patterns.
 
-### 13.2 Bốn loại (mỗi loại bật/tắt + giờ riêng)
+### 11.2 DO vs DON'T (conclusions from evidence)
 
-1. **morning** (bản tin sáng): việc hôm nay, streak, "việc chính" (MIT, dùng `lib/priority`) + động lực/quote/tip.
-2. **streak_guard**: CHỈ bắn khi `atRisk` && hôm nay chưa có việc done. Khung tích cực ("giữ thành quả"), không doạ.
-3. **random_nudge**: tối đa **1/ngày**, mốc giờ seed theo NGÀY trong cửa sổ (`lib/notify/time`), bỏ qua nếu hết việc dở.
-4. **evening** (đúc kết tối): điểm lại dịu dàng, gợi ý ghi chú; không phán xét phần chưa xong.
+- **DO (strong × cheap):** calibrate to real actuals (reference-class, counters _planning fallacy_); learn
+  **difficulty** from emotion history → **split** often-slipped tasks (Fogg-Ability); optional **if-then cue**
+  (d≈0.65); **self-compassion** on a miss (shrink + restart, no punishment/red); **loss-soft** streak (1-day
+  grace, achievement framing); **80/20 value-score** + 1 MIT; **goal-gradient** ("N tasks left");
+  **identity-as-evidence** (reflect the real pattern, no role-play); reward = **informative feedback** (e.g.
+  "this week you finished 4 'hard' tasks").
+- **DON'T:** XP/level/badge/points tied to task completion, variable reward, punishment, anxiety-push (evidence:
+  counter-productive — _overjustification effect_ d≈−0.34); a bloated weekly-planning tier (distant goals have
+  little motivational effect); baiting with unfinished work to create tension (_Zeigarnik_ weak/refuted).
 
-`intensity` (minimal | balanced | active) chỉ là **preset UI** đặt nhanh các toggle; runtime CHỈ đọc toggle + giờ.
-Có **giờ yên** (vắt qua nửa đêm OK) chặn mọi thông báo. AI lỗi/không có key → **fallback tĩnh** (`lib/notify/fallback.ts`).
+### 11.3 Data conventions
 
-### 13.3 Dữ liệu & bất biến
+- **Difficulty** and **capacity** are NOT stored columns — computed DYNAMICALLY from `emotion` history +
+  completion-rate (+ `DayCheckin` if present), like `delay`/`streak`. In `lib/difficulty.ts`, `lib/capacity.ts`.
+- **A split task** = a child Task (`parentId`, self-relation, cascade). A parent with ≥1 child is a "container":
+  NOT counted in stats/streak/completion-rate (filter `subtasks: { none: {} }` in count queries); the parent's
+  `done` is **derived** (all children done), and the parent is never emotion-rated.
 
-- `NotificationSettings` (1 hàng `singleton`) + `NotificationLog` (idempotency 1/loại/ngày, lịch sử UI, để AI
-  tránh lặp câu). `runNotification(kind,{force})` (`lib/notify/run.ts`) là orchestrator chung cho cron lẫn "Gửi thử";
-  KHÔNG bao giờ ném lỗi — luôn ghi log. `force` bỏ qua enabled/giờ-yên/idempotency/gating.
-- Dữ kiện (`lib/notify/context.ts`) truy ngược DB (streak động, MIT, kế hoạch chậm, capacity); embed gắn dòng số
-  liệu thật dưới giọng văn để **minh bạch**. Prompt AI ở `lib/ai.ts` (`composeNotificationVoice`).
+---
+
+## 13. Smart Discord notifications
+
+> Push the app from "see it only when opened" to **proactive reminders** via Discord. §11 philosophy is
+> INVARIANT: notifications must **support, not pressure, not cause anxiety** (overjustification d≈−0.34 → no
+> pressure pushes). CODE computes the real numbers; the AI only writes the **voice** (motivation / a nice quote
+> / a tip), it never fabricates.
+
+### 13.1 Channel & scheduling
+
+- **Discord webhook** (one-way, no bot/OAuth). The send layer is split into `lib/notify/discord.ts` so
+  Telegram/Slack are easy to add later. The webhook is stored in the DB (page `/notifications`) or falls back to
+  env `DISCORD_WEBHOOK_URL`.
+- **Internal cron**: `instrumentation.ts` → `lib/notify/scheduler.ts` (node-cron, ticks **every minute**,
+  comparing the time to config). The server is always-on (Docker) so the scheduler lives with the app, NO
+  external service. `serverExternalPackages: ["node-cron"]` in `next.config.ts`. A `NEXT_PHASE` guard keeps it
+  from running at build.
+- **Fallback endpoint** `/api/notify/run?kind=&secret=&force=1` (POST/GET) for an external scheduler / "Send
+  test". Guarded by `NOTIFY_SECRET`; if the secret is unset the endpoint is OFF.
+
+### 13.2 Five kinds (each toggle + its own time)
+
+1. **morning** (morning brief): today's tasks, streak, the MIT (via `lib/priority`) + motivation/quote/tip.
+2. **streak_guard**: fires ONLY when `atRisk` && no task done yet today. Positive framing ("keep your gains"), no threats.
+3. **random_nudge**: at most **1/day**, the time seeded by the DAY within a window (`lib/notify/time`), skipped if no undone work.
+4. **evening** (evening wrap): a gentle review, suggests a note; no judgment of what's unfinished.
+5. **queue_nudge** (§17): the incubating "remind when free" nudge.
+
+`intensity` (minimal | balanced | active) is only a **UI preset** that quickly sets the toggles; the runtime
+reads ONLY the toggles + times. There are **quiet hours** (may cross midnight) blocking all notifications. AI
+error/no key → **static fallback** (`lib/notify/fallback.ts`).
+
+### 13.3 Data & invariants
+
+- `NotificationSettings` (a single `singleton` row) + `NotificationLog` (idempotency 1/kind/day, the UI history,
+  and so the AI avoids repeating phrasing). `runNotification(kind,{force})` (`lib/notify/run.ts`) is the shared
+  orchestrator for both cron and "Send test"; it NEVER throws — it always logs. `force` bypasses
+  enabled/quiet-hours/idempotency/gating.
+- Facts (`lib/notify/context.ts`) trace back to the DB (dynamic streak, MIT, behind plans, capacity); the embed
+  attaches a line of real numbers beneath the voice for **transparency**. The AI prompt is in `lib/ai.ts`
+  (`composeNotificationVoice`).
 
 ### 13.4 UI
 
-- "Thông báo" là **mục sidebar (cụm Hệ thống)** trên desktop + **icon Bell top-bar** trên mobile (đại tu
-  2026-06; trước đây ở footer sidebar). Trang `/notifications` chia **2 tab** (Cài đặt | Lịch sử) theo bộ
-  card chuẩn §12; toggle dùng `components/ui/switch`; giờ dùng `TimePicker`. "Gửi thử" tự lưu cấu hình
-  hiện tại trước khi bắn.
+- "Notifications" is a **sidebar item (System group)** on desktop + a **top-bar Bell icon** on mobile (2026-06
+  overhaul; previously in the sidebar footer). The `/notifications` page splits into **2 tabs** (Settings |
+  History) per the §12 standard card set; toggles use `components/ui/switch`; times use `TimePicker`. "Send
+  test" auto-saves the current config before firing.
 
 ---
 
-## 14. Lịch trình → Day Planner theo capacity
+## 14. Schedule → capacity-based Day Planner
 
-> KHÔNG phải Google Calendar. Là **tầng bối cảnh + xếp giờ**: cho bộ máy đề xuất biết **quỹ giờ rảnh
-> thật** + **các khe trống** mỗi ngày → "khả thi" chính xác hơn, và để timeline đặt việc vào giờ. Lịch
-> KHÔNG phải Task: **không** tính vào streak/stats/completion. AI **chỉ gợi ý** khe giờ (không tự áp đặt
-> — minh bạch, §11); **server recompute + validate** khe AI trả (loại slot đè lịch cứng).
+> NOT Google Calendar. It's a **context + slotting layer**: it tells the suggestion engine the **real free
+> time** + the **open slots** each day → more accurate "feasibility", and lets the timeline place tasks at a
+> time. The calendar is NOT a Task: it's **not** counted in streak/stats/completion. The AI only *suggests*
+> slots (it doesn't impose — transparency, §11); the **server recomputes + validates** the AI's slots (discarding
+> any that overlap a hard commitment).
 
-### 14.1 Mô hình (tất cả ĐO ĐỘNG ở `lib/schedule.ts`, KHÔNG cột tiến độ cứng; chuỗi ngày/giờ địa phương)
+### 14.1 Model (all computed DYNAMICALLY in `lib/schedule.ts`, no hard progress column; local day/time)
 
-- **Lịch cứng** `Commitment` (lặp theo tuần: `dayOfWeek`, `startTime`/`endTime`, `kind` hoc|lam|khac,
-  `active`) + **kỳ học** `validFrom`/`validUntil` (tự hết hạn) + `weekParity` null|odd|even (tuần chẵn/lẻ).
-- **Khung mềm** `SoftBlock` (time-blocking, DỜI ĐƯỢC — cùng field + kỳ học): KHÔNG trừ quỹ rảnh cứng,
-  chỉ giảm "quỹ gợi ý" của AI (`softLoadMinutes`).
-- **Đột xuất** `ScheduleEvent` (`startTime` null = cả ngày; `cancels=true` = nghỉ cả ngày).
-- **Cấu hình** `ScheduleSettings` (singleton: `wakeTime`/`sleepTime`/`bufferMin`/`minSlotMin`/
-  `termAnchorMonday`) qua `lib/schedule-settings.ts`.
-- Hàm lõi: `blocksForDate(date, commitments, events, anchorMonday?)` (lọc validity luôn + parity khi có
-  anchor), `softBlocksForDate`, `computeFreeSlots(date, …, config)` → **danh sách khe trống** `{start,end,
-durationMin}` + `capacityMin` (nới buffer, kẹp giờ thức, bỏ khe < minSlot). `freeMinutes` = wrapper
-  tương thích ngược (buffer 0). KHÔNG dùng `rrule` (lặp tuần + odd/even đủ).
+- **Hard schedule** `Commitment` (weekly-recurring: `dayOfWeek`, `startTime`/`endTime`, `kind` study|work|other,
+  `active`) + **term window** `validFrom`/`validUntil` (auto-expires) + `weekParity` null|odd|even.
+- **Soft block** `SoftBlock` (time-blocking, MOVABLE — same fields + term window): does NOT subtract from hard
+  free time, only reduces the AI's "suggested budget" (`softLoadMinutes`).
+- **One-off** `ScheduleEvent` (`startTime` null = all day; `cancels=true` = day off entirely).
+- **Config** `ScheduleSettings` (singleton: `wakeTime`/`sleepTime`/`bufferMin`/`minSlotMin`/`termAnchorMonday`)
+  via `lib/schedule-settings.ts`.
+- Core functions: `blocksForDate(date, commitments, events, anchorMonday?)` (always filters validity + parity
+  when an anchor exists), `softBlocksForDate`, `computeFreeSlots(date, …, config)` → a **list of open slots**
+  `{start,end,durationMin}` + `capacityMin` (loosen by buffer, clamp to waking hours, drop slots < minSlot).
+  `freeMinutes` = a backward-compatible wrapper (buffer 0). No `rrule` (weekly recurrence + odd/even is enough).
 
-### 14.2 Học thời lượng/năng lượng (mục 11 mở rộng)
+### 14.2 Learning duration/energy (extends §11)
 
-- `Task` thêm `estimatedMinutes` (ước lượng), `deepWork` (ưu tiên khe sáng), `actualBucket`
-  ("faster"|"asExpected"|"slower" — 1 chạm khi xong). `computeDifficultyHints` thêm `slowTopics`/
-  `fastTopics`. Tất cả tùy chọn/1-chạm, KHÔNG phán xét.
-- **Thói quen** `Habit` + `HabitCheck` (mục 11): 1-chạm, streak ĐỘNG (`lib/habits.ts`), **KHÔNG điểm**;
-  cô lập khỏi Task stats/streak/`weeklyAvg`.
+- `Task` adds `estimatedMinutes` (estimate), `deepWork` (prefer morning slots), `actualBucket`
+  ("faster"|"asExpected"|"slower" — one tap on done). `computeDifficultyHints` adds `slowTopics`/`fastTopics`.
+  All optional/one-tap, NO judgment.
+- **Habits** `Habit` + `HabitCheck` (§11): one-tap, DYNAMIC streak (`lib/habits.ts`), **NO points**; isolated
+  from Task stats/streak/`weeklyAvg`.
 
-### 14.3 Tích hợp đề xuất (một luồng `/api/suggest`)
+### 14.3 Suggestion integration (one `/api/suggest` flow)
 
-- `SuggestContext` thêm `freeSlotsTomorrow`, `suggestedCapacityMin` (= quỹ rảnh − softLoad),
-  `preferredWindowsTomorrow`, `habitsToday`. `SuggestionItem` thêm `slotStart`/`estimatedMinutes`/
-  `deepWork`. Prompt (quy tắc 15): xếp `slotStart` vào khe đủ dài, `deepWork`→khe sớm, tổng estimate ≤
-  `suggestedCapacityMin`, KHÔNG đè lịch cứng. **Trust boundary** ở route: loại `slotStart` ngoài khe thật.
-- Accept: `addTomorrowTask(…, extra)` set `scheduledFor`/estimate/deepWork; `scheduleTaskAt` đổi giờ việc đã có.
-- Thông báo (mục 13): `NotificationFacts` có `todaySchedule` + `freeMinutesToday`.
+- `SuggestContext` adds `freeSlotsTomorrow`, `suggestedCapacityMin` (= free time − softLoad),
+  `preferredWindowsTomorrow`, `habitsToday`. `SuggestionItem` adds `slotStart`/`estimatedMinutes`/`deepWork`.
+  Prompt (rule 15): place `slotStart` into a long-enough slot, `deepWork`→early slots, total estimate ≤
+  `suggestedCapacityMin`, NEVER overlap the hard schedule. **Trust boundary** at the route: drop any `slotStart`
+  outside a real slot.
+- Accept: `addTomorrowTask(…, extra)` sets `scheduledFor`/estimate/deepWork; `scheduleTaskAt` reschedules an
+  existing task.
+- Notifications (§13): `NotificationFacts` carries `todaySchedule` + `freeMinutesToday`.
 
 ### 14.4 UI
 
-- **Trang Hôm nay** = trung tâm: thanh tiêu điểm `FocusBar` (gộp quỹ-giờ + toggle **Danh sách ⇄ Dòng giờ**,
-  giữ qua `?view`; quá khứ ép List). `DayTimeline` (thanh giờ wake→sleep: lịch cứng khóa + khung mềm nét
-  đứt + khe rảnh + việc đã xếp + đường now) + `SlotPicker` (xếp/đổi giờ, không drag-drop) + `HabitStrip`
-  (1-chạm). Chế độ List giữ `ScheduleStrip`. (Đại tu 2026-06: `CapacityBanner`+`ViewToggle` gộp vào
-  `FocusBar`; cột phải gom `StatsCards` vòng-%, `CheckinBox` disclosure, `NoteBox` thu gọn.)
-- **Trang `/schedule`** (đại tu 2026-06): **lưới giờ kéo-thả** `WeekGrid` (kéo-tạo + kéo-dời/resize) +
-  quản lý Lịch cứng / Khung tập trung. Dialog thêm/sửa chung 3 loại (commitment/soft/event, dùng
-  `DatePicker`/`TimePicker`) + khối "Kỳ học" gập lại. **Thói quen + "Giờ thức & quỹ thời gian" đã CHUYỂN
-  sang `/routines`** (mục sidebar "Nhịp sống"). `/schedule` là mục sidebar chính (không còn link phụ).
-- Màu: trung tính + viền trái nhạt theo `kind`; khung mềm = nét đứt + glyph Move; không accent chói (§12).
+- **The Today page** = the center: a `FocusBar` (combines the time-budget + a **List ⇄ Timeline** toggle, kept
+  via `?view`; the past forces List). `DayTimeline` (a wake→sleep hour bar: hard schedule locked + soft blocks
+  dashed + free slots + scheduled tasks + a now line) + `SlotPicker` (place/reschedule, no drag-drop) +
+  `HabitStrip` (one-tap). List mode keeps `ScheduleStrip`. (2026-06 overhaul: `CapacityBanner`+`ViewToggle`
+  merged into `FocusBar`; the right column gathers the `StatsCards` %-ring, a `CheckinBox` disclosure, a
+  collapsed `NoteBox`.)
+- **The `/schedule` page** (2026-06 overhaul): a **drag-drop hour grid** `WeekGrid` (drag-create +
+  drag-move/resize) + Hard-schedule / Focus-block management. A shared add/edit dialog for all 3 types
+  (commitment/soft/event, using `DatePicker`/`TimePicker`) + a collapsible "Term" block. **Habits + "Waking
+  hours & time budget" MOVED to `/routines`** (sidebar item "Nhịp sống" / Routines). `/schedule` is a main
+  sidebar item (no longer a secondary link).
+- Color: neutral + a faint left border by `kind`; soft blocks = dashed + a Move glyph; no loud accent (§12).
 
 ---
 
-## 15. MCP Server (Claude đọc/ghi dữ liệu thật)
+## 15. MCP Server (Claude reads/writes real data)
 
-> Cho Claude (Claude.ai / Desktop / Cursor / VS Code) lập kế hoạch trực tiếp trên dữ liệu app qua
-> **Model Context Protocol**. BẤT BIẾN: **logic AI ở phía Claude, không ở server** — server chỉ CRUD
->
-> - cung cấp ngữ cảnh (lịch, workload, deadline). Single-user, không auth user.
+> Lets Claude (Claude.ai / Desktop / Cursor / VS Code) plan directly on the app's data via the **Model Context
+> Protocol**. INVARIANT: **AI logic is on Claude's side, not the server** — the server only CRUDs + serves
+> context (schedule, workload, deadlines). Single-user, no user auth.
 
-### 15.1 Kiến trúc — chạy TRONG app Next
+### 15.1 Architecture — runs IN the Next app
 
-- Route **`app/api/[transport]/route.ts`** dùng `mcp-handler` (`createMcpHandler`, `basePath:"/api"`,
-  `disableSse:true` → Streamable HTTP **stateless**, không cần Redis). Endpoint: `…/api/mcp`.
-- **Cùng tiến trình** với app → chung `lib/db` Prisma + mọi `lib/*` helper; **1 process ghi SQLite**;
-  deploy kèm container hiện có (không cần service/Traefik mới). `serverExternalPackages` thêm
+- Route **`app/api/[transport]/route.ts`** uses `mcp-handler` (`createMcpHandler`, `basePath:"/api"`,
+  `disableSse:true` → Streamable HTTP **stateless**, no Redis). Endpoint: `…/api/mcp`.
+- **Same process** as the app → shares the `lib/db` Prisma client + every `lib/*` helper; **one process writes
+  SQLite**; deploys with the existing container (no new service/Traefik). `serverExternalPackages` adds
   `mcp-handler`, `@modelcontextprotocol/sdk`.
-- **Auth bắt buộc**: bearer `MCP_AUTH_TOKEN` (`lib/mcp/auth.ts`, đúng pattern `NOTIFY_SECRET`; chưa đặt
-  token = endpoint tắt 403).
+- **Auth required**: bearer `MCP_AUTH_TOKEN` (`lib/mcp/auth.ts`, same pattern as `NOTIFY_SECRET`; token unset =
+  endpoint off, 403).
 
-### 15.2 Data layer — `lib/mcp/repository.ts` (zod-validate, tái dùng `lib/*`)
+### 15.2 Data layer — `lib/mcp/repository.ts` (zod-validated, reuses `lib/*`)
 
-CRUD task/project + `listTasks`, `getScheduleRange`, `getWorkloadSummary` (tái dùng
-`lib/schedule.blocksForDate/busyMinutes/freeMinutes`, `lib/streak`). **Quy tắc đồng bộ BẮT BUỘC** (vì
-app lọc theo `done`/`date`, KHÔNG theo `status`):
+CRUD task/project + `listTasks`, `getScheduleRange`, `getWorkloadSummary` (reuse
+`lib/schedule.blocksForDate/busyMinutes/freeMinutes`, `lib/streak`). **MANDATORY sync rules** (because the app
+filters by `done`/`date`, NOT `status`):
 
-- set `scheduledFor` ⇒ set `date` = ngày địa phương (`lib/mcp/tz`, `DEFAULT_TIMEZONE`).
-- `status=DONE`/`completeTask` ⇒ `done=true`+`completedAt`; status khác ⇒ `done=false`.
-- `priority` (LOW/MEDIUM/HIGH/URGENT) ⇒ map `impact` (logic 80/20 của app).
-- `delete_task` = **HARD delete** (không soft-delete: task CANCELLED sẽ lọt UI vì app không lọc status).
-- Timezone: DB lưu UTC, MCP I/O ISO 8601, quy ngày theo `DEFAULT_TIMEZONE`.
-- **Date contract KHOAN DUNG** (`lib/mcp/tz.ts`): `scheduledFor`/`dueDate`/`startDate`/`targetEndDate`
-  nhận **cả** `"YYYY-MM-DD"` **lẫn** ISO 8601 đầy đủ. `coerceToInstant` đổi date-only → **nửa đêm địa
-  phương** (`localMidnightUtc`, KHÔNG phải UTC-midnight). KHÔNG dùng `z.string().datetime()` (đã bỏ — nó
-  từ chối date-only, ép Claude gửi UTC, lệch ngày).
-- `rangeSchema` (`get_schedule`/`get_workload_summary`): `to` tùy chọn, mặc định `= from`; ép `from ≤ to`.
-- **Bọc lỗi** (`guard()` ở `server.ts`): MỌI tool bắt `P2025` (id sai → thông báo rõ) + `ZodError` (bullet
-  dễ đọc) → trả `isError` mềm, KHÔNG ném `-32603` thô; log `tool`/`ms`/lỗi ra stderr (`docker logs todo`).
+- set `scheduledFor` ⇒ set `date` = the local day (`lib/mcp/tz`, `DEFAULT_TIMEZONE`).
+- `status=DONE`/`completeTask` ⇒ `done=true`+`completedAt`; other status ⇒ `done=false`.
+- `priority` (LOW/MEDIUM/HIGH/URGENT) ⇒ maps to `impact` (the app's 80/20 logic).
+- `delete_task` = **HARD delete** (no soft-delete: a CANCELLED task would leak into the UI since the app doesn't filter status).
+- Timezone: the DB stores UTC, MCP I/O is ISO 8601, day resolution uses `DEFAULT_TIMEZONE`.
+- **LENIENT date contract** (`lib/mcp/tz.ts`): `scheduledFor`/`dueDate`/`startDate`/`targetEndDate` accept
+  **both** `"YYYY-MM-DD"` **and** full ISO 8601. `coerceToInstant` turns a date-only into **local midnight**
+  (`localMidnightUtc`, NOT UTC-midnight). Do NOT use `z.string().datetime()` (removed — it rejects date-only,
+  forcing Claude to send UTC, which shifts the day).
+- `rangeSchema` (`get_schedule`/`get_workload_summary`): `to` is optional, defaults `= from`; enforces `from ≤ to`.
+- **Error wrapping** (`guard()` in `server.ts`): EVERY tool catches `P2025` (bad id → a clear message) +
+  `ZodError` (readable bullets) → returns a soft `isError`, NOT a raw `-32603`; logs `tool`/`ms`/error to stderr
+  (`docker logs todo`).
 
-### 15.3 Schema thêm (additive, nullable — mục 15, không phá dữ liệu)
+### 15.3 Added schema (additive, nullable — §15, no data loss)
 
-Task thêm: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`, `estimatedMinutes?`,
-`tags Tag[]`. Model **`Tag`** (m-n). ⚠️ Model **`Project`** vẫn còn trong DB nhưng **ĐÃ GỠ khỏi MCP**
-(deprecated): gây lẫn với `Plan` (§10) và không có trang UI → mọi mục tiêu nhiều bước dùng **Plan**.
-KHÔNG thêm lại `create_project`/`projectId` vào MCP.
+Task adds: `description?`, `status?`, `priority?`, `dueDate?`, `scheduledFor?`, `estimatedMinutes?`,
+`tags Tag[]`. New model **`Tag`** (m-n). ⚠️ Model **`Project`** still exists in the DB but is **REMOVED from
+MCP** (deprecated): it confused with `Plan` (§10) and has no UI page → every multi-step goal uses **Plan**. Do
+NOT re-add `create_project`/`projectId` to MCP.
 
 ### 15.4 Tools / Resources / Prompts (`lib/mcp/server.ts`)
 
-- Tools: `ping` (trả `{ok,time,tz,version}`, `version`=`BUILD_SHA` để soi build đang chạy), `create_task`,
-  `update_task`, `complete_task`, `delete_task`, `get_task`, `list_tasks`, `get_schedule`,
-  `get_workload_summary`, `bulk_create_tasks`, `list_habits`, `check_habit`. (KHÔNG có tool Project —
-  đã gỡ, §15.3.) Description nhấn: `scheduledFor`≠`dueDate`; gọi `get_schedule`/`get_workload_summary`
-  TRƯỚC khi xếp việc; `bulk_create_tasks` chỉ cho NGÀY CỤ THỂ, KHÔNG pre-fill cả lộ trình Plan.
-- **Plan/Milestone (mục 10 — roadmap dài hạn, KHÁC `Project` generic):** `create_plan` (kèm `milestones[]`
-  kết quả kiểm chứng được), `add_milestones`, `update_plan` (giãn deadline/đổi status — chỉ khi user đồng
-  ý), `list_plans`/`get_plan` (tiến độ ĐỘNG qua `computePlanProgress`: `progressPct`/`behindDays`/
-  `currentMilestone`/`daysLeft`), `check_milestone` (AI **chỉ gợi ý** tick, §10.8). `create_task`/
-  `bulk_create_tasks` nhận thêm `planId`/`milestoneId` → task vào /plans + được "Đề xuất ngày mai" rót.
-  **Tạo Plan = roadmap thôi: KHÔNG tự đẻ task** (§10.8) — task rót cuốn chiếu, hoặc khi user yêu cầu ngày
-  cụ thể. Prompt `plan_project` = tạo roadmap rồi DỪNG.
-- **Đồng bộ với day-planner (mục 14):** `get_schedule` mỗi ngày trả `blocks` (lịch cứng đã lọc kỳ học +
-  tuần chẵn/lẻ theo `ScheduleSettings.termAnchorMonday`) + `softBlocks` (khung mềm, không chiếm quỹ cứng) +
-  `tasks`. `get_workload_summary` dùng `computeFreeSlots` theo `ScheduleSettings` (giờ thức/buffer/minSlot):
-  trả `freeMinutes` (quỹ thật, đã trừ buffer), `softLoadMinutes`, `suggestedFreeMinutes` (= free − soft, quỹ
-  NÊN xếp việc mới), `freeSlots[]`. `create_task`/`update_task` nhận thêm `deepWork`; serialize trả thêm
-  `deepWork`/`actualBucket`. Habit (mục 11) cô lập khỏi task: `list_habits` (dueToday/doneToday/streak —
-  thông tin, KHÔNG điểm), `check_habit` (tick 1 ngày, idempotent).
-- **Ấp ủ (mục 17 — hàng đợi mục tiêu CHƯA cam kết, KHÁC Plan/Task):** `add_to_queue` (bắt giữ
-  `title`+`note?`), `list_queue` (lọc status, mặc định incubating; trả `ageDays` động), `update_goal`
-  (title/note/`pinned`/`snoozedUntil`), `drop_goal` (buông — chỉ khi user đồng ý, AI không tự quyết),
-  `promote_to_task` (kéo thành Việc 1 ngày — tái dùng `createTask`), `promote_to_plan` (nâng thành Kế
-  hoạch — tái dùng `createPlan` + milestones, rồi DỪNG). Promote ⇒ goal `status=promoted` + truy ngược
-  `promotedTaskId`/`promotedPlanId`. Goal cô lập: KHÔNG `date`, KHÔNG tính streak/stats.
-- Resources: `today_overview` (+ `habits`), `active_plans` (tiến độ động), `incubating_overview`
-  (mục tiêu Ấp ủ + `ageDays`). Prompts: `plan_my_day`, `plan_week`, `plan_project` (→ `create_plan` +
-  milestones, rót task cuốn chiếu), `triage_queue` (rà soát Ấp ủ → kéo/nâng/buông, chờ duyệt),
-  `review_and_reschedule` — ép quy trình: đọc ngữ cảnh → trình bày kế hoạch → **chờ duyệt** → mới ghi;
-  tôn trọng `suggestedFreeMinutes` + gắn `scheduledFor` vào `freeSlots` thật.
+- Tools: `ping` (returns `{ok,time,tz,version}`, `version`=`BUILD_SHA` to inspect the running build),
+  `create_task`, `update_task`, `complete_task`, `delete_task`, `get_task`, `list_tasks`, `get_schedule`,
+  `get_workload_summary`, `bulk_create_tasks`, `list_habits`, `check_habit`. (NO Project tool — removed, §15.3.)
+  Descriptions stress: `scheduledFor`≠`dueDate`; call `get_schedule`/`get_workload_summary` BEFORE scheduling;
+  `bulk_create_tasks` is only for a SPECIFIC DAY, NOT to pre-fill a whole Plan roadmap.
+- **Plan/Milestone (§10 — long-term roadmap, DIFFERENT from a generic `Project`):** `create_plan` (with
+  verifiable `milestones[]`), `add_milestones`, `update_plan` (extend deadline/change status — only with the
+  user's agreement), `list_plans`/`get_plan` (DYNAMIC progress via `computePlanProgress`:
+  `progressPct`/`behindDays`/`currentMilestone`/`daysLeft`), `check_milestone` (the AI may **only suggest** a
+  tick, §10.8). `create_task`/`bulk_create_tasks` also accept `planId`/`milestoneId` → the task goes to /plans +
+  gets dripped by "Suggest tomorrow". **Creating a Plan = roadmap only: it does NOT auto-generate tasks** (§10.8)
+  — tasks drip in rolling, or when the user asks for a specific day. The `plan_project` prompt = create the
+  roadmap then STOP.
+- **Sync with the day-planner (§14):** `get_schedule` per day returns `blocks` (the hard schedule filtered by
+  term window + odd/even week per `ScheduleSettings.termAnchorMonday`) + `softBlocks` (soft blocks, not occupying
+  hard budget) + `tasks`. `get_workload_summary` uses `computeFreeSlots` per `ScheduleSettings`
+  (waking-hours/buffer/minSlot): returns `freeMinutes` (real budget, buffer subtracted), `softLoadMinutes`,
+  `suggestedFreeMinutes` (= free − soft, the budget that SHOULD take new tasks), `freeSlots[]`.
+  `create_task`/`update_task` also accept `deepWork`; the serializer returns `deepWork`/`actualBucket`. Habits
+  (§11) are isolated from tasks: `list_habits` (dueToday/doneToday/streak — informational, NO points),
+  `check_habit` (tick a day, idempotent).
+- **Incubating (§17 — the queue of UNcommitted goals, DIFFERENT from Plan/Task):** `add_to_queue` (capture
+  `title`+`note?`), `list_queue` (filter by status, default incubating; returns dynamic `ageDays`),
+  `update_goal` (title/note/`pinned`/`snoozedUntil`), `drop_goal` (drop — only with the user's agreement, the AI
+  doesn't decide), `promote_to_task` (drag into a 1-day Task — reuses `createTask`), `promote_to_plan` (promote
+  to a Plan — reuses `createPlan` + milestones, then STOP). Promote ⇒ goal `status=promoted` + back-references
+  `promotedTaskId`/`promotedPlanId`. A goal is isolated: NO `date`, not counted in streak/stats.
+- Resources: `today_overview` (+ `habits`), `active_plans` (dynamic progress), `incubating_overview`
+  (incubating goals + `ageDays`). Prompts: `plan_my_day`, `plan_week`, `plan_project` (→ `create_plan` +
+  milestones, drip tasks rolling), `triage_queue` (review Incubating → drag/promote/drop, await approval),
+  `review_and_reschedule` — all force the flow: read context → present the plan → **wait for approval** → only
+  then write; respect `suggestedFreeMinutes` + attach `scheduledFor` to real `freeSlots`.
 
 ### 15.5 Auth — bearer (Desktop/CLI) + OAuth 2.1 (Claude.ai web)
 
-`checkMcpAuth` (`lib/mcp/auth.ts`) chấp nhận **cả hai**: static bearer `MCP_AUTH_TOKEN` (Claude
-Desktop/Cursor/VS Code) **và** OAuth access JWT. 401 kèm `WWW-Authenticate: …resource_metadata=…`
-để Claude.ai tự khởi động OAuth discovery.
+`checkMcpAuth` (`lib/mcp/auth.ts`) accepts **both**: a static bearer `MCP_AUTH_TOKEN` (Claude
+Desktop/Cursor/VS Code) **and** an OAuth access JWT. A 401 carries `WWW-Authenticate: …resource_metadata=…` so
+Claude.ai self-starts OAuth discovery.
 
-**OAuth shim STATELESS** (`lib/mcp/oauth.ts` + `app/api/oauth/*`) — Claude.ai web chỉ hỗ trợ OAuth,
-không cho nhập bearer:
+**STATELESS OAuth shim** (`lib/mcp/oauth.ts` + `app/api/oauth/*`) — claude.ai web only supports OAuth, no pasted bearer:
 
-- code/access/refresh đều là **JWT ký HMAC** (`jose`, khoá `MCP_OAUTH_SECRET` ?? `MCP_AUTH_TOKEN`) →
-  KHÔNG cần bảng DB. PKCE **S256 bắt buộc**. Client công khai (DCR `/register` cấp `client_id`, không secret).
-- **Consent gate** ở `/api/oauth/authorize`: chủ nhân nhập `MCP_AUTH_TOKEN` để xác nhận → cấp code.
-- Discovery `/.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource` qua
-  `next.config` rewrites (Next bỏ qua thư mục dấu chấm). Metadata/token/register có CORS + OPTIONS.
-- ⚠️ **Bug Anthropic (6/2026)**: claude.ai web có lúc hoàn tất OAuth nhưng không đính Bearer vào request
-  MCP (401 loop). Server đã đúng chuẩn; nếu trúng bug thì chờ Anthropic sửa hoặc dùng Desktop/Cursor.
+- code/access/refresh are all **HMAC-signed JWTs** (`jose`, key `MCP_OAUTH_SECRET` ?? `MCP_AUTH_TOKEN`) → NO DB
+  table. PKCE **S256 required**. Public client (DCR `/register` issues a `client_id`, no secret).
+- **Consent gate** at `/api/oauth/authorize`: the owner enters `MCP_AUTH_TOKEN` to confirm → a code is issued.
+- Discovery `/.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource` via `next.config`
+  rewrites (Next ignores dot-directories). Metadata/token/register have CORS + OPTIONS.
+- ⚠️ **Anthropic bug (2026-06)**: claude.ai web sometimes completes OAuth but doesn't attach the Bearer to the
+  MCP request (401 loop). The server is spec-correct; if hit, wait for Anthropic's fix or use Desktop/Cursor.
 
-### 15.6 Triển khai & kết nối (connector TRỰC TIẾP — KHÔNG mcp-remote)
+### 15.6 Deploy & connect (DIRECT connector — NO mcp-remote)
 
-Env compose `/opt/apps/todo/docker-compose.yml`: `MCP_AUTH_TOKEN` (bắt buộc), `MCP_OAUTH_SECRET` (nên đặt
-riêng), `DEFAULT_TIMEZONE`. `BUILD_SHA` tự bơm qua build-arg CI (`ping` báo build). Endpoint
-`https://<domain>/api/mcp`. **Nối thẳng, BỎ `npx mcp-remote`** (nguồn lỗi launch Windows `C:\Program` +
-tự-ngắt-khi-idle):
+Compose env `/opt/apps/todo/docker-compose.yml`: `MCP_AUTH_TOKEN` (required), `MCP_OAUTH_SECRET` (set it
+separately), `DEFAULT_TIMEZONE`. `BUILD_SHA` is auto-injected via the CI build-arg (`ping` reports the build).
+Endpoint `https://<domain>/api/mcp`. **Connect directly, DROP `npx mcp-remote`** (a source of Windows launch
+errors `C:\Program` + self-disconnect-on-idle):
 
 - **Claude Code (CLI):** `claude mcp add --transport http todo https://<domain>/api/mcp --header
-"Authorization: Bearer <MCP_AUTH_TOKEN>"` — Streamable HTTP + header tĩnh.
-- **Claude Desktop:** Settings → Connectors → Add custom connector → URL `…/api/mcp` → chạy OAuth shim
-  (consent gate nhập `MCP_AUTH_TOKEN`). Không npx.
-- `mcp-remote` chỉ là **fallback**; nếu dùng, `command` PHẢI là `"npx"` (không để full path có khoảng trắng).
-- **Stateless** ⇒ reconnect mượt; Watchtower restart khi deploy sẽ ngắt kết nối đang mở ~vài giây
-  (in-process, §15.1) — bình thường, connector tự nối lại; so `ping.version` nếu nghi deploy giữa chừng.
+  "Authorization: Bearer <MCP_AUTH_TOKEN>"` — Streamable HTTP + a static header.
+- **Claude Desktop:** Settings → Connectors → Add custom connector → URL `…/api/mcp` → run the OAuth shim
+  (consent gate, enter `MCP_AUTH_TOKEN`). No npx.
+- `mcp-remote` is only a **fallback**; if used, `command` MUST be `"npx"` (don't use a full path with spaces).
+- **Stateless** ⇒ smooth reconnect; a Watchtower restart on deploy drops an open connection for ~a few seconds
+  (in-process, §15.1) — normal, the connector reconnects itself; compare `ping.version` if you suspect a mid-flight deploy.
 
 ---
 
-## 17. Ấp ủ — hàng đợi mục tiêu chưa cam kết (Someday/Maybe)
+## 17. Incubating — the queue of uncommitted goals (Someday/Maybe)
 
-> **Tầng tiền-cam-kết** mà app trước đây thiếu: chỗ trút những điều MUỐN làm nhưng chưa xử lý được, để
-> đầu óc nhẹ đi (GTD Someday/Maybe). Ăn khớp §11 (bắt giữ ít ma sát, giảm lo âu vì "quá nhiều"). Route
-> `/incubating`, model `Goal`, logic thuần `lib/queue.ts`. KHÁC `Task` (đã có ngày) và `Plan` (đã có
-> roadmap) — đây là giai đoạn TRƯỚC cả hai.
+> The **pre-commitment layer** the app previously lacked: a place to dump things you WANT to do but can't handle
+> yet, to lighten the mind (GTD Someday/Maybe). Fits §11 (low-friction capture, reduces "too much" anxiety).
+> Route `/incubating`, model `Goal`, pure logic `lib/queue.ts`. DIFFERENT from `Task` (has a date) and `Plan`
+> (has a roadmap) — this is the stage BEFORE both.
 
-### 17.1 Mô hình & bất biến
+### 17.1 Model & invariants
 
-- **`Goal`** (additive, không đụng schema cũ): `title`, `note?`, `status` (incubating|promoted|dropped),
-  `pinned`, `snoozedUntil?`, `lastNudgedAt?`, `promotedTaskId?`/`promotedPlanId?` (truy ngược). KHÔNG có
-  `date`. **Cô lập** khỏi streak/stats/completion (như Plan/Habit).
-- **Tính ĐỘNG, không lưu cứng** (`lib/queue.ts`): `goalAgeDays` (tuổi), `isStale` (≥30 ngày, chưa ghim,
-  không snooze → bật gợi ý "giữ/buông"), `rankGoalsForNudge` (xếp theo độ hợp khe rảnh + capacity +
-  ghim + chưa-nudge-gần-đây), `estimateGoalSize` (heuristic cỡ — chỉ để khớp khe, KHÔNG phán task/plan).
-- **Bắt giữ 1 chạm:** chỉ cần `title` + Enter; không hỏi cỡ/khi-nào lúc bắt.
-- **3 ngõ ra:** `promoteGoalToTask` (kéo vào một ngày → Task, tái dùng action tạo task),
-  `promoteGoalToPlan` (nâng → Plan, tái dùng `createPlan` + `CreatePlanDialog` prefill), hoặc **buông**
-  (soft `dropped`, khôi phục được). KHÔNG đẻ luồng tạo task/plan riêng.
-- **AI chỉ gợi ý, người dùng quyết:** gợi ý cỡ (`suggestApproach` task|plan), gợi ý ghép-chủ-đề, nhắc
-  khi rảnh — đều là gợi ý mềm, reason truy về dữ liệu thật. KHÔNG tự nâng/tự buông.
+- **`Goal`** (additive, doesn't touch the old schema): `title`, `note?`, `status`
+  (incubating|promoted|dropped), `pinned`, `snoozedUntil?`, `lastNudgedAt?`, `promotedTaskId?`/`promotedPlanId?`
+  (back-reference). NO `date`. **Isolated** from streak/stats/completion (like Plan/Habit).
+- **Computed DYNAMICALLY, not stored** (`lib/queue.ts`): `goalAgeDays` (age), `isStale` (≥30 days, not pinned,
+  not snoozed → enables a "keep/drop" suggestion), `rankGoalsForNudge` (ranks by free-slot fit + capacity +
+  pinned + not-recently-nudged), `estimateGoalSize` (a size heuristic — only to fit a slot, NOT to decide task/plan).
+- **One-tap capture:** just `title` + Enter; no size/when question at capture.
+- **3 exits:** `promoteGoalToTask` (drag into a day → Task, reuses the create-task action), `promoteGoalToPlan`
+  (promote → Plan, reuses `createPlan` + `CreatePlanDialog` prefill), or **drop** (soft `dropped`, recoverable).
+  No separate task/plan-creation flow.
+- **The AI only suggests, the user decides:** suggest a size (`suggestApproach` task|plan), suggest a theme
+  grouping, remind when free — all soft suggestions, the reason traces to real data. NO auto-promote/auto-drop.
 
-### 17.2 Trí tuệ "nhắc khi rảnh" (đã tích hợp, không tạo luồng riêng)
+### 17.2 The "remind when free" intelligence (integrated, no separate flow)
 
-- **Đề xuất ngày mai** (`/api/suggest`): `SuggestContext.incubatingGoals` (đã xếp bằng `rankGoalsForNudge`)
-  - nhóm mới `queue_pulls` trong `RESPONSE_SCHEMA` (rule 17 trong prompt): CHỈ gợi khi còn dư quỹ giờ thật
-    sau carry_over+suggested+plan_tasks (không nhồi); `suggestApproach` = gợi ý cỡ; ≥2 mục cùng chủ đề có thể
-    gợi gộp thành Plan. **Trust boundary** route lọc `goalId` không còn incubating. UI: nhóm "Từ Ấp ủ" trong
-    `suggest-sheet`.
-- **Thẻ Today** (`components/today/incubating-nudge.tsx`): hiện ở cột phải khi quỹ giờ rảnh ≥ 90′ & còn
-  mục Ấp ủ → nổi 1 mục hợp nhất + nút "Hôm nay"/"Kế hoạch".
-- **Discord** (mục 13): kind thứ 5 `queue_nudge` (toggle riêng, dùng chung cửa `randomWindow`, seed khác
-  ngày). Gating: chỉ bắn khi `incubatingCount>0` && `freeMinutesToday≥90` && capacity không thấp. Sau khi
-  gửi đặt `lastNudgedAt` (cooldown — vòng sau không lặp một mục). Giọng "cơ hội", không hối thúc; AI lỗi →
-  fallback tĩnh. `NotificationFacts` thêm `incubatingCount`/`topIncubatingGoal`/`topIncubatingApproach`.
+- **Suggest tomorrow** (`/api/suggest`): `SuggestContext.incubatingGoals` (ranked by `rankGoalsForNudge`) + a
+  new `queue_pulls` group in `RESPONSE_SCHEMA` (rule 17 in the prompt): suggests ONLY when there's real
+  free-time budget left after carry_over+suggested+plan_tasks (no overloading); `suggestApproach` = a size hint;
+  ≥2 same-theme items may be suggested as a merged Plan. **Trust boundary** at the route: drop a `goalId` no
+  longer incubating. UI: a "From Incubating" group in `suggest-sheet`.
+- **Today card** (`components/today/incubating-nudge.tsx`): shows in the right column when free time ≥ 90′ &
+  there are incubating items → surfaces a single best-fit item + "Today"/"Plan" buttons.
+- **Discord** (§13): the 5th kind `queue_nudge` (its own toggle, shares the `randomWindow` window, a different
+  day seed). Gating: fires only when `incubatingCount>0` && `freeMinutesToday≥90` && capacity is not low. After
+  sending it sets `lastNudgedAt` (a cooldown — the next round doesn't repeat an item). A tone of "opportunity",
+  not pressure; AI error → static fallback. `NotificationFacts` adds
+  `incubatingCount`/`topIncubatingGoal`/`topIncubatingApproach`.
 
 ### 17.3 MCP (§15.4)
 
-`add_to_queue`, `list_queue`, `update_goal`, `drop_goal`, `promote_to_task`, `promote_to_plan` +
-resource `incubating_overview` + prompt `triage_queue`. Promote tái dùng `createTask`/`createPlan`.
+`add_to_queue`, `list_queue`, `update_goal`, `drop_goal`, `promote_to_task`, `promote_to_plan` + the
+`incubating_overview` resource + the `triage_queue` prompt. Promote reuses `createTask`/`createPlan`.
