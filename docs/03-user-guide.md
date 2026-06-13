@@ -1,102 +1,107 @@
-# 03 — Hướng dẫn sử dụng
+# 03 — User guide
 
-> Phiên bản tương tác (có hình ảnh động) nằm ngay trong app: mở mục **Hướng dẫn** trên thanh menu
-> (đường dẫn `/guide`).
+> The interactive version (with motion) lives inside the app: open **"Hướng dẫn"** in the menu (route
+> `/guide`). The in-app guide copy stays in Vietnamese (it's user-facing); this doc is the English reference.
 
-Smart Todo hoạt động theo một nhịp rất đơn giản: **làm việc trong ngày → để lại dấu vết thật (xong,
-cảm xúc, năng lượng) → cuối ngày để AI lo phần "mai làm gì"**. Bạn không cần khai báo gì phức tạp.
+Smart Todo runs on a very simple rhythm: **work during the day → leave real traces (done, emotion, energy)
+→ at end of day, let the AI handle "what to do tomorrow"**. You don't need to declare anything complex.
 
-## Thanh menu
+## Menu bar
 
-- **Hôm nay** — màn hình chính, nơi bạn sống cả ngày.
-- **Kế hoạch** — mục tiêu dài hạn (học, dự án, thói quen).
-- **Lịch sử** — toàn cảnh 14 ngày, các ngày đã qua & sắp tới.
-- **Hướng dẫn** — trang này.
-- 🔥 **Chip lửa** — chuỗi ngày bạn giữ nhịp (bấm để xem lịch sử chuỗi).
-- ☼/☾ — đổi sáng/tối.
+- **Today** ("Hôm nay") — the main screen, where you live all day.
+- **Plans** ("Kế hoạch") — long-term goals (learning, projects, habits).
+- **History** ("Lịch sử") — the 14-day overview, past & upcoming days.
+- **Guide** ("Hướng dẫn") — this page.
+- 🔥 **Streak chip** — the run of days you've kept the rhythm (tap to see streak history).
+- ☼/☾ — toggle light/dark.
 
-## Màn hình "Hôm nay"
+## The "Today" screen
 
-### Thêm & hoàn thành việc
+### Add & complete a task
 
-1. Gõ vào ô **"Thêm việc... (Enter)"** rồi Enter.
-2. Bấm **vòng tròn** bên trái để đánh dấu xong (gạch ngang = đã xong).
-3. Khi đã xong, **3 mặt cười** mở ra — chấm cảm xúc: 🙂 **Dễ** · 😐 **Bình thường** · 🙁 **Mệt**.
-   _(Chỉ chấm được việc đã xong — chấm việc chưa làm là vô nghĩa.)_ Cảm xúc là tín hiệu quý nhất để
-   AI hiểu việc nào nặng/nhẹ với bạn.
+1. Type into the **"Thêm việc... (Enter)"** box and press Enter.
+2. Tap the **circle** on the left to mark it done (strikethrough = done).
+3. Once done, **3 smileys** open — rate the effort: 🙂 **Easy** · 😐 **Normal** · 🙁 **Tiring**.
+   _(You can only rate a finished task — rating undone work is meaningless.)_ Emotion is the most valuable
+   signal for the AI to understand which tasks are heavy/light for you.
 
-### Các nút khi rê chuột vào một việc
+### Buttons when you hover a task
 
-- 🚩 **Cờ** — đặt **mức tác động** (cao/vừa/thấp). Việc tác động cao dễ trở thành **việc chính**.
-- 🕐 **Đồng hồ** — ghi **"khi nào / ở đâu"** sẽ làm (vd _"sau cà phê, ở bàn làm"_). Mẹo nhỏ này tăng
-  mạnh khả năng bạn làm thật.
-- ❓ **Dấu hỏi** _(chỉ hiện ở việc quá hạn)_ — ghi nhanh **vì sao bị trượt** (mệt / quá khó / hết giờ
-  / chưa rõ / hết ưu tiên). AI dùng để chia nhỏ hoặc giảm tải cho bạn.
-- 🗑 **Thùng rác** — xóa việc.
+- 🚩 **Flag** — set the **impact** (high/medium/low). A high-impact task easily becomes the **MIT**.
+- 🕐 **Clock** — note **"when / where"** you'll do it (e.g. _"after coffee, at the work desk"_). This little
+  trick strongly raises the chance you actually do it.
+- ❓ **Question mark** _(shows only on an overdue task)_ — quickly log **why it slipped** (tired / too hard /
+  no time / unclear / deprioritized). The AI uses it to split or lighten the load for you.
+- 🗑 **Trash** — delete the task.
 
-### Các dấu hiệu trên việc
+### Markers on a task
 
-- ⭐ **"việc chính"** — việc đáng làm nhất hôm nay (nếu chỉ làm 1 việc, hãy làm việc này).
-- **"trì hoãn Nd"** — việc đã hoãn từ N ngày trước (nhắc nhẹ, không trách).
-- Việc lớn được **chia nhỏ** hiện thành nhóm có các bước con — tick từng bước cho dễ tạo đà; nhãn
-  _"còn N bước"_ cho bạn thấy gần xong tới đâu.
+- ⭐ **"MIT"** — the most worthwhile task today (if you only do one thing, do this).
+- **"delayed Nd"** — postponed N days ago (a gentle reminder, no blame).
+- A large task that's been **split** shows as a group with sub-steps — tick each step to build momentum; the
+  _"N steps left"_ label shows how close you are.
 
-### 3 thẻ số & dòng động viên
+### The 3 stat cards & encouragement line
 
-**Đã xong (x/y)** · **Tỉ lệ %** · **Còn dở**. Khi gần xong sẽ có dòng nhắc _"chỉ còn N việc nữa là trọn
-ngày"_. Thỉnh thoảng có câu **phản chiếu** về thói quen của bạn (vd _"6/7 ngày gần đây bạn đều có việc
-hoàn thành — đang thành một thói quen"_).
+**Done (x/y)** · **Rate %** · **Remaining**. When you're close, a line nudges _"just N tasks left to round out
+the day"_. Occasionally a **reflection** line about your habits appears (e.g. _"6 of the last 7 days you had a
+completed task — it's becoming a habit"_).
 
-### Trạng thái hôm nay (tùy chọn)
+### Today's state (optional)
 
-Thẻ **"Trạng thái hôm nay"** — chạm 1 lần để chấm **Năng lượng / Tâm trạng / Căng thẳng / Giấc ngủ**.
-Hoàn toàn tùy chọn, bỏ trống cũng được. Khi bạn đuối, AI sẽ **giảm tải** và có thể gợi ý một **ngày
-phục hồi** (chỉ vài việc thật nhẹ). Bên dưới là ô **"Hôm nay của bạn thế nào?"** để ghi nhật ký tự do.
+The **"Trạng thái hôm nay"** (today's state) card — one tap to rate **Energy / Mood / Stress / Sleep**.
+Entirely optional, leaving it blank is fine. When you're drained, the AI will **lighten the load** and may
+suggest a **recovery day** (just a few very light tasks). Below it is the **"Hôm nay của bạn thế nào?"** (how
+was your day?) box for a free journal note.
 
-### Đề xuất todo cho ngày mai
+### Suggest todos for tomorrow
 
-Bấm nút **"Đề xuất todo cho ngày mai"**. AI đọc toàn bộ dữ liệu thật của bạn và trả về:
+Tap **"Đề xuất todo cho ngày mai"** (suggest todos for tomorrow). The AI reads all your real data and returns:
 
-- **Lời mở đầu** (giọng tử tế) giải thích vì sao chọn ngần ấy việc; banner **ngày phục hồi** nếu sức thấp.
-- **Giữ lại từ hôm trước** — việc dở quan trọng (có thể kèm các bước nhỏ hơn).
-- **Việc mới đề xuất** — bám đà & sở thích thật của bạn.
-- **Theo kế hoạch** — việc kế tiếp của các mục tiêu đang chạy.
-- Mỗi việc có **lý do ngắn** truy ngược về dữ liệu thật, đôi khi kèm **gợi ý khi nào/ở đâu**.
+- An **opening line** (kind voice) explaining why it picked that many tasks; a **recovery day** banner if
+  capacity is low.
+- **Carried over from before** — important undone work (may include smaller steps).
+- **Newly suggested tasks** — tracking your real momentum & preferences.
+- **By plan** — the next tasks of your running goals.
+- Each task has a **short reason** traceable to real data, sometimes with a **when/where hint**.
 
-Bấm **"Ngày mai"** ở việc nào bạn muốn → việc đó (và các bước con/cue nếu có) được thêm cho ngày mai.
-**Bạn luôn là người quyết** — AI chỉ gợi ý.
+Tap **"Tomorrow"** on any task you want → that task (and its sub-steps/cue, if any) is added to tomorrow.
+**You're always the one deciding** — the AI only suggests.
 
-## Xem & lên lịch các ngày khác
+## View & schedule other days
 
-Dùng **← →** hoặc biểu tượng **lịch** trên đầu trang Hôm nay:
+Use **← →** or the **calendar** icon at the top of the Today page:
 
-- **Ngày đã qua** = chế độ quan sát (kết quả, cảm xúc, ghi chú) — không thêm việc ngược thời gian.
-- **Ngày tương lai** = lên kế hoạch trước (thêm việc sẵn).
+- **A past day** = observe mode (results, emotion, notes) — you don't add tasks back in time.
+- **A future day** = plan ahead (add tasks in advance).
 
-Trang **Lịch sử** cho dải hoạt động 14 ngày, "Kế hoạch sắp tới" và timeline "Đã qua" — bấm ngày nào để
-nhảy tới ngày đó.
+The **History** page shows the 14-day activity strip, "upcoming plan", and the "past" timeline — tap any day
+to jump to it.
 
-## Kế hoạch dài hạn
+## Long-term plans
 
-1. Vào **Kế hoạch → "Kế hoạch mới"**.
-2. Nhập **tên**, **mục tiêu** (bạn muốn đạt gì), chọn **thời lượng** và **cường độ** (nhẹ/vừa/dồn).
-3. Bấm **"Tạo lộ trình"** — AI chia mục tiêu thành các **cột mốc**. Bạn **chỉnh/thêm/xóa** thoải mái rồi **Lưu**.
-4. Từ đó, nút **"Đề xuất ngày mai"** sẽ tự **rót việc** phục vụ cột mốc hiện tại, bám tốc độ thật.
-5. Trong **chi tiết kế hoạch**: tick cột mốc khi xong, xem **thanh tiến độ**. Nếu **chậm**, app báo và
-   cho bạn chọn: **giãn deadline / bỏ bớt cột mốc / giữ nguyên & tăng tốc** — không tự ý đổi sau lưng bạn.
+1. Go to **Plans → "Kế hoạch mới"** (new plan).
+2. Enter a **name**, a **goal** (what you want to achieve), pick a **duration** and **intensity** (light/normal/intense).
+3. Tap **"Tạo lộ trình"** (create roadmap) — the AI splits the goal into **milestones**. **Edit/add/delete**
+   freely, then **Save**.
+4. From then on, the **"Suggest tomorrow"** button automatically **drips tasks** serving the current
+   milestone, tracking real pace.
+5. In **plan detail**: tick a milestone when done, watch the **progress bar**. If you're **behind**, the app
+   warns and lets you choose: **extend the deadline / drop a milestone / keep going & speed up** — it never
+   changes things behind your back.
 
-Nhiều kế hoạch có thể chạy song song; AI tự **chia sức** giữa chúng, không nhồi.
+Multiple plans can run in parallel; the AI **splits capacity** between them, no overloading.
 
-## Chuỗi giữ lửa (streak) — nhẹ nhàng thôi
+## The streak — keep it gentle
 
-Chip 🔥 đếm số ngày liên tiếp bạn hoàn thành ít nhất một việc. **Lỡ một ngày vẫn không đứt chuỗi**
-(ân hạn 1 ngày) — chỉ bỏ hai ngày liên tiếp mới reset. App cố tình **không** trừng phạt, không điểm số,
-vì mục tiêu là giúp bạn _duy trì lâu dài_ chứ không gây áp lực.
+The 🔥 chip counts consecutive days you complete at least one task. **Missing a day doesn't break the streak**
+(1-day grace) — only two missed days in a row resets it. The app deliberately has **no** punishment and no
+scores, because the goal is to help you _sustain over the long term_, not to pressure you.
 
-## Mẹo dùng hiệu quả
+## Tips for effective use
 
-- **Cứ chấm cảm xúc thật lòng** — đó là cách app hiểu bạn; càng thật, đề xuất càng đúng.
-- Mỗi sáng/ngày **chấm nhanh năng lượng** nếu tiện — những hôm đuối AI sẽ tự nhẹ tay.
-- Đừng cố nhồi việc. App ưu tiên _làm xong đều đặn_ hơn _lên kế hoạch hoành tráng rồi bỏ dở_.
-- Việc lớn thấy ngán? Cứ để **"Đề xuất ngày mai"** — AI thường tự bẻ nó thành bước nhỏ dễ bắt đầu.
-- Nghỉ ngơi khi cần. **Ngày phục hồi cũng là một phần của kỷ luật.**
+- **Rate emotion honestly** — that's how the app understands you; the truer it is, the more accurate the suggestions.
+- Each morning/day, **quickly rate energy** if convenient — on drained days the AI eases off on its own.
+- Don't overload. The app values _finishing steadily_ over _planning grandly then abandoning_.
+- A big task feels daunting? Just use **"Suggest tomorrow"** — the AI usually splits it into easy-to-start steps.
+- Rest when needed. **A recovery day is part of the discipline too.**
