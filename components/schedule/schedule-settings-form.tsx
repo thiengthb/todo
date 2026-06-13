@@ -10,6 +10,8 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Field } from '@/components/field';
 import { InfoHint } from '@/components/info-hint';
 import { updateScheduleSettings } from '@/app/schedule/actions';
+import { hmToMinutes } from '@/lib/notify/time';
+import { formatMinutes } from '@/lib/schedule';
 import type { ScheduleSettingsDTO } from '@/lib/types';
 
 /** Wake-hours + buffer settings (section 14) — feeds computeFreeSlots to compute real free time. */
@@ -24,6 +26,9 @@ export function ScheduleSettingsForm({ initial }: { initial: ScheduleSettingsDTO
       else toast.error(res.error ?? 'Lưu thất bại');
     });
   }
+
+  // live preview — the waking window is the ceiling of the daily free-time budget; updates as you type
+  const wakingMin = Math.max(0, hmToMinutes(v.sleepTime) - hmToMinutes(v.wakeTime));
 
   return (
     <section className="space-y-3">
@@ -87,7 +92,14 @@ export function ScheduleSettingsForm({ initial }: { initial: ScheduleSettingsDTO
           />
         </Field>
       </div>
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-muted-foreground">
+          Cửa sổ thức{' '}
+          <span className="font-medium text-foreground tabular-nums">
+            ~{formatMinutes(wakingMin)}
+          </span>
+          /ngày — quỹ rảnh thực tế là số này trừ lịch cứng + đệm {v.bufferMin}′.
+        </p>
         <Button size="sm" onClick={save} disabled={pending} className="gap-1.5">
           {pending && <Loader2 className="size-3.5 animate-spin" />}
           Lưu

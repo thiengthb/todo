@@ -5,8 +5,8 @@ import { prisma } from '@/lib/db';
 import { todayStr } from '@/lib/dates';
 
 function revalidate() {
-  revalidatePath('/');
-  revalidatePath('/schedule');
+  revalidatePath('/'); // Today shows the habit strip
+  revalidatePath('/routines'); // the habit management page
 }
 
 /** Normalize the weekday CSV ("1,2,3"), drop values outside 0..6; empty → null (daily) */

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Loader2, Pencil, Plus, Repeat, Trash2 } from 'lucide-react';
+import { Flame, Loader2, Pencil, Plus, Repeat, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,8 +82,11 @@ export function HabitManager({ habits }: { habits: HabitRow[] }) {
                 {daysLabel(h.daysOfWeek)}
               </span>
               {h.streak > 0 && (
-                <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
-                  {h.streak}d
+                <span
+                  className="flex shrink-0 items-center gap-0.5 text-[11px] tabular-nums text-warn"
+                  title={`Chuỗi ${h.streak} ngày`}
+                >
+                  <Flame className="size-3" /> {h.streak}d
                 </span>
               )}
               <Switch

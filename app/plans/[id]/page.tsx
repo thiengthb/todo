@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { computePlanProgress } from '@/lib/plan';
-import { formatDateShort } from '@/lib/dates';
+import { formatDateShort, todayStr } from '@/lib/dates';
 import type { Intensity, PlanStatus } from '@/lib/types';
 import { AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import { BehindAlert } from '@/components/plans/behind-alert';
 import { MilestoneList } from '@/components/plans/milestone-list';
 import { PlanActions } from '@/components/plans/plan-actions';
 import { PageHeader } from '@/components/page-header';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +70,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
         {behind && (
           <Badge
             variant="outline"
-            className="gap-1 border-amber-300 bg-amber-50 font-normal text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400"
+            className="gap-1 border-warn/30 bg-warn/10 font-normal text-warn"
           >
             <AlertTriangle className="size-3" />
             chậm {progress.behindDays}d
@@ -84,7 +86,15 @@ export default async function PlanDetailPage({ params }: PageProps) {
           {formatDateShort(plan.startDate)} → {formatDateShort(plan.endDate)}
         </span>
         <span aria-hidden>·</span>
-        <span>
+        <span
+          className={cn(
+            status === 'active' && progress.daysLeft < 0 && 'font-medium text-alert',
+            status === 'active' &&
+              progress.daysLeft >= 0 &&
+              progress.daysLeft < 7 &&
+              'font-medium text-warn',
+          )}
+        >
           {progress.daysLeft >= 0 ? `còn ${progress.daysLeft}d` : `quá hạn ${-progress.daysLeft}d`}
         </span>
       </div>
@@ -97,12 +107,18 @@ export default async function PlanDetailPage({ params }: PageProps) {
           </span>
           <span className="text-muted-foreground tabular-nums">{progress.progressPct}%</span>
         </div>
-        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-foreground transition-all"
-            style={{ width: `${progress.progressPct}%` }}
-          />
-        </div>
+        <ProgressBar
+          className="mt-1.5"
+          value={progress.progressPct}
+          expected={progress.expectedFraction * 100}
+          tone={behind ? 'warn' : progress.progressPct >= 100 ? 'ok' : 'neutral'}
+          label="Tiến độ cột mốc"
+        />
+        {behind && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Vạch dọc = vị trí kỳ vọng theo thời gian đã trôi.
+          </p>
+        )}
         {plan.tasks.length > 0 && (
           <p className="mt-1.5 text-[11px] text-muted-foreground">
             {tasksDone}/{plan.tasks.length} việc thuộc kế hoạch đã xong
@@ -121,7 +137,7 @@ export default async function PlanDetailPage({ params }: PageProps) {
         <h2 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           Lộ trình
         </h2>
-        <MilestoneList planId={plan.id} milestones={plan.milestones} />
+        <MilestoneList planId={plan.id} milestones={plan.milestones} today={todayStr()} />
       </section>
     </div>
   );

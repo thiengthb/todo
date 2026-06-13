@@ -1,121 +1,55 @@
 import Link from 'next/link';
-import {
-  CalendarRange,
-  ChevronRight,
-  Clock,
-  Flame,
-  Frown,
-  Meh,
-  Smile,
-  type LucideIcon,
-} from 'lucide-react';
+import { CalendarRange, ChevronRight, Clock, Flame, TrendingDown, TrendingUp } from 'lucide-react';
 import { prisma } from '@/lib/db';
-import { addDays, dayLabel, formatDateShort, todayStr } from '@/lib/dates';
+import { addDays, formatDateShort, todayStr } from '@/lib/dates';
 import { computeStreaks } from '@/lib/streak';
+import { getActiveDoneDates } from '@/lib/streaks-query';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/page-header';
 import { EmptyState } from '@/components/empty-state';
-import { Truncate } from '@/components/ui/truncate';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { DayRow, type DaySummary } from '@/components/history/day-row';
 
 export const dynamic = 'force-dynamic';
 
-interface DaySummary {
-  date: string;
-  total: number;
-  done: number;
-  percent: number;
-  emotions: { love: number; meh: number; hard: number };
-  note: string | null;
-  /** the first few titles — preview for a future day */
-  titles: string[];
+// The "looking back" list is bounded to the last ~6 months so the query stays cheap as history grows.
+// The streak (current/longest) is computed from the FULL set of done-dates (getActiveDoneDates), not this window.
+const HISTORY_WINDOW_DAYS = 180;
+
+/** Avg tasks done per day-with-data over the last `windowDays` — same definition as lib/velocity. */
+function paceOver(
+  days: DaySummary[],
+  today: string,
+  windowDays: number,
+): { avg: number; n: number } {
+  const since = addDays(today, -(windowDays - 1));
+  const win = days.filter((d) => d.date >= since && d.date <= today && d.total > 0);
+  if (win.length === 0) return { avg: 0, n: 0 };
+  const totalDone = win.reduce((s, d) => s + d.done, 0);
+  return { avg: Math.round((totalDone / win.length) * 10) / 10, n: win.length };
 }
 
-const EMOTION_ICONS: Record<keyof DaySummary['emotions'], { icon: LucideIcon; className: string }> =
-  {
-    love: { icon: Smile, className: 'text-emerald-600 dark:text-emerald-400' },
-    meh: { icon: Meh, className: 'text-amber-600 dark:text-amber-400' },
-    hard: { icon: Frown, className: 'text-rose-600 dark:text-rose-400' },
-  };
-
-function EmotionSummary({ emotions }: { emotions: DaySummary['emotions'] }) {
-  const keys = (Object.keys(EMOTION_ICONS) as (keyof typeof EMOTION_ICONS)[]).filter(
-    (k) => emotions[k] > 0,
-  );
-  if (keys.length === 0) return null;
-  return (
-    <span className="flex shrink-0 items-center gap-1.5 text-xs tabular-nums">
-      {keys.map((k) => {
-        const { icon: Icon, className } = EMOTION_ICONS[k];
-        return (
-          <span key={k} className="flex items-center gap-0.5 text-muted-foreground">
-            <Icon className={`size-3.5 ${className}`} />
-            {emotions[k]}
-          </span>
-        );
-      })}
-    </span>
-  );
-}
-
-function DayRow({ day, isFuture }: { day: DaySummary; isFuture: boolean }) {
-  return (
-    <Link
-      href={`/?date=${day.date}`}
-      className="group flex items-center gap-4 border-b border-border/70 py-3 transition-colors last:border-b-0 hover:bg-muted/40"
-    >
-      <div className="w-20 shrink-0 sm:w-24">
-        <p className="text-sm font-medium capitalize">{dayLabel(day.date)}</p>
-        <p className="text-xs text-muted-foreground">{formatDateShort(day.date)}</p>
-      </div>
-
-      <div className="min-w-0 flex-1">
-        {isFuture ? (
-          <Truncate className="text-xs text-muted-foreground" full={day.titles.join(' · ')}>
-            {day.titles.slice(0, 3).join(' · ')}
-            {day.titles.length > 3 && ` +${day.titles.length - 3}`}
-          </Truncate>
-        ) : (
-          <>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-foreground/70"
-                style={{ width: `${day.percent}%` }}
-              />
-            </div>
-            {day.note && (
-              <p className="mt-1.5 line-clamp-1 text-xs text-muted-foreground italic">
-                “{day.note}”
-              </p>
-            )}
-          </>
-        )}
-      </div>
-
-      {isFuture ? (
-        <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
-          {day.total} việc
-        </span>
-      ) : (
-        <>
-          <div className="hidden sm:block">
-            <EmotionSummary emotions={day.emotions} />
-          </div>
-          <span className="w-16 shrink-0 text-right text-sm tabular-nums sm:w-20">
-            {day.done}/{day.total}
-            <span className="ml-1 text-xs text-muted-foreground">{day.percent}%</span>
-          </span>
-        </>
-      )}
-      <ChevronRight className="hidden size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:block" />
-    </Link>
-  );
+/** Bucket a completion % into a semantic fill color (the 14-day heatmap). */
+function stripColor(percent: number): string {
+  if (percent >= 80) return 'var(--ok)';
+  if (percent >= 40) return 'var(--warn)';
+  return 'var(--alert)';
 }
 
 export default async function HistoryPage() {
   const today = todayStr();
-  const [tasks, notes] = await Promise.all([
-    prisma.task.findMany({ orderBy: { date: 'asc' } }),
-    prisma.dailyNote.findMany(),
+  const since = addDays(today, -HISTORY_WINDOW_DAYS);
+  const [tasks, notes, doneDates] = await Promise.all([
+    prisma.task.findMany({
+      where: { date: { gte: since } },
+      orderBy: { date: 'asc' },
+      select: { date: true, done: true, emotion: true, title: true },
+    }),
+    prisma.dailyNote.findMany({
+      where: { date: { gte: since } },
+      select: { date: true, note: true },
+    }),
+    getActiveDoneDates(),
   ]);
   const noteByDate = new Map(notes.map((n) => [n.date, n.note]));
 
@@ -148,11 +82,8 @@ export default async function HistoryPage() {
   const future = days.filter((d) => d.date > today); // already asc per query
   const pastAndToday = days.filter((d) => d.date <= today).reverse(); // most recent first
 
-  // Streak — computed dynamically from days with ≥1 done task
-  const streak = computeStreaks(
-    days.filter((d) => d.done > 0).map((d) => d.date),
-    today,
-  );
+  // Streak — from the FULL set of done-dates (not the 180d window) so longest stays correct
+  const streak = computeStreaks(doneDates, today);
 
   // Activity strip for the last 14 days (ending today)
   const strip = Array.from({ length: 14 }, (_, i) => {
@@ -160,6 +91,11 @@ export default async function HistoryPage() {
     const day = days.find((d) => d.date === date);
     return { date, percent: day?.percent ?? null };
   });
+
+  // Real pace (avg done / active day) — recent vs the wider trend
+  const pace7 = paceOver(days, today, 7);
+  const pace30 = paceOver(days, today, 30);
+  const paceUp = pace7.avg > pace30.avg;
 
   return (
     <div className="py-8">
@@ -171,29 +107,45 @@ export default async function HistoryPage() {
           <h2 className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             <Flame className="size-3.5" /> Chuỗi giữ lửa
           </h2>
-          <div className="mb-4 grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1 rounded-lg border border-border/70 p-4">
-              <p className="text-xs text-muted-foreground">
-                Hiện tại{streak.atRisk && ' · đang treo'}
-              </p>
-              <p className="flex items-baseline gap-1.5 text-xl font-semibold tracking-tight tabular-nums">
-                {streak.current > 0 && (
-                  <Flame
-                    className={cn(
-                      'size-4 self-center',
-                      streak.atRisk ? 'text-muted-foreground' : 'text-amber-500',
-                    )}
-                  />
-                )}
-                {streak.current} ngày
+          {/* current vs longest on one shared scale — the gap is visible at a glance */}
+          <div className="mb-4 rounded-lg border border-border/70 p-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  Hiện tại{streak.atRisk && ' · đang treo'}
+                </p>
+                <p className="flex items-baseline gap-1.5 text-2xl font-semibold tracking-tight tabular-nums">
+                  {streak.current > 0 && (
+                    <Flame
+                      className={cn(
+                        'size-5 self-center',
+                        streak.atRisk ? 'text-muted-foreground' : 'text-warn',
+                      )}
+                    />
+                  )}
+                  {streak.current}
+                  <span className="text-sm font-normal text-muted-foreground">ngày</span>
+                </p>
+              </div>
+              <p className="text-right text-xs text-muted-foreground">
+                Kỷ lục
+                <br />
+                <span className="text-base font-medium text-foreground tabular-nums">
+                  {streak.longest} ngày
+                </span>
               </p>
             </div>
-            <div className="flex flex-col gap-1 rounded-lg border border-border/70 p-4">
-              <p className="text-xs text-muted-foreground">Kỷ lục</p>
-              <p className="text-xl font-semibold tracking-tight tabular-nums">
-                {streak.longest} ngày
-              </p>
-            </div>
+            {streak.longest > 0 && (
+              <ProgressBar
+                className="mt-3"
+                value={(streak.current / streak.longest) * 100}
+                tone={streak.atRisk ? 'warn' : 'ok'}
+                label={`Chuỗi hiện tại ${streak.current} trên kỷ lục ${streak.longest} ngày`}
+              />
+            )}
+            {streak.current > 0 && streak.current >= streak.longest && (
+              <p className="mt-1.5 text-[11px] font-medium text-ok">Đang ở mức kỷ lục! 🔥</p>
+            )}
           </div>
 
           {streak.runs.length === 0 ? (
@@ -225,7 +177,7 @@ export default async function HistoryPage() {
                       </span>
                       <span className="flex items-center gap-2">
                         {isLive && (
-                          <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                          <span className="flex items-center gap-1 text-xs text-warn">
                             <Flame className="size-3" />
                             {streak.atRisk ? 'đang treo' : 'đang chạy'}
                           </span>
@@ -240,28 +192,53 @@ export default async function HistoryPage() {
           )}
         </section>
 
-        {/* Dải hoạt động 14 ngày */}
+        {/* Dải hoạt động 14 ngày — heatmap theo tỉ lệ; ngày không có việc khác hẳn ngày 0% */}
         <section aria-label="Hoạt động 14 ngày gần nhất">
-          <p className="mb-2 text-xs text-muted-foreground">Tỉ lệ hoàn thành · 14 ngày gần nhất</p>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">Tỉ lệ hoàn thành · 14 ngày gần nhất</p>
+            {pace7.n > 0 && (
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                {paceUp ? (
+                  <TrendingUp className="size-3.5 text-ok" />
+                ) : (
+                  <TrendingDown className="size-3.5 text-muted-foreground" />
+                )}
+                <span className="tabular-nums">
+                  ~<span className="font-medium text-foreground">{pace7.avg}</span> việc/ngày
+                </span>
+                {pace30.n > 0 && (
+                  <span className="text-muted-foreground/70">· 30d {pace30.avg}</span>
+                )}
+              </p>
+            )}
+          </div>
           <div className="flex h-12 items-end gap-1">
-            {strip.map((s) => (
-              <Link
-                key={s.date}
-                href={`/?date=${s.date}`}
-                title={`${formatDateShort(s.date)}${s.percent !== null ? ` — ${s.percent}%` : ' — không có dữ liệu'}`}
-                className="flex h-full flex-1 items-end overflow-hidden rounded-sm bg-muted/50 transition-colors hover:bg-muted"
-              >
-                <div
+            {strip.map((s) => {
+              const hasData = s.percent !== null;
+              const isToday = s.date === today;
+              return (
+                <Link
+                  key={s.date}
+                  href={`/?date=${s.date}`}
+                  aria-label={`${formatDateShort(s.date)}${hasData ? ` — ${s.percent}% hoàn thành` : ' — không có việc'}`}
                   className={cn(
-                    'w-full rounded-sm',
-                    s.date === today ? 'bg-foreground' : 'bg-foreground/35',
+                    'flex h-full flex-1 items-end overflow-hidden rounded-sm transition-colors',
+                    hasData ? 'bg-muted/50 hover:bg-muted' : 'bg-muted/20 hover:bg-muted/40',
+                    isToday && 'ring-1 ring-foreground/40',
                   )}
-                  style={{
-                    height: `${Math.max(s.percent ?? 0, s.percent !== null ? 6 : 0)}%`,
-                  }}
-                />
-              </Link>
-            ))}
+                >
+                  {hasData && (
+                    <div
+                      className="w-full rounded-sm"
+                      style={{
+                        height: `${Math.max(s.percent ?? 0, 6)}%`,
+                        background: stripColor(s.percent ?? 0),
+                      }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </div>
           <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
             <span>{formatDateShort(strip[0].date)}</span>

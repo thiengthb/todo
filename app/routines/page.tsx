@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { todayStr } from '@/lib/dates';
+import { addDays, todayStr } from '@/lib/dates';
 import { computeHabitStatus } from '@/lib/habits';
 import { getScheduleSettings } from '@/lib/schedule-settings';
 import { PageHeader } from '@/components/page-header';
@@ -17,7 +17,10 @@ export default async function RoutinesPage() {
   const [habitRows, settings] = await Promise.all([
     prisma.habit.findMany({
       orderBy: { createdAt: 'asc' },
-      include: { checks: { select: { date: true } } },
+      // computeHabitStatus only looks back 366d — don't load every check ever recorded
+      include: {
+        checks: { where: { date: { gte: addDays(today, -366) } }, select: { date: true } },
+      },
     }),
     getScheduleSettings(),
   ]);

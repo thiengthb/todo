@@ -4,8 +4,9 @@ import type { ScheduleBlock } from '@/lib/types';
 /**
  * Pure helpers for the drag-and-drop weekly schedule grid (section 14, 2026-06 overhaul) — no React, easy to test.
  * Pixel-per-minute matches DayTimeline so the two places look consistent; snap 15′.
+ * 1.0 px/min (raised from 0.8, 2026-06-14) → a 30′ block is 30px, legible with title + time.
  */
-export const PX_PER_MIN = 0.8;
+export const PX_PER_MIN = 1.0;
 export const SNAP_MIN = 15;
 
 export function snap(min: number, step = SNAP_MIN): number {

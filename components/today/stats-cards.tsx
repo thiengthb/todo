@@ -1,21 +1,5 @@
 import { InfoHint } from '@/components/info-hint';
-
-/** % ring via conic-gradient — same Ring pattern as plan-momentum, no lib needed. */
-function ProgressRing({ pct, label }: { pct: number; label: string }) {
-  return (
-    <div
-      className="relative flex size-16 shrink-0 items-center justify-center rounded-full"
-      style={{
-        background: `conic-gradient(var(--color-foreground) ${pct}%, var(--color-muted) 0)`,
-      }}
-    >
-      <div className="flex size-[52px] flex-col items-center justify-center rounded-full bg-background">
-        <span className="text-sm font-semibold tabular-nums">{label}</span>
-        <span className="text-[10px] text-muted-foreground">{pct}%</span>
-      </div>
-    </div>
-  );
-}
+import { ProgressRing } from '@/components/ui/progress-ring';
 
 /**
  * "Today's progress" card (UI section, 2026-06 overhaul) — merges 3 separate number cells into 1 solid card:
@@ -40,7 +24,15 @@ export function StatsCards({
     <div className="rounded-lg border border-border/70 p-4">
       <p className="mb-3 text-sm font-medium">Tiến độ hôm nay</p>
       <div className="flex items-center gap-4">
-        <ProgressRing pct={percent} label={`${done}/${total}`} />
+        <ProgressRing
+          value={percent}
+          size={64}
+          tone={total > 0 && percent >= 100 ? 'ok' : 'neutral'}
+          label="Tiến độ hôm nay"
+        >
+          <span className="text-sm font-semibold tabular-nums">{`${done}/${total}`}</span>
+          <span className="text-[10px] text-muted-foreground">{percent}%</span>
+        </ProgressRing>
         <div className="min-w-0 flex-1 space-y-1">
           <p className="text-sm">
             Đã xong <span className="font-semibold tabular-nums">{done}</span>

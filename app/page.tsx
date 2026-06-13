@@ -4,6 +4,7 @@ import { DayNav } from '@/components/day-nav';
 import { pickMitId } from '@/lib/priority';
 import { buildReflection } from '@/lib/reflection';
 import { computeStreaks } from '@/lib/streak';
+import { getActiveDoneDates } from '@/lib/streaks-query';
 import { computeVelocity } from '@/lib/velocity';
 import { computeDifficultyHints } from '@/lib/difficulty';
 import { computePlanProgress } from '@/lib/plan';
@@ -61,7 +62,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     eventRows,
     softBlockRows,
     scheduleSettings,
-    activeDayRows,
+    activeDoneDates,
     weekTaskRows,
     ratedRows,
     activePlanRows,
@@ -101,14 +102,9 @@ export default async function DayPage({ searchParams }: PageProps) {
     prisma.softBlock.findMany({ where: { active: true } }),
     getScheduleSettings(),
     // the "smart" signals — only needed for today (sections 11/12)
-    // "active" days → compute streak (banner reminds when about to break)
-    isToday
-      ? prisma.task.findMany({
-          where: { done: true },
-          select: { date: true },
-          distinct: ['date'],
-        })
-      : Promise.resolve([]),
+    // "active" days → compute streak (banner reminds when about to break).
+    // cache()'d → de-dupes with the identical scan in the root layout's streak chip.
+    isToday ? getActiveDoneDates() : Promise.resolve([]),
     // leaf tasks ~last 7 days → real velocity (matches weeklyAvg of /api/suggest)
     isToday
       ? prisma.task.findMany({
@@ -250,12 +246,7 @@ export default async function DayPage({ searchParams }: PageProps) {
     : null;
 
   // Other "smart" signals (today only) — each one self-hides when data is missing (sections 11/12)
-  const streak = isToday
-    ? computeStreaks(
-        activeDayRows.map((r) => r.date),
-        today,
-      )
-    : null;
+  const streak = isToday ? computeStreaks(activeDoneDates, today) : null;
   const velocity = isToday ? computeVelocity(weekTaskRows) : null;
   const hardTopics = isToday ? computeDifficultyHints(ratedRows).hardTopics : [];
   const planMomentum = isToday
@@ -430,6 +421,7 @@ export default async function DayPage({ searchParams }: PageProps) {
         </section>
 
         <aside className="flex flex-col gap-4">
+          {/* Tier 1 — trạng thái hôm nay (liếc là thấy) */}
           <StatsCards done={doneCount} total={leaves.length} velocity={velocity} />
           {isToday && (
             <CheckinBox
@@ -441,15 +433,21 @@ export default async function DayPage({ searchParams }: PageProps) {
               }}
             />
           )}
-          {isToday && planMomentum.length > 0 && <PlanMomentum plans={planMomentum} />}
-          {topNudgeGoal && (
-            <IncubatingNudge
-              goal={topNudgeGoal}
-              moreCount={rankedGoals.length - 1}
-              freeMin={scheduleFree}
-            />
-          )}
+          {/* Tier 2 — hành động chính (đưa lên sớm: trên mobile chỉ cần lướt qua 2 thẻ là tới) */}
           {isToday && <SuggestSheet />}
+          {/* Tier 3 — ngữ cảnh phụ, tách bằng đường kẻ mảnh */}
+          {isToday && (planMomentum.length > 0 || topNudgeGoal) && (
+            <div className="flex flex-col gap-4 border-t border-border/70 pt-4">
+              {planMomentum.length > 0 && <PlanMomentum plans={planMomentum} />}
+              {topNudgeGoal && (
+                <IncubatingNudge
+                  goal={topNudgeGoal}
+                  moreCount={rankedGoals.length - 1}
+                  freeMin={scheduleFree}
+                />
+              )}
+            </div>
+          )}
         </aside>
       </div>
     </div>

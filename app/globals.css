@@ -39,6 +39,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-accent-brand: var(--accent-brand);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-alert: var(--alert);
+  --color-free: var(--free);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -66,7 +71,14 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: var(--accent-brand); /* focus rings carry the brand accent (restrained, global) */
+  /* Brand accent (indigo) + semantic tokens — 2026-06-14 UI renovation (§12 "no brand accent" lifted).
+     Hue 273 keeps indigo distinct from the schedule's sky (study) / violet (work) accents. */
+  --accent-brand: oklch(0.52 0.19 273);
+  --ok: oklch(0.58 0.13 155); /* on-track / done — emerald, readable as text on light bg */
+  --warn: oklch(0.6 0.14 70); /* behind / overdue — amber */
+  --alert: oklch(0.585 0.2 20); /* tired / error — rose */
+  --free: oklch(0.7 0.09 195); /* available time — soft teal, used as a low-opacity fill */
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -101,7 +113,13 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: var(--accent-brand); /* focus rings carry the brand accent (restrained, global) */
+  /* Brand accent + semantic tokens (dark) — lighter/desaturated for contrast on the dark surface. */
+  --accent-brand: oklch(0.7 0.16 273);
+  --ok: oklch(0.72 0.14 155);
+  --warn: oklch(0.8 0.13 75);
+  --alert: oklch(0.71 0.18 20);
+  --free: oklch(0.62 0.08 195);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

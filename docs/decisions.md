@@ -1,8 +1,48 @@
 # Knowledge log — Smart Todo
 
-> Architecture decisions + pitfalls + the *why*, recorded so the next session doesn't re-derive them or
+> Architecture decisions + pitfalls + the _why_, recorded so the next session doesn't re-derive them or
 > repeat mistakes. Append-only, **newest on top**. Standard: `nuc-platform/05-documentation-standard.md §5`.
 > Record only the non-obvious (what code/git doesn't say on its own). Maintained by `/session-wrap`.
+
+---
+
+## 2026-06-14 — UI/UX renovation (Phase 0–5; see `docs/plans/2026-06-14-ui-renovation.md`)
+
+- **§12 "no brand accent" is LIFTED → one restrained indigo `--accent-brand` + semantic color tokens
+  (`--ok`/`--warn`/`--alert`/`--free`).** Tokens live in `app/globals.css` (`:root`+`.dark`, OKLCH) and are
+  exposed as Tailwind utilities via `@theme inline` (`--color-*`), so `text-warn`/`bg-warn/10` work. Indigo hue
+  **273** was chosen to stay distinct from the schedule's categorical sky(học)/violet(làm). Accent is applied
+  ONLY to the global focus ring (`--ring: var(--accent-brand)`) + the button `link` variant — primary buttons
+  stay neutral black/white. **Why:** pure-neutral hurt scannability (behind/overdue/done all read the same) and
+  the "behind" amber was hardcoded in ≥5 files; a token kills the duplication and a single restrained accent adds
+  life without breaking Notion-minimal. **Don't** re-introduce per-file `text-amber-*`/`text-emerald-*` for
+  semantic state — use the tokens. Related: `components/ui/progress-{ring,bar}.tsx`.
+- **All progress donuts/bars go through `components/ui/progress-ring.tsx` + `progress-bar.tsx` (a11y built in:
+  `role="progressbar"`+aria-valuenow).** Retired 3 ad-hoc conic-gradient rings (stats-cards/plan-momentum/
+  plan-card) that were aria-invisible. `ProgressBar` takes an optional `expected` (0–100) → a vertical tick;
+  `computePlanProgress` now returns `expectedFraction` so the plan bar shows _time-elapsed vs work-done_ at a
+  glance (not just a "chậm Nd" badge). **Don't** hand-roll inline rings again.
+- **Pitfall — bounding the History query would corrupt the streak.** `app/history` now fetches only the last
+  `HISTORY_WINDOW_DAYS=180` (with a narrow `select`) to stay cheap, BUT `computeStreaks` is fed the **full**
+  done-date set from `getActiveDoneDates()` (`lib/streaks-query.ts`), NOT the windowed `days`. Computing the
+  streak from a windowed list would silently cap `longest`. Keep these two data sources separate.
+- **Request-`cache()` to dedupe identical first-party queries in one render.** `getActiveDoneDates` (layout
+  streak-chip + Today + History) and `getScheduleSettings` (Today + Schedule + suggest route) are wrapped in
+  React `cache()` → one DB round-trip per request instead of N. `Task` gained `@@index([date])`/`([done,date])`/
+  `([parentId])` (the most-queried table previously had none).
+- **Two bugs fixed that the types couldn't catch:** (1) `/schedule` computed per-day `freeMin` and **never
+  rendered it** — now a `~Xh` line in each column header; (2) habit CRUD `revalidate()` hit `/` + `/schedule`
+  but **not `/routines`** (the actual management page) → stale list; fixed (and dropped the useless `/schedule`).
+- **Deliberate non-changes (don't "fix" these later):** kept native `<details>` for History streak-runs (zero-JS
+  accessible disclosure beats a hydrated Collapsible on a server page); used lightweight first-party **type
+  guards** instead of client-side Zod at the `/api/suggest`+`/api/plan/decompose` boundaries (avoids bundling Zod
+  to re-check our OWN server); did NOT fully eliminate the `setEmotion`/`scheduleTaskAt` read-before-write
+  (negligible on local SQLite, not worth the client coupling); **deferred** keyboard a11y for the pointer-drag
+  schedule grid (a sizable, risky change to a working widget — own pass). Schedule kind colors (sky/violet) stay
+  a **categorical** palette, NOT semantic tokens (wrong axis) — a legend under the grid covers discoverability.
+- **Process note:** the screen-by-screen audit that scoped this was fanned out to **Sonnet subagents under Opus
+  review** (4 parallel read-only explorers → structured reports). Cheap, isolated, and the synthesis stayed on
+  Opus — a good template for the next big multi-screen audit.
 
 ---
 

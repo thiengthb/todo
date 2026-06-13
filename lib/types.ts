@@ -261,6 +261,8 @@ export interface PlanProgress {
   /** > 0: behind; < 0: ahead; 0: on schedule */
   behindDays: number;
   daysLeft: number;
+  /** time-elapsed fraction 0..1 (elapsed/totalDays) — drives the "expected position" tick on the progress bar */
+  expectedFraction: number;
   /** milestone in progress (first not-done milestone), null if all done */
   currentMilestone: string | null;
 }

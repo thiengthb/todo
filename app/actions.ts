@@ -29,7 +29,10 @@ export async function toggleTask(id: string, done: boolean): Promise<void> {
 }
 
 export async function setEmotion(id: string, emotion: Emotion): Promise<void> {
-  const task = await prisma.task.findUnique({ where: { id } });
+  const task = await prisma.task.findUnique({
+    where: { id },
+    select: { done: true, emotion: true },
+  });
   // only rate the emotion for a done task (spec: rating an undone task is meaningless)
   if (!task?.done) return;
   await prisma.task.update({

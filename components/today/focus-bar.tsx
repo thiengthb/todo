@@ -32,15 +32,15 @@ export function FocusBar({
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 p-3">
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-        <Clock className="size-3.5 shrink-0" />
-        <span className="tabular-nums">Rảnh ~{formatMinutes(freeMin)}</span>
+        <Clock className="size-3.5 shrink-0 text-foreground" />
+        {/* free-time is the headline number of this bar → give it weight, not muted text-xs */}
+        <span className="text-sm font-medium tabular-nums text-foreground">
+          Rảnh ~{formatMinutes(freeMin)}
+        </span>
         {slotCount > 0 && <span className="text-muted-foreground/70">· {slotCount} khe</span>}
         {plannedMin > 0 && (
           <span
-            className={cn(
-              'tabular-nums text-muted-foreground/70',
-              over && 'text-amber-600 dark:text-amber-400',
-            )}
+            className={cn('tabular-nums text-muted-foreground/70', over && 'font-medium text-warn')}
           >
             · đã xếp ~{formatMinutes(plannedMin)}
           </span>
@@ -59,6 +59,7 @@ export function FocusBar({
               key={t.value}
               href={`/?date=${date}&view=${t.value}`}
               scroll={false}
+              aria-current={active ? 'page' : undefined}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
                 active

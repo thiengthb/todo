@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { prisma } from '@/lib/db';
 import type { ScheduleSettingsDTO } from '@/lib/types';
 
@@ -12,8 +13,12 @@ export const DEFAULT_SCHEDULE_SETTINGS: ScheduleSettingsDTO = {
   termAnchorMonday: null,
 };
 
-/** Read the schedule config (1 singleton row). None → return defaults. */
-export async function getScheduleSettings(): Promise<ScheduleSettingsDTO> {
+/**
+ * Read the schedule config (1 singleton row). None → return defaults.
+ * Wrapped in React `cache()` so the Today page, the Schedule page and the suggest route each
+ * de-duplicate the lookup within a single render (the row almost never changes).
+ */
+export const getScheduleSettings = cache(async (): Promise<ScheduleSettingsDTO> => {
   const row = await prisma.scheduleSettings.findUnique({
     where: { id: SINGLETON_ID },
   });
@@ -25,7 +30,7 @@ export async function getScheduleSettings(): Promise<ScheduleSettingsDTO> {
     minSlotMin: row.minSlotMin,
     termAnchorMonday: row.termAnchorMonday,
   };
-}
+});
 
 /** Save the schedule config (upsert the singleton row). */
 export async function saveScheduleSettings(data: ScheduleSettingsDTO): Promise<void> {

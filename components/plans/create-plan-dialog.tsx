@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { addDays, todayStr } from '@/lib/dates';
 import { createPlan } from '@/app/actions';
 import { promoteGoalToPlan } from '@/app/incubating/actions';
-import type { DecomposeResult, Intensity, MilestoneDraft } from '@/lib/types';
+import type { Intensity, MilestoneDraft } from '@/lib/types';
 
 interface CreatePlanDialogProps {
   /** When promoting from an "Incubating" goal (section 17): on save, mark the goal promoted + traceable */
@@ -86,9 +86,13 @@ export function CreatePlanDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, goal, startDate, endDate, intensity }),
       });
-      const data = (await res.json()) as DecomposeResult & { error?: string };
-      if (!res.ok) throw new Error(data.error ?? `Lỗi ${res.status}`);
-      setMilestones(data.milestones);
+      const data: unknown = await res.json();
+      if (!res.ok) {
+        throw new Error((data as { error?: string } | null)?.error ?? `Lỗi ${res.status}`);
+      }
+      const ms = (data as { milestones?: unknown }).milestones;
+      if (!Array.isArray(ms)) throw new Error('Lộ trình trả về không hợp lệ');
+      setMilestones(ms as MilestoneDraft[]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Không tạo được lộ trình');
     } finally {

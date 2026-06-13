@@ -43,6 +43,7 @@ export function computePlanProgress(
     progressPct,
     behindDays,
     daysLeft,
+    expectedFraction,
     currentMilestone: current?.title ?? null,
   };
 }

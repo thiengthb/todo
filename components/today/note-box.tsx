@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { Plus } from 'lucide-react';
+import { PenLine } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { InfoHint } from '@/components/info-hint';
 import { saveNote } from '@/app/actions';
@@ -33,8 +33,8 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
         onClick={() => setOpen(true)}
         className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
       >
-        <Plus className="size-4 shrink-0" />
-        Ghi chú hôm nay
+        <PenLine className="size-4 shrink-0" />
+        Viết ghi chú hôm nay
       </button>
     );
   }
@@ -53,7 +53,10 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
         id="daily-note"
         value={note}
         autoFocus={initialNote.trim() === ''}
-        onChange={(e) => setNote(e.target.value)}
+        onChange={(e) => {
+          setNote(e.target.value);
+          if (savedAt) setSavedAt(null); // editing again → drop the stale "Đã lưu ✓"
+        }}
         onBlur={persist}
         placeholder="VD: chiều nay hơi đuối vì họp nhiều, nhưng xong được việc khó nhất..."
         rows={3}

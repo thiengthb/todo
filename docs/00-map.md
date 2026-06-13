@@ -1,24 +1,24 @@
 # Smart Todo — Map
 
-> One line: a single-user intelligent todo + planner that proposes a *feasible* tomorrow from your real pace. `kind`: web-app (Next.js). Deploy: `todo.thientnse.site` · NUC `/opt/apps/todo`.
+> One line: a single-user intelligent todo + planner that proposes a _feasible_ tomorrow from your real pace. `kind`: web-app (Next.js). Deploy: `todo.thientnse.site` · NUC `/opt/apps/todo`.
 
 ## 1. Essence
 
 A personal todo list whose core value is **context-aware suggestion**, not random task generation: at end
 of day the AI reads real history (done/undone, delay, emotion, actual completion speed) and proposes a doable
 tomorrow with a `reason` per item. Single-user (the owner) — no login / multi-tenant in the app itself. NOT
-its goal: gamification, pushing *more* tasks, or any mechanic that optimizes task-count over long-term adherence.
+its goal: gamification, pushing _more_ tasks, or any mechanic that optimizes task-count over long-term adherence.
 
 ## 2. Stack
 
-| Layer | Technology |
-|-----|-----------|
-| Framework | Next.js (App Router, TS) · React 19 |
-| UI | Tailwind v4 + shadcn/ui (radix-nova) · Motion v12 · Notion-minimal app-shell |
-| Data | Prisma + SQLite (named volume `todo_data`) |
-| AI | cloud model via a server route handler (`AI_API_KEY`); structured-JSON output only |
-| MCP | `mcp-handler` in-process (`/api/mcp`, Streamable HTTP, stateless) — bearer + OAuth shim |
-| Deploy | Docker → ghcr → Watchtower → Traefik; web behind Authentik forward-auth (group `todo-access`), MCP/OAuth exempt |
+| Layer     | Technology                                                                                                                                                                                                            |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework | Next.js (App Router, TS) · React 19                                                                                                                                                                                   |
+| UI        | Tailwind v4 + shadcn/ui (radix-nova) · Motion v12 · Notion-minimal app-shell · semantic color tokens (`--ok/--warn/--alert/--free`) + a restrained indigo accent (focus ring + links) — see `decisions.md` 2026-06-14 |
+| Data      | Prisma + SQLite (named volume `todo_data`)                                                                                                                                                                            |
+| AI        | cloud model via a server route handler (`AI_API_KEY`); structured-JSON output only                                                                                                                                    |
+| MCP       | `mcp-handler` in-process (`/api/mcp`, Streamable HTTP, stateless) — bearer + OAuth shim                                                                                                                               |
+| Deploy    | Docker → ghcr → Watchtower → Traefik; web behind Authentik forward-auth (group `todo-access`), MCP/OAuth exempt                                                                                                       |
 
 ## 3. Module map / entry points
 
@@ -50,9 +50,9 @@ removed from MCP — long-term goals route to `Plan`).
 1. **Suggest tomorrow** (the core value): `/api/suggest` assembles context from the DB (done+emotion,
    undone+delay, today's & ~7-day completion rate, daily note, active plans, tomorrow's free time, incubating
    pulls) → the model returns strict JSON `{capacity_note, carry_over[], suggested_tasks[], plan_tasks[],
-   plan_alerts[], queue_pulls[]}`. Server forces JSON mode, strips ```json fences, try/catch parses. Every
-   item carries a `reason` traceable to real input.
-2. **Day planner (trust boundary):** the AI only *suggests* time slots; the **server recomputes + validates**
+plan_alerts[], queue_pulls[]}`. Server forces JSON mode, strips ```json fences, try/catch parses. Every
+item carries a `reason` traceable to real input.
+2. **Day planner (trust boundary):** the AI only _suggests_ time slots; the **server recomputes + validates**
    free slots (`lib/schedule.computeFreeSlots`) and discards any slot that collides with a hard commitment.
 3. **MCP:** Claude reads context (`get_schedule` / `get_workload_summary`) → presents a plan → waits for
    approval → only then writes via the repository (AI logic lives on Claude's side, never on the server).
@@ -83,15 +83,15 @@ removed from MCP — long-term goals route to `Plan`).
 
 ## 7. Secrets / env
 
-| Variable | Used for | Located in | Build-time? |
-|------|---------|-------|-------------|
-| `AI_API_KEY` / `AI_MODEL` | AI suggestion calls | `.env` NUC | no |
-| `MCP_AUTH_TOKEN` | MCP bearer auth (endpoint off if unset) | `.env` NUC | no |
-| `MCP_OAUTH_SECRET` | sign OAuth JWTs (falls back to `MCP_AUTH_TOKEN`) | `.env` NUC | no |
-| `NOTIFY_SECRET` | guard `/api/notify/run` (off if unset) | `.env` NUC | no |
-| `DISCORD_WEBHOOK_URL` | fallback Discord webhook | `.env` NUC or DB | no |
-| `DEFAULT_TIMEZONE` | local-day resolution (MCP) | `.env` NUC | no |
-| `BUILD_SHA` | MCP `ping` build id | injected at CI build | yes |
+| Variable                  | Used for                                         | Located in           | Build-time? |
+| ------------------------- | ------------------------------------------------ | -------------------- | ----------- |
+| `AI_API_KEY` / `AI_MODEL` | AI suggestion calls                              | `.env` NUC           | no          |
+| `MCP_AUTH_TOKEN`          | MCP bearer auth (endpoint off if unset)          | `.env` NUC           | no          |
+| `MCP_OAUTH_SECRET`        | sign OAuth JWTs (falls back to `MCP_AUTH_TOKEN`) | `.env` NUC           | no          |
+| `NOTIFY_SECRET`           | guard `/api/notify/run` (off if unset)           | `.env` NUC           | no          |
+| `DISCORD_WEBHOOK_URL`     | fallback Discord webhook                         | `.env` NUC or DB     | no          |
+| `DEFAULT_TIMEZONE`        | local-day resolution (MCP)                       | `.env` NUC           | no          |
+| `BUILD_SHA`               | MCP `ping` build id                              | injected at CI build | yes         |
 
 > Variable NAMES only, never values.
 

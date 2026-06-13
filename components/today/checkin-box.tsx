@@ -16,9 +16,9 @@ export interface CheckinValues {
 
 /** Soft interpretation of the 0..100 capacity score — no judgment, just a hint to adjust load */
 function capacityLabel(score: number): { text: string; tone: string } {
-  if (score >= 66) return { text: 'Sức tốt', tone: 'text-emerald-600 dark:text-emerald-400' };
+  if (score >= 66) return { text: 'Sức tốt', tone: 'text-ok' };
   if (score >= 40) return { text: 'Sức vừa', tone: 'text-muted-foreground' };
-  return { text: 'Sức thấp', tone: 'text-amber-600 dark:text-amber-400' };
+  return { text: 'Sức thấp', tone: 'text-warn' };
 }
 
 /** A 1..5 scale, one tap to select; tapping the selected value again = clear */
@@ -34,11 +34,13 @@ function Scale({
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="w-24 shrink-0 text-xs text-muted-foreground">{label}</span>
-      <div className="flex gap-1">
+      <div className="flex gap-1" role="group" aria-label={label}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
             type="button"
+            aria-label={`${label}: ${n}`}
+            aria-pressed={value === n}
             onClick={() => onPick(n)}
             className={cn(
               'size-9 rounded-md border text-sm tabular-nums transition-colors sm:size-7 sm:text-xs',
@@ -101,15 +103,17 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
           </div>
           <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
             <div
-              className={cn(
-                'h-full rounded-full transition-[width] duration-500',
-                capacity < 40 ? 'bg-amber-500/70' : 'bg-foreground/70',
-              )}
-              style={{ width: `${capacity}%` }}
+              className={cn('h-full rounded-full transition-[width] duration-500')}
+              style={{
+                width: `${capacity}%`,
+                background: capacity < 40 ? 'var(--warn)' : 'var(--foreground)',
+                opacity: capacity < 40 ? 0.8 : 0.7,
+              }}
             />
           </div>
           {capacity < 40 && (
-            <p className="mt-1.5 text-[11px] leading-relaxed text-emerald-600 dark:text-emerald-400">
+            // supportive, NOT a warning (§11 no anxiety-push) → calm neutral, not green/amber
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
               Sức đang thấp — hôm nay nhẹ thôi cũng được. Giữ 1 việc chính là đủ.
             </p>
           )}
@@ -133,11 +137,13 @@ export function CheckinBox({ initial }: { initial: CheckinValues }) {
           <Scale label="Căng thẳng" value={v.stress} onPick={(n) => pick('stress', n)} />
           <div className="flex items-center justify-between gap-3">
             <span className="w-24 shrink-0 text-xs text-muted-foreground">Ngủ (giờ)</span>
-            <div className="flex gap-1">
+            <div className="flex gap-1" role="group" aria-label="Số giờ ngủ">
               {SLEEP.map((h) => (
                 <button
                   key={h}
                   type="button"
+                  aria-label={`Ngủ ${h === 8 ? '8 giờ trở lên' : `${h} giờ`}`}
+                  aria-pressed={v.sleepHours === h}
                   onClick={() => update({ sleepHours: v.sleepHours === h ? null : h })}
                   className={cn(
                     'size-9 rounded-md border text-sm tabular-nums transition-colors sm:size-7 sm:text-xs',

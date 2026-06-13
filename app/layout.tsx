@@ -4,9 +4,9 @@ import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AppShell } from '@/components/app-shell';
-import { prisma } from '@/lib/db';
 import { todayStr } from '@/lib/dates';
 import { computeStreaks } from '@/lib/streak';
+import { getActiveDoneDates } from '@/lib/streaks-query';
 import './globals.css';
 
 // The streak shows on the menu bar => the layout must render dynamically from data on every request
@@ -40,16 +40,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // the "active" days — compute the streak once here for the chip on the menu bar
-  const activeRows = await prisma.task.findMany({
-    where: { done: true },
-    select: { date: true },
-    distinct: ['date'],
-  });
-  const streak = computeStreaks(
-    activeRows.map((r) => r.date),
-    todayStr(),
-  );
+  // the "active" days — compute the streak once here for the chip on the menu bar.
+  // getActiveDoneDates is cache()'d → shared with the Today page in the same request (no duplicate scan).
+  const streak = computeStreaks(await getActiveDoneDates(), todayStr());
 
   return (
     <html

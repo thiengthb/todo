@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { AlertTriangle, ChevronRight, Target } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Truncate } from '@/components/ui/truncate';
+import { ProgressRing } from '@/components/ui/progress-ring';
 import { cn } from '@/lib/utils';
 import type { PlanProgress, PlanStatus } from '@/lib/types';
 
@@ -29,7 +30,14 @@ export function PlanCard({ id, title, status, daysLeftLabel, progress }: PlanCar
       href={`/plans/${id}`}
       className="group flex items-center gap-4 rounded-lg border border-border/70 p-4 transition-[background-color,transform] hover:bg-muted/40 active:scale-[0.99]"
     >
-      <ProgressRing pct={progress.progressPct} />
+      <ProgressRing
+        value={progress.progressPct}
+        size={44}
+        tone={behind ? 'warn' : progress.progressPct >= 100 ? 'ok' : 'neutral'}
+        label={`Tiến độ kế hoạch ${title}`}
+      >
+        <span className="text-[11px] font-medium tabular-nums">{progress.progressPct}</span>
+      </ProgressRing>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -42,7 +50,7 @@ export function PlanCard({ id, title, status, daysLeftLabel, progress }: PlanCar
           {behind && (
             <Badge
               variant="outline"
-              className="shrink-0 gap-1 border-amber-300 bg-amber-50 text-[11px] font-normal text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400"
+              className="shrink-0 gap-1 border-warn/30 bg-warn/10 text-[11px] font-normal text-warn"
             >
               <AlertTriangle className="size-3" />
               chậm {progress.behindDays}d
@@ -58,27 +66,21 @@ export function PlanCard({ id, title, status, daysLeftLabel, progress }: PlanCar
             {progress.done}/{progress.total} cột mốc
           </span>
           <span aria-hidden>·</span>
-          <span>{daysLeftLabel}</span>
+          <span
+            className={cn(
+              status === 'active' && progress.daysLeft < 0 && 'font-medium text-alert',
+              status === 'active' &&
+                progress.daysLeft >= 0 &&
+                progress.daysLeft < 7 &&
+                'font-medium text-warn',
+            )}
+          >
+            {daysLeftLabel}
+          </span>
         </div>
       </div>
 
       <ChevronRight className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
     </Link>
-  );
-}
-
-/** Small progress ring via conic-gradient — no lib needed */
-function ProgressRing({ pct }: { pct: number }) {
-  return (
-    <div
-      className="relative flex size-11 shrink-0 items-center justify-center rounded-full"
-      style={{
-        background: `conic-gradient(var(--color-foreground) ${pct}%, var(--color-muted) 0)`,
-      }}
-    >
-      <div className="flex size-8 items-center justify-center rounded-full bg-background">
-        <span className={cn('text-[11px] font-medium tabular-nums')}>{pct}</span>
-      </div>
-    </div>
   );
 }

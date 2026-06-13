@@ -1,7 +1,7 @@
 # Smart Todo — Project Spec & Build Rules
 
 > Thin rules + invariants for the agent. **Read `docs/00-map.md` first** (the AI primer: module map,
-> flows, invariants, secrets). Full feature detail = `docs/04-features-spec.md`; the *why* + traps =
+> flows, invariants, secrets). Full feature detail = `docs/04-features-spec.md`; the _why_ + traps =
 > `docs/decisions.md`. The MiniServer platform rules in `../CLAUDE.md` also apply.
 
 ---
@@ -150,8 +150,8 @@ Ask one short question before deciding things that affect architecture. Don't ad
 > **Detail: `docs/04-features-spec.md` §10.** Summary + invariants:
 
 - **Rolling roadmap**: the AI generates milestones at creation; daily tasks drip 1–2/day by roadmap position
-  + real pace — **NOT a 30-day prefill**. Folded into `/api/suggest` (the `plan_tasks` group), no separate
-  flow. Multiple parallel plans → split capacity evenly by `avgDonePerDay`.
+  - real pace — **NOT a 30-day prefill**. Folded into `/api/suggest` (the `plan_tasks` group), no separate
+    flow. Multiple parallel plans → split capacity evenly by `avgDonePerDay`.
 - **Progress is DYNAMIC** (`lib/plan.ts`; no stored `progress`/`behindDays`). Models `Plan`+`Milestone`;
   Task only adds `planId?`/`milestoneId?`.
 - **Invariants (§10.8):** capacity = real `avgDonePerDay` (intensity is only a soft hint); **the user ticks
@@ -199,7 +199,7 @@ Ask one short question before deciding things that affect architecture. Don't ad
   header/empty per page.
 - **Standard card set (MANDATORY, kills "misalignment"):** a raised block = `rounded-lg border border-border/70 p-4`
   (NO `<Card>` ring, NO scattered `rounded-xl`/`p-6`, NO `border-input`). A list row = `flex items-center gap-3
-  border-b border-border/70 py-3 last:border-b-0` + `hover:bg-muted/40 transition-colors` if it's clickable/interactive.
+border-b border-border/70 py-3 last:border-b-0` + `hover:bg-muted/40 transition-colors` if it's clickable/interactive.
   Sections are spaced `space-y-10`; a page opens with `py-8`.
 - **Long descriptions → `components/info-hint.tsx`** (an ⓘ icon opening a Popover on tap — NOT hover-tooltip, for
   touch + a11y). Keep action labels visible; only hide the _concept explanation_.
@@ -217,8 +217,12 @@ Ask one short question before deciding things that affect architecture. Don't ad
   Scroll-reveal: `components/reveal.tsx` or `whileInView` (`viewport={{ once: true }}`). ALWAYS respect
   `prefers-reduced-motion` (`MotionConfig reducedMotion="user"` / `useReducedMotion`; a global guard already exists).
   View Transitions are still usable for page transitions.
-- **Color:** pure neutral; use only **semantic** color (amber overdue, emerald done/recovered, rose tired). The
-  primary action = a `default` button (black/white). No brand accent, no gradient.
+- **Color (updated 2026-06-14, was "pure neutral, no accent"):** neutral base + **semantic color via CSS tokens**
+  `--ok` (on-track/done) · `--warn` (behind/overdue) · `--alert` (tired/error) · `--free` (available time) — use the
+  `text-warn`/`bg-warn/10` utilities, NEVER per-file `text-amber-*`/`emerald-*`. ONE restrained indigo accent
+  (`--accent-brand`, hue 273) is allowed, and ONLY on the global focus ring + the `link` button variant; the primary
+  action stays a neutral `default` button (black/white). Still no gradients. Schedule kind colors (sky=học/violet=làm)
+  are a separate categorical palette, not semantic tokens. (`app/globals.css`; `docs/decisions.md` 2026-06-14.)
 - **iPhone / mobile (locked 2026-06):** `layout.tsx` exports `viewport` with `viewportFit: "cover"`. Bottom tab
   bar `pb-[env(safe-area-inset-bottom)]`, top-bar `pt-[env(safe-area-inset-top)]`, mobile main
   `pb-[calc(env(safe-area-inset-bottom)+5rem)]` — don't let a bar cover the home indicator. Tap target ≥ ~44px
@@ -259,7 +263,7 @@ Ask one short question before deciding things that affect architecture. Don't ad
 
 > **Detail: `docs/04-features-spec.md` §14.** NOT Google Calendar — it's a **context + slotting layer**.
 
-- The calendar is NOT a Task: it's **not** counted in streak/stats/completion. The AI only *suggests* slots;
+- The calendar is NOT a Task: it's **not** counted in streak/stats/completion. The AI only _suggests_ slots;
   the **server recomputes + validates** (discarding slots that overlap a hard commitment — trust boundary).
 - Models (computed DYNAMICALLY in `lib/schedule.ts`): `Commitment` (weekly-recurring hard schedule + semester
   window + odd/even week) · `SoftBlock` (movable soft block) · `ScheduleEvent` (one-off) · `ScheduleSettings`
@@ -288,15 +292,15 @@ Ask one short question before deciding things that affect architecture. Don't ad
 > truth for (a) UI labels, (b) writing MCP tool/prompt descriptions so the AI maps correctly. Origin: the AI
 > created "plans" via MCP but the data scattered across both History and Plans, and `Project` (MCP) was invisible.
 
-| Tab | Route | SOLE role |
-|---|---|---|
-| Today | `/` | **In-day** execution: today's tasks, focus, suggest-tomorrow. |
-| Weekly calendar | `/schedule` | **Weekly HARD schedule** (study/work) + focus blocks → real free time. NOT todos. |
-| **Plans** | `/plans` | **LONG-TERM GOALS**: roadmap + milestones + progress (`Plan`/`Milestone`). The ONLY place meaning "plan"; one plan's overview at `/plans/[id]`. |
-| **Incubating** | `/incubating` | **UNCOMMITTED GOALS** (Someday/Maybe — `Goal`): pressure-free capture. Exits: drag to a Task / promote to a Plan / drop. The ONLY place meaning "incubating". |
-| Routines | `/routines` | Recurring habits + waking/sleep hours + time budget. |
-| History | `/history` | **Looking back**: past days, streak, rate + "upcoming". Do NOT use the word "plan" here. |
-| Notifications / Guide | `/notifications`, `/guide` | System. |
+| Tab                   | Route                      | SOLE role                                                                                                                                                     |
+| --------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Today                 | `/`                        | **In-day** execution: today's tasks, focus, suggest-tomorrow.                                                                                                 |
+| Weekly calendar       | `/schedule`                | **Weekly HARD schedule** (study/work) + focus blocks → real free time. NOT todos.                                                                             |
+| **Plans**             | `/plans`                   | **LONG-TERM GOALS**: roadmap + milestones + progress (`Plan`/`Milestone`). The ONLY place meaning "plan"; one plan's overview at `/plans/[id]`.               |
+| **Incubating**        | `/incubating`              | **UNCOMMITTED GOALS** (Someday/Maybe — `Goal`): pressure-free capture. Exits: drag to a Task / promote to a Plan / drop. The ONLY place meaning "incubating". |
+| Routines              | `/routines`                | Recurring habits + waking/sleep hours + time budget.                                                                                                          |
+| History               | `/history`                 | **Looking back**: past days, streak, rate + "upcoming". Do NOT use the word "plan" here.                                                                      |
+| Notifications / Guide | `/notifications`, `/guide` | System.                                                                                                                                                       |
 
 **Naming rules (MANDATORY):**
 
@@ -312,7 +316,7 @@ Ask one short question before deciding things that affect architecture. Don't ad
 - A multi-step / long-term goal → **Plan** (`create_plan` + milestones). There is no Project (removed, §15).
 - A single day's work → `create_task`/`bulk_create_tasks` (a specific date). Hard schedule → `get_schedule` (read
   context, don't create tasks). Creating a Plan does **NOT** spawn tasks (§10.8) — tasks drip in rolling.
-- A goal the user WANTS but has NOT committed *when* / isn't sure task-or-plan → **Incubating** (`add_to_queue`).
+- A goal the user WANTS but has NOT committed _when_ / isn't sure task-or-plan → **Incubating** (`add_to_queue`).
   When ready: `promote_to_task` (a small task) or `promote_to_plan` (a multi-step goal). Never auto-drop.
 
 ---

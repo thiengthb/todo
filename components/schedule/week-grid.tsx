@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarOff, Clock, Lock, Move } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hmToMinutes, minutesToHm } from '@/lib/notify/time';
+import { formatMinutes } from '@/lib/schedule';
 import {
   PX_PER_MIN,
   SNAP_MIN,
@@ -235,6 +236,10 @@ export function WeekGrid({
   // whole-hour labels
   const hours: number[] = [];
   for (let h = Math.ceil(wakeMin / 60); h * 60 <= sleepMin; h++) hours.push(h);
+  // half-hour ticks (lighter) — easier to estimate :30 times when creating a block
+  const halfHours: number[] = [];
+  for (let m = Math.ceil(wakeMin / 30) * 30; m <= sleepMin; m += 30)
+    if (m % 60 !== 0) halfHours.push(m);
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border/70">
@@ -260,6 +265,13 @@ export function WeekGrid({
                   {d.label}
                 </div>
                 <div className="text-[10px] text-muted-foreground tabular-nums">{d.dateShort}</div>
+                {/* real free-time budget for the day (was computed but never rendered) */}
+                {d.freeMin > 0 && (
+                  <div className="mt-0.5 flex items-center justify-center gap-0.5 text-[10px] tabular-nums text-muted-foreground">
+                    <span className="size-1.5 rounded-full bg-free/60" aria-hidden />~
+                    {formatMinutes(d.freeMin)}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -289,6 +301,14 @@ export function WeekGrid({
             onPointerUp={finish}
             onPointerCancel={finish}
           >
+            {/* vạch nửa giờ (mờ hơn) */}
+            {halfHours.map((m) => (
+              <div
+                key={`half-${m}`}
+                className="pointer-events-none absolute inset-x-0 h-px bg-border/20"
+                style={{ top: minutesToTopPx(m, wakeMin) }}
+              />
+            ))}
             {/* vạch giờ ngang trải 7 cột */}
             {hours.map((h) => (
               <div
@@ -326,6 +346,24 @@ export function WeekGrid({
             )}
           </div>
         </div>
+      </div>
+      {/* Chú giải màu/kiểu khối */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 px-3 py-1.5 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span className="size-2.5 rounded-sm bg-free/40" /> khe rảnh
+        </span>
+        <span className="flex items-center gap-1">
+          <Lock className="size-3" /> cố định
+        </span>
+        <span className="flex items-center gap-1">
+          <Move className="size-3" /> linh hoạt
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-0.5 rounded-full bg-sky-400/70" /> Học
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-2.5 w-0.5 rounded-full bg-violet-400/70" /> Làm
+        </span>
       </div>
       <p className="border-t border-border/70 px-3 py-1.5 text-[11px] text-muted-foreground">
         Kéo trên lưới để tạo · kéo block để dời · kéo mép dưới để đổi giờ kết thúc · chạm để sửa.
@@ -367,7 +405,7 @@ function DayColumnCell({
         return (
           <div
             key={`free-${s.start}`}
-            className="pointer-events-none absolute inset-x-0.5 rounded bg-muted/25"
+            className="pointer-events-none absolute inset-x-0.5 rounded bg-free/20"
             style={{ top, height: h }}
           />
         );
@@ -427,8 +465,8 @@ function DayColumnCell({
               )}
               <span className="truncate">{b.title}</span>
             </span>
-            <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground tabular-nums">
-              <Clock className="size-2 shrink-0" />
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground tabular-nums">
+              <Clock className="size-2.5 shrink-0" />
               {b.startTime}
             </span>
             {/* mép kéo resize */}

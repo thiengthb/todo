@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle, Target } from 'lucide-react';
 import { Truncate } from '@/components/ui/truncate';
+import { ProgressRing } from '@/components/ui/progress-ring';
 
 export interface PlanMomentumItem {
   id: string;
@@ -38,7 +39,15 @@ export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
             href={`/plans/${p.id}`}
             className="group flex items-center gap-3 border-b border-border/70 py-3 transition-colors last:border-b-0 hover:bg-muted/40"
           >
-            <Ring pct={p.progressPct} />
+            <ProgressRing
+              value={p.progressPct}
+              size={36}
+              thickness={4}
+              tone={p.behindDays >= 1 ? 'warn' : 'neutral'}
+              label={`Tiến độ kế hoạch ${p.title}`}
+            >
+              <span className="text-[10px] font-medium tabular-nums">{p.progressPct}</span>
+            </ProgressRing>
             <div className="min-w-0 flex-1">
               <Truncate className="text-xs font-medium">{p.title}</Truncate>
               <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -47,7 +56,7 @@ export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
               </p>
             </div>
             {p.behindDays >= 1 && (
-              <span className="flex shrink-0 items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+              <span className="flex shrink-0 items-center gap-1 text-[11px] text-warn">
                 <AlertTriangle className="size-3" />
                 {p.behindDays}d
               </span>
@@ -56,22 +65,6 @@ export function PlanMomentum({ plans }: { plans: PlanMomentumItem[] }) {
         ))}
       </div>
       {extra > 0 && <p className="mt-2 text-[11px] text-muted-foreground">+{extra} kế hoạch nữa</p>}
-    </div>
-  );
-}
-
-/** Small % ring via conic-gradient — same pattern as plan-card.tsx, no lib needed */
-function Ring({ pct }: { pct: number }) {
-  return (
-    <div
-      className="relative flex size-9 shrink-0 items-center justify-center rounded-full"
-      style={{
-        background: `conic-gradient(var(--color-foreground) ${pct}%, var(--color-muted) 0)`,
-      }}
-    >
-      <div className="flex size-7 items-center justify-center rounded-full bg-background">
-        <span className="text-[10px] font-medium tabular-nums">{pct}</span>
-      </div>
     </div>
   );
 }
