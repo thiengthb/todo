@@ -52,6 +52,12 @@ model Task {
   projectId        String?
   project          Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   tags             Tag[] // implicit m-n relation (SQLite has no String[])
+
+  // Indexes for the hot query shapes (every page filters Task by date and/or done; containers by parentId).
+  // The compound (done, date) also serves bare `done` filters via its leftmost prefix.
+  @@index([date])
+  @@index([done, date])
+  @@index([parentId])
 }
 
 // Generic "phase plan" created by MCP/Claude (section 15) — SEPARATE from Plan (the app's AI roadmap).
