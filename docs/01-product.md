@@ -1,160 +1,160 @@
-# 01 — Tài liệu sản phẩm
+# 01 — Product documentation
 
-## 1. Smart Todo là gì
+## 1. What Smart Todo is
 
-Một **todo list cá nhân thông minh** cho một người dùng (chính chủ). Bạn tạo việc trong ngày,
-đánh dấu xong và **chấm cảm xúc** (dễ / bình thường / mệt). Cuối ngày bấm một nút, **AI đọc lịch sử
-thật** của bạn và đề xuất danh sách **khả thi** cho ngày mai, kèm **lý do** cho từng việc.
+A **personal, intelligent todo list** for a single user (the owner). You create tasks during the day, check
+them off, and **rate the effort** (easy / normal / tiring). At end of day, one button: **the AI reads your
+real history** and proposes a **feasible** list for tomorrow, with a **reason** for each item.
 
-Khác biệt cốt lõi so với Todoist/TickTick/Notion: app không chỉ _lưu việc_, nó **học cách bạn thực
-sự làm việc** (tốc độ, độ khó cảm nhận, mức trì hoãn, năng lượng) và điều chỉnh đề xuất theo đó.
+The core difference vs Todoist/TickTick/Notion: the app doesn't just _store tasks_, it **learns how you
+actually work** (speed, perceived difficulty, delay level, energy) and adjusts its suggestions accordingly.
 
-## 2. Nguyên tắc trung tâm (bất biến)
+## 2. Central principle (invariant)
 
-> App KHÔNG tối ưu _số task hoàn thành_, mà tối ưu **xác suất người dùng còn duy trì kế hoạch sau
-> nhiều năm mà không kiệt sức**.
+> The app does NOT optimize _task count_ — it optimizes the **probability that the user keeps adhering for
+> years without burning out**.
 
-Mọi tính năng phải qua 3 cửa:
+Every feature passes 3 gates:
 
-1. **Ma sát thấp** — input mới luôn _tùy chọn / 1 chạm / bỏ qua được_; AI vẫn chạy tốt khi thiếu dữ liệu.
-2. **Minh bạch** — mỗi đề xuất của AI có `reason` ngắn, **truy ngược được về dữ liệu thật**.
-3. **Đạo đức** — qua "regret test" (người dùng có hối tiếc vì cú hích này không?); không dark pattern,
-   không gây nghiện, không gây lo âu.
+1. **Low friction** — any new input is _optional / one-tap / skippable_; the AI still works well when data is missing.
+2. **Transparent** — every AI suggestion has a short `reason`, **traceable back to real data**.
+3. **Ethical** — passes the "regret test" (will the user regret this nudge?); no dark patterns, no addiction
+   mechanics, no anxiety.
 
-## 3. Người dùng & phạm vi
+## 3. User & scope
 
-- **Một người dùng** — không đăng nhập, không multi-tenant, không phân quyền.
-- Mục tiêu đa dạng: **học/phát triển kỹ năng, công việc/dự án, thói quen/sức khỏe** — trộn lẫn được.
-- Nhẹ, nhanh: chạy `npm run dev`, dữ liệu trong 1 file SQLite.
+- **Single user** — no login, no multi-tenant, no authorization.
+- Diverse goals: **learning/skill-building, work/projects, habits/health** — can be mixed.
+- Light, fast: runs with `npm run dev`, data in one SQLite file.
 
-## 4. Luồng hoạt động
+## 4. How it works
 
-### 4.1 Một ngày điển hình (vòng lặp ngắn)
+### 4.1 A typical day (the short loop)
 
 ```
             ┌─────────────────────────────────────────────────────┐
-            │                     TRANG HÔM NAY                    │
+            │                     TODAY PAGE                       │
             └─────────────────────────────────────────────────────┘
-   Thêm việc ──▶ Làm & tick xong ──▶ Chấm cảm xúc (dễ/bình thường/mệt)
+   Add task ──▶ Do & check it off ──▶ Rate effort (easy/normal/tiring)
        │                                          │
-   (tùy chọn) Check-in: năng lượng/tâm trạng/      │  (chỉ mở khi đã xong —
-    stress/giấc ngủ + ghi chú cuối ngày            │   chấm việc chưa làm là vô nghĩa)
+   (optional) Check-in: energy/mood/              │  (only opens once done —
+    stress/sleep + end-of-day note                │   rating undone work is meaningless)
        │                                          ▼
-       └────────────▶  Bấm "Đề xuất todo cho ngày mai"
+       └────────────▶  Tap "Suggest todos for tomorrow"
                                    │
                                    ▼
-                  AI đọc TẤT CẢ dữ liệu thật → trả JSON có cấu trúc
-                  (carry-over, việc mới, việc theo kế hoạch, cảnh báo)
+                  AI reads ALL the real data → returns structured JSON
+                  (carry-over, new tasks, plan tasks, alerts)
                                    │
                                    ▼
-                  Bạn chọn việc nào "Thêm vào ngày mai"  ◀── bạn vẫn là người quyết
+                  You pick which to "Add to tomorrow"  ◀── you're still the one deciding
 ```
 
-### 4.2 Vòng lặp học (dài hạn)
+### 4.2 The learning loop (long-term)
 
-Mỗi ngày trôi qua, dữ liệu thật dày thêm → đề xuất ngày càng đúng "tạng" của bạn:
+As each day passes, the real data thickens → suggestions fit your "shape" better and better:
 
 ```
-   Việc + cảm xúc + tốc độ + năng lượng (hôm nay)
-                  │   tích lũy
+   Tasks + emotion + speed + energy (today)
+                  │   accumulate
                   ▼
-   AI hiệu chỉnh: độ khó từng loại việc · sức/ngày · việc hay trượt
+   AI calibrates: difficulty per task type · capacity/day · often-slipped tasks
                   │
                   ▼
-   Đề xuất ngày mai sát thực tế hơn → bạn hoàn thành nhiều hơn → dữ liệu tốt hơn
-                  └───────────────── lặp lại ─────────────────┘
+   Tomorrow's suggestion is closer to reality → you finish more → better data
+                  └───────────────── repeat ─────────────────┘
 ```
 
-### 4.3 Kế hoạch dài hạn (roadmap cuốn chiếu)
+### 4.3 Long-term plans (rolling roadmap)
 
-Với mục tiêu lớn ("Học tiếng Nhật trong 1 tháng"), app **không** đẻ sẵn lịch cứng 30 ngày (lệch là
-chất đống việc quá hạn → nản). Thay vào đó:
+For a big goal ("Learn Japanese in a month"), the app does **not** pre-generate a hard 30-day schedule (any
+slip becomes a pile of overdue tasks → discouraging). Instead:
 
 ```
-   Mục tiêu ──▶ AI chia thành ROADMAP cột mốc (bạn chỉnh được)
-                  │  Tuần1 Hiragana → Tuần2 Katakana → Tuần3 từ vựng → Tuần4 câu đơn
+   Goal ──▶ AI splits it into a milestone ROADMAP (you can edit)
+                  │  Week1 Hiragana → Week2 Katakana → Week3 vocab → Week4 simple sentences
                   ▼
-   Mỗi ngày: "Đề xuất ngày mai" RÓT 1–2 việc kế tiếp của cột mốc hiện tại,
-             bám tốc độ thật. Đi nhanh → đẩy tới; chậm → cảnh báo + cho bạn chọn
-             (giãn deadline / bỏ bớt mốc / tăng tốc).
+   Each day: "Suggest tomorrow" DRIPS the next 1–2 tasks of the current milestone,
+             tracking real pace. Fast → push ahead; slow → warn + let you choose
+             (extend the deadline / drop a milestone / speed up).
 ```
 
-## 5. Các tính năng & cơ chế
+## 5. Features & mechanics
 
-| Tính năng                  | Làm gì                                        | Phục vụ điều gì                                 |
-| -------------------------- | --------------------------------------------- | ----------------------------------------------- |
-| **Chấm cảm xúc**           | 1 chạm sau khi xong việc (dễ/bình thường/mệt) | Tín hiệu độ khó cảm nhận, gần như 0 ma sát      |
-| **Đề xuất ngày mai**       | AI trả danh sách khả thi + lý do              | Bỏ gánh nặng "hôm nay làm gì"                   |
-| **Chia nhỏ việc**          | AI tự bẻ việc lớn/hay trượt thành các bước    | Hạ rào cản, tạo đà (tick từng bước)             |
-| **Việc chính (MIT)**       | Nổi bật 1 việc đáng làm nhất                  | Ưu tiên 80/20                                   |
-| **Cue "khi nào/ở đâu"**    | Gắn ý định thực hiện cho việc quan trọng      | Tăng mạnh khả năng làm thật                     |
-| **Kế hoạch + cột mốc**     | Mục tiêu dài hạn, roadmap cuốn chiếu          | Tiến bộ bền vững theo tốc độ thật               |
-| **Chuỗi giữ lửa (streak)** | Đếm ngày liên tục, **ân hạn 1 ngày**          | Động lực mềm, không trừng phạt                  |
-| **Check-in & sức/ngày**    | Năng lượng/tâm trạng/stress/ngủ → "capacity"  | AI giảm tải, đề xuất **ngày phục hồi** khi đuối |
-| **Lý do trượt**            | 1 chạm ghi vì sao việc bị hoãn                | AI học để chia nhỏ / giảm tải                   |
-| **Phản chiếu**             | Câu ngắn về thói quen từ dữ liệu thật         | Cảm giác năng lực + danh tính                   |
+| Feature | What it does | What it serves |
+| --- | --- | --- |
+| **Emotion rating** | one tap after finishing a task (easy/normal/tiring) | a perceived-difficulty signal, near-zero friction |
+| **Suggest tomorrow** | AI returns a feasible list + reasons | removes the "what do I do today" burden |
+| **Task splitting** | AI breaks a large/often-slipped task into steps | lowers the bar, builds momentum (tick each step) |
+| **Most Important Task (MIT)** | highlights the single most worthwhile task | 80/20 prioritization |
+| **"when/where" cue** | attaches an implementation intention to an important task | strongly raises the chance it gets done |
+| **Plans + milestones** | long-term goals, rolling roadmap | sustainable progress at real pace |
+| **Streak** | counts consecutive days, **1-day grace** | soft motivation, no punishment |
+| **Check-in & capacity/day** | energy/mood/stress/sleep → "capacity" | AI lightens the load, suggests a **recovery day** when drained |
+| **Slip reason** | one tap to log why a task was postponed | the AI learns to split / lighten |
+| **Reflection** | a short line about habits from real data | a sense of competence + identity |
 
-## 6. Nền tảng khoa học (đã chắt lọc, có trích dẫn)
+## 6. Scientific basis (distilled, with citations)
 
-Tính năng được chọn theo tiêu chí **bằng chứng mạnh × ma sát thấp**, và **loại bỏ** thứ phản tác dụng.
+Features were chosen on **strong evidence × low friction**, and counter-productive things were **removed**.
 
-### 6.1 Những thứ ĐÃ áp dụng
+### 6.1 What IS applied
 
-- **Planning fallacy** — người ta ước lượng quá lạc quan; chỉ ~30% việc xong đúng hạn tự đặt
-  (Buehler/Kahneman). Cách chữa = "outside view" / **reference-class**: bám số liệu thật của chính
-  mình. → App dùng tốc độ & cảm xúc thật để hiệu chỉnh số lượng và độ khó việc.
+- **Planning fallacy** — people estimate too optimistically; only ~30% of tasks finish by the self-set
+  deadline (Buehler/Kahneman). The remedy = the "outside view" / **reference class**: track your own real
+  numbers. → The app uses real speed & emotion to calibrate task count and difficulty.
   ([Planning fallacy — Wikipedia](https://en.wikipedia.org/wiki/Planning_fallacy))
-- **Implementation intentions** (kế hoạch "khi–thì", nơi chốn) — một trong những can thiệp mạnh & rẻ
-  nhất, **d ≈ 0.65** trên ~94 nghiên cứu (Gollwitzer & Sheeran). → Trường **cue** tùy chọn cho việc
-  quan trọng. ([Meta-analysis — PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC8149892/))
-- **Mục tiêu gần > mục tiêu xa** (Bandura & Schunk 1981): cột mốc gần thúc đẩy mạnh, mục tiêu xa "không
-  có tác dụng rõ rệt" một mình. → Dồn UI vào cột mốc kế + 2–5 việc hôm nay, không nhồi tầng kế hoạch
-  rườm rà. ([Bandura & Schunk, JPSP 1981](https://uploads-ssl.webflow.com/59faaf5b01b9500001e95457/5bc552d85141987915dab842_Bandura%20&%20Schunk,%201981.pdf))
-- **Self-compassion** khi vấp (Breines & Chen 2012): tự tử tế _tăng_ động lực cải thiện, _giảm_ trì
-  hoãn — ngược với lo ngại "nuông chiều". → Giọng văn trung tính/tử tế khi trượt, "co nhỏ + bắt đầu
-  lại" thay vì trách móc. ([Breines & Chen, PSPB 2012](https://journals.sagepub.com/doi/abs/10.1177/0146167212445599))
-- **Thói quen & ân hạn 1 ngày** (Lally 2010; "never miss twice" — Atomic Habits): bỏ _một_ ngày không
-  hại sự tự động hoá; chỉ bỏ _hai_ ngày liên tiếp mới nguy. → Streak tha thứ 1 ngày hở.
+- **Implementation intentions** ("when–then", location plans) — one of the strongest & cheapest
+  interventions, **d ≈ 0.65** across ~94 studies (Gollwitzer & Sheeran). → an optional **cue** field for
+  important tasks. ([Meta-analysis — PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC8149892/))
+- **Near goals > distant goals** (Bandura & Schunk 1981): near milestones motivate strongly, a distant goal
+  alone has "no significant effect". → concentrate the UI on the next milestone + 2–5 tasks today, no bloated
+  planning tier. ([Bandura & Schunk, JPSP 1981](https://uploads-ssl.webflow.com/59faaf5b01b9500001e95457/5bc552d85141987915dab842_Bandura%20&%20Schunk,%201981.pdf))
+- **Self-compassion** after a stumble (Breines & Chen 2012): being kind to yourself _increases_ motivation
+  to improve and _reduces_ procrastination — opposite to the "coddling" fear. → a neutral/kind tone on a
+  miss, "shrink it + start again" instead of blame. ([Breines & Chen, PSPB 2012](https://journals.sagepub.com/doi/abs/10.1177/0146167212445599))
+- **Habits & a 1-day grace** (Lally 2010; "never miss twice" — Atomic Habits): missing _one_ day doesn't hurt
+  automaticity; only _two_ in a row is dangerous. → the streak forgives a 1-day gap.
   ([Lally — University of Surrey](https://www.surrey.ac.uk/news/does-it-really-take-66-days-form-habit-we-asked-expert-dr-pippa-lally))
-- **80/20 (Pareto)** — ưu tiên theo _giá trị ÷ công sức_; nổi bật **một việc chính (MIT)**.
-- **Goal-gradient** (Kivetz 2006): càng gần đích càng nỗ lực; nên nhấn _quãng đường còn lại_ ("còn 2
-  việc") hơn là "% đã đi". ([Kivetz, Urminsky & Zheng 2006](https://journals.sagepub.com/doi/abs/10.1509/jmkr.43.1.39))
-- **Streak loss-soft** (Silverman & Barasch 2022): chuỗi mạnh nhờ tâm lý sợ mất, nhưng tự-trách khi đứt
-  làm hại — cần _ân hạn/sửa chữa_ và đổ lỗi cho lịch, không cho người.
+- **80/20 (Pareto)** — prioritize by _value ÷ effort_; highlight a single **Most Important Task (MIT)**.
+- **Goal-gradient** (Kivetz 2006): the closer to the finish, the more effort; emphasize _distance remaining_
+  ("2 tasks left") rather than "% done". ([Kivetz, Urminsky & Zheng 2006](https://journals.sagepub.com/doi/abs/10.1509/jmkr.43.1.39))
+- **Streak loss-soft** (Silverman & Barasch 2022): streaks are strong via loss-aversion, but self-blame on a
+  break is harmful — need _grace/repair_ and to blame the calendar, not the person.
   ([J. Consumer Research 2022](https://academic.oup.com/jcr/article/49/6/1095/6623414))
-- **Identity-as-evidence** (Self-Perception; Atomic Habits): phản chiếu pattern thật ("5/7 ngày bạn
-  giữ nhịp — giống một thói quen") thay vì bắt người dùng tự nhận vai.
+- **Identity-as-evidence** (Self-Perception; Atomic Habits): reflect the real pattern ("5/7 days you kept the
+  rhythm — that looks like a habit") instead of making the user role-play an identity.
 
-### 6.2 Những thứ CHỦ ĐÍCH KHÔNG làm (vì phản tác dụng)
+### 6.2 What is DELIBERATELY NOT done (because it backfires)
 
-- **Điểm/XP/level/badge gắn vào hoàn thành task, variable reward, phạt.** Phần thưởng ngoại lai _bào
-  mòn_ động lực nội tại với việc thú vị — **d ≈ −0.34** trên 128 nghiên cứu (Deci, Koestner & Ryan
-  1999, "overjustification effect"). Với app tự-phát-triển, động lực nội tại bền mới là thứ cần giữ →
-  mọi "thưởng" được chuyển thành **feedback thông tin**.
+- **Points/XP/level/badge tied to task completion, variable reward, punishment.** Extrinsic reward _erodes_
+  intrinsic motivation for an interesting activity — **d ≈ −0.34** across 128 studies (Deci, Koestner & Ryan
+  1999, "overjustification effect"). For a self-development app, durable intrinsic motivation is exactly what
+  must be preserved → every "reward" is turned into **informative feedback**.
   ([Deci, Koestner & Ryan 1999](https://home.ubalt.edu/tmitch/642/articles%20syllabus/Deci%20Koestner%20Ryan%20meta%20IM%20psy%20bull%2099.pdf))
-- **Tầng kế hoạch tuần rườm rà** — mục tiêu trung/xa ít tác dụng động lực một mình (Bandura).
-- **Nhử việc dở để tạo căng thẳng** — hiệu ứng Zeigarnik _yếu/bị bác_ trong meta-analysis 2025; việc dở
-  chỉ thôi ám ảnh khi _đã có kế hoạch cụ thể_ (Masicampo & Baumeister). → App chia nhỏ để hạ rào, không
-  để nhắc nhở gây áp lực. ([Nature HSSC 2025](https://www.nature.com/articles/s41599-025-05000-w))
-- **"Tiêu hao ý chí / decision fatigue"** như cơ chế nền — gần như bằng 0 sau replication 23-lab. App
-  giảm số quyết định bằng _thói quen + AI gợi ý_, không "tiết kiệm ý chí".
+- **A bloated weekly-planning tier** — mid/distant goals have little motivational effect alone (Bandura).
+- **Baiting with unfinished work to create tension** — the Zeigarnik effect is _weak/refuted_ in a 2025
+  meta-analysis; unfinished work only stops nagging once it _has a concrete plan_ (Masicampo & Baumeister). →
+  the app splits tasks to lower the bar, not to nag under pressure. ([Nature HSSC 2025](https://www.nature.com/articles/s41599-025-05000-w))
+- **"Willpower depletion / decision fatigue"** as a base mechanism — near-zero after a 23-lab replication. The
+  app reduces decisions via _habits + AI suggestions_, not by "saving willpower".
   ([Ego depletion — Wikipedia](https://en.wikipedia.org/wiki/Ego_depletion))
 
-### 6.3 Mô hình tổng (SDT + Fogg)
+### 6.3 The overall model (SDT + Fogg)
 
-- **Self-Determination Theory** (Deci & Ryan): hỗ trợ **autonomy** (AI _đề xuất_, bạn _chọn_) và
-  **competence** (calibrate thực tế + phản chiếu tiến bộ). App đơn người nên bỏ qua "relatedness".
-- **Fogg Behavior Model** (B = MAP): hành vi cần Motivation × Ability × Prompt. Đòn rẻ & mạnh nhất là
-  tăng **Ability** (chia nhỏ việc), không phải bơm động lực. ([behaviormodel.org](https://www.behaviormodel.org/))
+- **Self-Determination Theory** (Deci & Ryan): support **autonomy** (the AI _suggests_, you _choose_) and
+  **competence** (real calibration + reflecting progress). Single-user, so "relatedness" is skipped.
+- **Fogg Behavior Model** (B = MAP): behavior needs Motivation × Ability × Prompt. The cheapest & strongest
+  lever is raising **Ability** (split the task), not pumping motivation. ([behaviormodel.org](https://www.behaviormodel.org/))
 
-## 7. Lộ trình đã hoàn thành
+## 7. Completed roadmap
 
-Tầng hành vi học được build theo thứ tự **lợi ích/ma sát giảm dần** (chính là áp 80/20 lên roadmap):
+The behavioral layer was built in order of **decreasing benefit/friction** (applying 80/20 to the roadmap itself):
 
-1. **Phase 1** — Học độ khó từ cảm xúc + AI tự chia nhỏ việc khó/trượt (bằng chứng mạnh nhất, 0 input mới).
-2. **Phase 2** — Cue "khi nào/ở đâu" + streak ân hạn + goal-gradient + giọng văn tử tế.
-3. **Phase 3** — Ưu tiên 80/20 + việc chính (MIT).
-4. **Phase 4** — Personal OS: check-in + sức/ngày + ngày phục hồi.
-5. **Phase 5** — Lý do trượt + phản chiếu danh tính + feedback thông tin.
+1. **Phase 1** — learn difficulty from emotion + AI auto-splits hard/slipped tasks (strongest evidence, zero new input).
+2. **Phase 2** — "when/where" cues + grace streak + goal-gradient + kind tone.
+3. **Phase 3** — 80/20 prioritization + Most Important Task (MIT).
+4. **Phase 4** — Personal OS: check-in + capacity/day + recovery days.
+5. **Phase 5** — slip reasons + identity reflection + informative feedback.
 
-Chi tiết kỹ thuật từng phần: xem [02 — Kỹ thuật](./02-technical.md).
+Per-part technical detail: see [02 — Technical](./02-technical.md).
