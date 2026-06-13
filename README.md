@@ -1,132 +1,131 @@
 # Smart Todo
 
-Todo list cá nhân thông minh: tạo task trong ngày, đánh dấu xong và chấm cảm xúc
-(dễ / bình thường / mệt). Cuối ngày bấm **"Đề xuất todo cho ngày mai"** —
-AI đọc lịch sử thật (việc xong, việc dở, mức trì hoãn, cảm xúc, tốc độ hoàn thành)
-và đề xuất danh sách **khả thi** kèm **lý do** cho từng việc.
+A personal, intelligent todo list: create tasks during the day, check them off, and rate the effort
+(easy / normal / tiring). At end of day, tap **"Đề xuất todo cho ngày mai"** (suggest todos for tomorrow) —
+the AI reads your real history (done, undone, delay level, emotion, completion speed) and proposes a
+**feasible** list with a **reason** for each item.
 
-> 📚 Tài liệu đầy đủ trong [`docs/`](./docs/): [sản phẩm](./docs/01-product.md) ·
-> [kỹ thuật](./docs/02-technical.md) · [hướng dẫn sử dụng](./docs/03-user-guide.md).
-> Trang hướng dẫn tương tác trong app: `/guide`. Spec & rule phát triển: `CLAUDE.md`.
+> 📚 Full docs in [`docs/`](./docs/): [product](./docs/01-product.md) · [technical](./docs/02-technical.md) ·
+> [user guide](./docs/03-user-guide.md) · [feature spec](./docs/04-features-spec.md). AI primer: `docs/00-map.md`.
+> Interactive guide in the app: `/guide`. Dev spec & rules: `CLAUDE.md`.
 
 ## Stack
 
 Next.js (App Router, TypeScript) · Tailwind + shadcn/ui · Prisma + SQLite · Gemini API (JSON mode)
 
-## Cài đặt & chạy
+## Install & run
 
 ```bash
 npm install
 
-# 1. Cấu hình môi trường
+# 1. Configure the environment
 cp .env.example .env
-#    Điền AI_API_KEY (lấy free tại https://aistudio.google.com/apikey)
+#    Fill in AI_API_KEY (free at https://aistudio.google.com/apikey)
 
-# 2. Tạo database SQLite
+# 2. Create the SQLite database
 npx prisma migrate dev
 
-# 3. Chạy
+# 3. Run
 npm run dev          # http://localhost:3000
 ```
 
-## Lịch sử & kế hoạch
+## History & planning
 
-- **Day View** (`/?date=YYYY-MM-DD`): điều hướng ← → giữa các ngày ngay trên trang chính.
-  Quá khứ = chế độ quan sát (kết quả, cảm xúc, ghi chú — không thêm việc ngược thời gian);
-  tương lai = chế độ lập kế hoạch (thêm task trước).
-- **`/history`**: dải hoạt động 14 ngày (tỉ lệ hoàn thành), section "Kế hoạch sắp tới"
-  và timeline "Đã qua" với progress bar + cảm xúc + note từng ngày. Click ngày nào → Day View ngày đó.
+- **Day View** (`/?date=YYYY-MM-DD`): navigate ← → between days right on the main page. The past = observe
+  mode (results, emotion, notes — no adding tasks back in time); the future = planning mode (add tasks ahead).
+- **`/history`**: a 14-day activity strip (completion rate), an "upcoming plan" section, and a "past" timeline
+  with a progress bar + emotion + note per day. Click a day → that day's Day View.
 
-## Thông báo Discord (mục 13)
+## Discord notifications (§13)
 
-Nhắc chủ động qua Discord, giọng nâng đỡ (không hối thúc): **bản tin sáng**, **nhắc giữ streak**
-khi sắp đứt chuỗi, **cú hích ngẫu nhiên** làm việc, và **đúc kết tối**. Số liệu (streak, số việc,
-việc chính) do hệ thống tính thật; AI chỉ thêm động lực / câu nói hay / mẹo.
+Proactive reminders via Discord, a supportive voice (not pushy): a **morning brief**, a **streak guard** when
+the streak is at risk, a **random nudge** to work, and an **evening wrap**. The numbers (streak, task count,
+MIT) are computed for real by the system; the AI only adds motivation / a nice quote / a tip.
 
-- Cấu hình tại **`/notifications`**: dán Webhook URL, chọn cường độ, bật/tắt + đặt giờ từng loại,
-  giờ yên, và bấm **"Gửi thử"**. Lấy webhook: kênh Discord → ⚙ → Tích hợp → Webhook → Sao chép URL.
-- Lên lịch bằng **cron nội bộ** (`instrumentation.ts` + node-cron, tick mỗi phút) — chạy cùng server
-  always-on, không cần dịch vụ ngoài. Giờ tính theo `TZ` (prod = `Asia/Ho_Chi_Minh`).
-- Fallback gọi ngoài: `POST /api/notify/run?kind=morning&secret=$NOTIFY_SECRET` (đặt `NOTIFY_SECRET`
-  để bật; thêm `&force=1` để gửi ngay, bỏ qua điều kiện). Không có `AI_API_KEY` → vẫn chạy với nội dung tĩnh.
+- Configure at **`/notifications`**: paste the Webhook URL, pick an intensity, toggle + set a time per kind,
+  quiet hours, and tap **"Send test"**. Get a webhook: a Discord channel → ⚙ → Integrations → Webhooks → Copy URL.
+- Scheduled by an **internal cron** (`instrumentation.ts` + node-cron, ticks every minute) — runs with the
+  always-on server, no external service. Times follow `TZ` (prod = `Asia/Ho_Chi_Minh`).
+- External fallback call: `POST /api/notify/run?kind=morning&secret=$NOTIFY_SECRET` (set `NOTIFY_SECRET` to
+  enable; add `&force=1` to send now, bypassing conditions). Without `AI_API_KEY` it still runs with static content.
 
-## Lịch trình (mục 14)
+## Schedule (§14)
 
-Khai báo **lịch cứng** (học, làm) lặp theo tuần + **việc đột xuất** tại **`/schedule`**. Đây không
-phải lịch để "làm cho xong" mà là **bối cảnh**: app biết quỹ giờ rảnh thật mỗi ngày nên đề xuất việc
-vừa sức hơn và gắn `cue` vào khe trống. Lịch cứng không tính vào chuỗi/thống kê.
+Declare a **hard schedule** (study, work) recurring weekly + **one-off events** at **`/schedule`**. This isn't a
+calendar to "get done" but **context**: the app knows the real free time each day, so it suggests
+fitting-the-capacity tasks and attaches a `cue` to open slots. The hard schedule doesn't count toward streak/stats.
 
-- Lưới tuần (T2–CN) + quản lý lịch cứng (bật/tắt, sửa, xoá). Buổi đột xuất có thể "có giờ", "cả ngày",
-  hoặc "nghỉ" (bỏ qua lịch cứng hôm đó).
-- Trang **Hôm nay** hiện dải lịch của ngày + quỹ giờ rảnh; **bản tin sáng** (Discord) nhắc khéo lịch.
-- AI **chỉ gợi ý** nhét việc vào khe trống — không tự xếp lịch (giữ minh bạch).
+- A weekly grid (Mon–Sun) + hard-schedule management (toggle, edit, delete). A one-off can be "timed", "all day",
+  or "off" (skip the hard schedule that day).
+- The **Today** page shows that day's schedule strip + free time; the **morning brief** (Discord) gently mentions it.
+- The AI **only suggests** placing tasks into open slots — it doesn't auto-schedule (keep it transparent).
 
-## MCP Server (mục 15)
+## MCP Server (§15)
 
-Cho Claude (Claude.ai / Desktop / Cursor / VS Code) đọc–ghi dữ liệu thật để **tự lập kế hoạch**
-(todo hằng ngày, lịch theo giờ, kế hoạch giai đoạn, dời lịch). Chạy **ngay trong app Next** tại
-`app/api/[transport]/route.ts` (Streamable HTTP, stateless) → dùng chung Prisma + helper, deploy kèm
-container, không cần service riêng. Logic AI ở phía Claude; server chỉ CRUD + ngữ cảnh.
+Lets Claude (Claude.ai / Desktop / Cursor / VS Code) read–write real data to **self-plan** (daily todos, the
+hourly schedule, phased plans, rescheduling). Runs **right inside the Next app** at
+`app/api/[transport]/route.ts` (Streamable HTTP, stateless) → shares Prisma + helpers, deploys with the
+container, no separate service. AI logic is on Claude's side; the server only CRUDs + serves context.
 
-- **Endpoint**: `https://<domain>/api/mcp` · **Auth**: static bearer `MCP_AUTH_TOKEN` (Desktop/Cursor/
-  VS Code) **hoặc OAuth 2.1** (Claude.ai web — shim stateless tại `app/api/oauth/*`, PKCE + DCR, consent
-  bằng `MCP_AUTH_TOKEN`). Chưa đặt token = endpoint tắt.
-  > ⚠️ Claude.ai web hiện có bug (Anthropic, 6/2026) đôi khi không đính token sau OAuth → nếu gặp 401
-  > loop thì dùng Claude Desktop/Cursor/VS Code (bearer) cho tới khi họ sửa.
-- **Tools**: create/update/complete/delete/get task, `list_tasks`, `get_schedule`,
-  `get_workload_summary`, `bulk_create_tasks`, `create_project`, `get_project`, `list_projects`.
-  Prompts: `plan_my_day`, `plan_week`, `plan_project`, `review_and_reschedule`.
-- Task tạo qua MCP **đồng bộ** với app: `scheduledFor`→`date`, `priority`→`impact`, `status=DONE`→`done`
-  → hiện ngay trên trang Hôm nay/Lịch.
-- Test local: `npx @modelcontextprotocol/inspector` → `http://localhost:3000/api/mcp` + header
+- **Endpoint**: `https://<domain>/api/mcp` · **Auth**: a static bearer `MCP_AUTH_TOKEN` (Desktop/Cursor/VS Code)
+  **or OAuth 2.1** (claude.ai web — a stateless shim at `app/api/oauth/*`, PKCE + DCR, consent via
+  `MCP_AUTH_TOKEN`). Token unset = endpoint off.
+  > ⚠️ claude.ai web currently has a bug (Anthropic, 2026-06) that sometimes doesn't attach the token after
+  > OAuth → if you hit a 401 loop, use Claude Desktop/Cursor/VS Code (bearer) until they fix it.
+- **Tools**: task CRUD (`create_task`/`update_task`/`complete_task`/`delete_task`/`get_task`/`list_tasks`/
+  `bulk_create_tasks`), `get_schedule`, `get_workload_summary`, plans (`create_plan`/`add_milestones`/
+  `update_plan`/`list_plans`/`get_plan`/`check_milestone`), habits (`list_habits`/`check_habit`), incubating queue
+  (`add_to_queue`/`list_queue`/`update_goal`/`drop_goal`/`promote_to_task`/`promote_to_plan`), `ping`. (No
+  Project tool — deprecated, use Plan.) Prompts: `plan_my_day`, `plan_week`, `plan_project`, `triage_queue`,
+  `review_and_reschedule`.
+- A task created via MCP **syncs** with the app: `scheduledFor`→`date`, `priority`→`impact`, `status=DONE`→`done`
+  → shows immediately on the Today/Schedule pages.
+- Local test: `npx @modelcontextprotocol/inspector` → `http://localhost:3000/api/mcp` + header
   `Authorization: Bearer <MCP_AUTH_TOKEN>`.
 
-## Cấu trúc chính
+## Main structure
 
 ```
-app/page.tsx              Day View (hôm nay + mọi ngày qua ?date=)
-app/history/page.tsx      toàn cảnh: dải 14 ngày, kế hoạch sắp tới, lịch sử
-app/actions.ts            server actions CRUD (task, note, thêm vào ngày mai)
-app/api/suggest/route.ts  lắp ngữ cảnh từ DB → gọi AI → trả JSON đúng hợp đồng
+app/page.tsx              Day View (today + any past day via ?date=)
+app/history/page.tsx      overview: 14-day strip, upcoming plan, history
+app/actions.ts            server actions CRUD (task, note, add-to-tomorrow)
+app/api/suggest/route.ts  assemble context from the DB → call AI → return contract JSON
 lib/db.ts                 Prisma client singleton
-lib/ai.ts                 gọi Gemini + system prompt + parse/validate JSON
-lib/dates.ts              helper ngày (local-time, tính mức trì hoãn động)
-components/today/         các mảnh UI của màn hình Hôm nay
+lib/ai.ts                 call Gemini + system prompt + parse/validate JSON
+lib/dates.ts              date helpers (local-time, dynamic delay computation)
+components/today/         the Today screen's UI pieces
 ```
 
-## Deploy lên miniserver (Docker + auto-deploy)
+## Deploy to the miniserver (Docker + auto-deploy)
 
-Push lên `main` (có thay đổi trong `todo/`) → GitHub Actions build và redeploy
-qua **self-hosted runner** trên miniserver (cùng runner với link-manager).
-Workflow: `.github/workflows/deploy-todo.yml`.
+Push to `main` → GitHub Actions builds & pushes `ghcr.io/thiengthb/todo` (dual tag `latest` + short git-SHA),
+then **Watchtower** on the NUC auto-pulls (≤60s) and restarts. **No self-hosted runner, no build on the NUC**
+(platform invariant). Workflow: `.github/workflows/deploy.yml` (docs-only pushes are skipped via `paths-ignore`).
 
-- App chạy ở cổng **3002** (3001 đã thuộc link-manager). DB SQLite nằm trong
-  volume `todo_data` — sống qua mọi lần redeploy.
-- Mỗi đợt deploy, service `migrate` (one-shot) tự chạy `prisma migrate deploy`
-  trước, app chỉ khởi động khi migrate thành công — đổi schema không cần làm gì tay.
-- `TZ=Asia/Ho_Chi_Minh` được set trong compose để "hôm nay" tính đúng theo giờ VN.
-- Secrets cần đặt trong GitHub (Settings → Secrets and variables → Actions):
-  - Secret `AI_API_KEY` — key Gemini
-  - Variable `AI_MODEL` (tuỳ chọn, mặc định `gemini-2.5-flash`)
-- **Thông báo Discord**: cách gọn nhất là dán Webhook URL ngay trong app tại
-  `/notifications` (lưu vào DB trên volume `todo_data`, sống qua mọi redeploy) —
-  KHÔNG cần đụng tới hạ tầng. Nếu muốn dùng biến môi trường thay thế, thêm
-  `DISCORD_WEBHOOK_URL` (và `NOTIFY_SECRET` để bật endpoint ngoài) vào khối
-  `environment:` của compose phía server `/opt/apps/todo/docker-compose.yml`.
-  Lưu ý: workflow CI hiện chỉ build & push image — KHÔNG bơm secret runtime vào
-  container, nên đặt secret trong GitHub Actions sẽ không tới được app.
-- Deploy tay không qua git: `AI_API_KEY=... docker compose up -d --build`
-- Backup: `docker run --rm -v todo_todo_data:/data -v $(pwd):/backup alpine cp /data/todo.db /backup/`
+- The app listens on **port 3000** inside the container; only Traefik reaches it over the `edge` network (no host
+  port published). Route → Cloudflare Tunnel (`todo.thientnse.site`). Rollback = pin the SHA tag in
+  `/opt/apps/todo/docker-compose.yml`.
+- The SQLite DB lives in the named volume `todo_data` — it survives every redeploy. On each start the entrypoint
+  runs `prisma migrate deploy` before the app, so schema changes need no manual step.
+- `TZ=Asia/Ho_Chi_Minh` is set in compose so "today" is computed in VN time.
+- Secrets live ONLY in `/opt/apps/todo/.env` on the NUC (chmod 600): `AI_API_KEY`, `MCP_AUTH_TOKEN`,
+  `MCP_OAUTH_SECRET`, `NOTIFY_SECRET`, `DEFAULT_TIMEZONE`, optionally `DISCORD_WEBHOOK_URL`. `AI_MODEL` defaults
+  to `gemini-2.5-flash`. (`BUILD_SHA` is injected at CI build time.) The CI workflow only builds & pushes the
+  image — it does NOT inject runtime secrets into the container.
+- **Discord notifications**: the simplest way is to paste the Webhook URL in the app at `/notifications` (stored
+  in the DB on `todo_data`, survives every redeploy) — no infra change needed.
+- The repo's `docker-compose.yml` is for local dev ONLY.
 
-> Lưu ý Windows/macOS dev: nếu sửa dependency, chạy
+> Windows/macOS dev note: if you change a dependency, run
 > `docker run --rm -v ${PWD}:/app -w /app node:24-alpine npm install --package-lock-only`
-> để lockfile ghi đủ optional deps cho Linux (tránh `npm ci` fail trong image).
+> so the lockfile records the optional Linux deps (avoids `npm ci` failing in the image).
 
-## Ghi chú vận hành
+## Operational notes
 
-- Dữ liệu nằm trong `prisma/dev.db` (đã gitignore) — backup = copy file.
-- Mức trì hoãn không lưu cứng; tính từ `carriedFrom`/ngày tạo đến hôm nay.
-- Carry-over qua nút "Ngày mai" trong dialog đề xuất sẽ giữ chuỗi `carriedFrom`
-  gốc — task lười không bao giờ "reset" được số ngày trì hoãn 😉.
-- `scripts/smoke-test.cjs` — bơm nhanh dữ liệu mẫu khi cần thử:
-  `DATABASE_URL="file:<đường dẫn tuyệt đối tới prisma/dev.db>" node scripts/smoke-test.cjs`
+- Data lives in `prisma/dev.db` (gitignored) — backup = copy the file.
+- The delay level is not stored; it's computed from `carriedFrom`/creation date to today.
+- Carry-over via the "Tomorrow" button in the suggest dialog keeps the original `carriedFrom` chain — a lazy
+  task can never "reset" its delay count 😉.
+- `scripts/smoke-test.cjs` — quickly seed sample data when you want to test:
+  `DATABASE_URL="file:<absolute path to prisma/dev.db>" node scripts/smoke-test.cjs`
+```
