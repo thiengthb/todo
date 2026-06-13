@@ -1,8 +1,8 @@
 ---
 title: Finish todo's Knowledge OS — add 00-map + decisions, translate CLAUDE.md to English
-status: draft
+status: active
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-06-13  # 00-map + decisions + English CLAUDE.md done; spec-docs translation is the open follow-up
 related: [CLAUDE.md, docs/01-product.md, docs/02-technical.md, docs/03-user-guide.md, docs/04-features-spec.md, ../../nuc-platform/05-documentation-standard.md, ../../nuc-platform/06-knowledge-ledger.md]
 ---
 
@@ -30,12 +30,15 @@ yakudoku already has 00-map + decisions — todo still lags its own reference st
 - **Tradeoff:** translation must preserve every invariant precisely — map each section before editing.
 
 ## Steps
-- [ ] Write `docs/00-map.md` (English primer) · Test: covers module map + flows + invariants + secrets in ~1 page.
-- [ ] Create `docs/decisions.md` from `project-docs` template; seed the whys (see below).
-- [ ] Translate `CLAUDE.md` → English, preserving structure + every invariant; keep it thin.
-- [ ] Verify `04-features-spec.md` + 01/02/03 are English too (comments already translated — confirm prose).
-- [ ] Update `06-knowledge-ledger.md §B` pointer for todo; run `/session-wrap`.
-- [ ] Verify: no broken doc cross-refs; build unaffected (docs-only; `paths-ignore` now skips it).
+- [x] Write `docs/00-map.md` (English primer) — done 2026-06-13 (~1 page: module map + flows + invariants + secrets).
+- [x] Create `docs/decisions.md`, seeded with the foundational whys — done 2026-06-13.
+- [x] Translate `CLAUDE.md` → English (331 lines, 0 VN remaining), structure + every invariant preserved, kept thin — done 2026-06-13.
+- [ ] **Follow-up (large, separate pass) — translate the spec docs to English:** `01-product` (~103 VN lines),
+  `02-technical` (~114), `03-user-guide` (~71), `04-features-spec` (~268), `README` (~82) ≈ **640 VN lines**.
+  This is OUT of the original scope; the Knowledge OS goal (00-map + decisions + thin English CLAUDE.md) is
+  **met without it**. Do it as a focused pass (the docs are end-user/product prose, lower risk than CLAUDE.md).
+- [ ] Update `nuc-platform/06-knowledge-ledger.md §B` pointer for todo (decisions.md now established); run `/session-wrap`.
+- [ ] Verify: no broken doc cross-refs; build unaffected (docs-only; `paths-ignore` skips it).
 
 ## Out of scope
 No app code / behavior / schema changes. No re-slimming CLAUDE.md (already done). No redesign.
