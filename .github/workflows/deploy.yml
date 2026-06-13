@@ -24,7 +24,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Gate the image build on the test suite (Vitest). The NUC still only PULLs —
+  # tests run here in GitHub Actions. prisma generate is required: the mocked
+  # @/lib/db still imports the generated PrismaClient type.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
