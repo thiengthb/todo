@@ -7,6 +7,10 @@ name: build-and-push
 on:
   push:
     branches: [main]
+    # Docs-only changes don't rebuild the image (saves a CI build + Watchtower redeploy).
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   # Cho phép bấm nút "Run workflow" thủ công trên GitHub
   workflow_dispatch:
 
