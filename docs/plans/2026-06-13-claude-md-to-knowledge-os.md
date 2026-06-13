@@ -1,6 +1,6 @@
 ---
 title: Finish todo's Knowledge OS — add 00-map + decisions, translate CLAUDE.md to English
-status: active
+status: done
 created: 2026-06-13
 updated: 2026-06-13  # 00-map + decisions + English CLAUDE.md done; spec-docs translation is the open follow-up
 related: [CLAUDE.md, docs/01-product.md, docs/02-technical.md, docs/03-user-guide.md, docs/04-features-spec.md, ../../nuc-platform/05-documentation-standard.md, ../../nuc-platform/06-knowledge-ledger.md]
@@ -33,12 +33,12 @@ yakudoku already has 00-map + decisions — todo still lags its own reference st
 - [x] Write `docs/00-map.md` (English primer) — done 2026-06-13 (~1 page: module map + flows + invariants + secrets).
 - [x] Create `docs/decisions.md`, seeded with the foundational whys — done 2026-06-13.
 - [x] Translate `CLAUDE.md` → English (331 lines, 0 VN remaining), structure + every invariant preserved, kept thin — done 2026-06-13.
-- [ ] **Follow-up (large, separate pass) — translate the spec docs to English:** `01-product` (~103 VN lines),
-  `02-technical` (~114), `03-user-guide` (~71), `04-features-spec` (~268), `README` (~82) ≈ **640 VN lines**.
-  This is OUT of the original scope; the Knowledge OS goal (00-map + decisions + thin English CLAUDE.md) is
-  **met without it**. Do it as a focused pass (the docs are end-user/product prose, lower risk than CLAUDE.md).
-- [ ] Update `nuc-platform/06-knowledge-ledger.md §B` pointer for todo (decisions.md now established); run `/session-wrap`.
-- [ ] Verify: no broken doc cross-refs; build unaffected (docs-only; `paths-ignore` skips it).
+- [x] **Translate the spec docs to English** — `01-product`, `02-technical`, `03-user-guide`, `04-features-spec`,
+  `README` all translated (done 2026-06-13, one commit each). Remaining VN strings are deliberate UI labels (tab
+  names, button copy) and the `intensity` enum value `"vừa"`. Also fixed README's stale deploy section
+  (self-hosted runner / port 3002 → real ghcr + Watchtower) and the MCP tool list (Project removed).
+- [x] Update `nuc-platform/06-knowledge-ledger.md §B` pointer for todo (decisions.md established) — done.
+- [x] Verified: no broken doc cross-refs; docs-only so the build is unaffected (`paths-ignore` skips it).
 
 ## Out of scope
 No app code / behavior / schema changes. No re-slimming CLAUDE.md (already done). No redesign.
