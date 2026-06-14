@@ -1,0 +1,159 @@
+<!-- @dsCard group="Data display" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Badge</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --secondary: oklch(0.97 0 0);
+        --secondary-foreground: oklch(0.205 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --destructive: oklch(0.577 0.245 27.325);
+        --border: oklch(0.922 0 0);
+        --ok: oklch(0.58 0.13 155);
+        --warn: oklch(0.6 0.14 70);
+        --alert: oklch(0.585 0.2 20);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --secondary: oklch(0.269 0 0);
+        --secondary-foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --destructive: oklch(0.704 0.191 22.216);
+        --border: oklch(1 0 0 / 10%);
+        --ok: oklch(0.72 0.14 155);
+        --warn: oklch(0.8 0.13 75);
+        --alert: oklch(0.71 0.18 20);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .ds-sub {
+        margin: 18px 0 8px;
+        font-size: 11px;
+        color: var(--muted-foreground);
+      }
+      .ds-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 20px;
+        padding: 2px 8px;
+        border: 1px solid transparent;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      .badge--default {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .badge--secondary {
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+      }
+      .badge--destructive {
+        background: color-mix(in oklch, var(--destructive) 10%, transparent);
+        color: var(--destructive);
+      }
+      .badge--outline {
+        border-color: var(--border);
+        color: var(--foreground);
+      }
+      .badge--ghost {
+        background: transparent;
+        color: var(--foreground);
+      }
+      /* semantic tokens (§12) — surfaced as text-<x> on bg-<x>/10 */
+      .badge--ok {
+        background: color-mix(in oklch, var(--ok) 12%, transparent);
+        color: var(--ok);
+      }
+      .badge--warn {
+        background: color-mix(in oklch, var(--warn) 12%, transparent);
+        color: var(--warn);
+      }
+      .badge--alert {
+        background: color-mix(in oklch, var(--alert) 12%, transparent);
+        color: var(--alert);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Badge · light</p>
+        <p class="ds-sub">variants</p>
+        <div class="ds-row">
+          <span class="badge badge--default">Default</span>
+          <span class="badge badge--secondary">Secondary</span>
+          <span class="badge badge--destructive">Destructive</span>
+          <span class="badge badge--outline">Outline</span>
+          <span class="badge badge--ghost">Ghost</span>
+        </div>
+        <p class="ds-sub">semantic tokens — ok · warn · alert</p>
+        <div class="ds-row">
+          <span class="badge badge--ok">On track</span>
+          <span class="badge badge--warn">Delayed 2d</span>
+          <span class="badge badge--alert">Tired</span>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Badge · dark</p>
+        <p class="ds-sub">variants</p>
+        <div class="ds-row">
+          <span class="badge badge--default">Default</span>
+          <span class="badge badge--secondary">Secondary</span>
+          <span class="badge badge--destructive">Destructive</span>
+          <span class="badge badge--outline">Outline</span>
+          <span class="badge badge--ghost">Ghost</span>
+        </div>
+        <p class="ds-sub">semantic tokens — ok · warn · alert</p>
+        <div class="ds-row">
+          <span class="badge badge--ok">On track</span>
+          <span class="badge badge--warn">Delayed 2d</span>
+          <span class="badge badge--alert">Tired</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

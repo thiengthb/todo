@@ -1,0 +1,179 @@
+<!-- @dsCard group="Overlays" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Dialog</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --popover: oklch(1 0 0);
+        --popover-foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --popover: oklch(0.205 0 0);
+        --popover-foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        position: relative;
+        min-height: 320px;
+        overflow: hidden;
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(2px);
+      }
+      .dialog {
+        position: absolute;
+        top: 52%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: calc(100% - 48px);
+        max-width: 320px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+        border-radius: calc(var(--radius) * 1.4);
+        background: var(--popover);
+        color: var(--popover-foreground);
+        font-size: 14px;
+        box-shadow:
+          0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
+          0 12px 32px rgba(0, 0, 0, 0.18);
+      }
+      .dlg-title {
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1;
+      }
+      .dlg-desc {
+        margin-top: 8px;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .dlg-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin: -16px;
+        margin-top: 0;
+        padding: 16px;
+        border-top: 1px solid var(--border);
+        background: color-mix(in oklch, var(--muted) 50%, transparent);
+        border-radius: 0 0 calc(var(--radius) * 1.4) calc(var(--radius) * 1.4);
+      }
+      .dlg-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        color: var(--foreground);
+        font-size: 15px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .btn--default {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .btn--outline {
+        border-color: var(--border);
+        background: var(--background);
+        color: var(--foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Dialog · light</p>
+        <div class="overlay"></div>
+        <div class="dialog">
+          <div class="dlg-close">✕</div>
+          <div>
+            <div class="dlg-title">Delete this task?</div>
+            <div class="dlg-desc">This can't be undone. The task is removed permanently.</div>
+          </div>
+          <div class="dlg-footer">
+            <button class="btn btn--outline">Cancel</button>
+            <button class="btn btn--default">Delete</button>
+          </div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Dialog · dark</p>
+        <div class="overlay"></div>
+        <div class="dialog">
+          <div class="dlg-close">✕</div>
+          <div>
+            <div class="dlg-title">Delete this task?</div>
+            <div class="dlg-desc">This can't be undone. The task is removed permanently.</div>
+          </div>
+          <div class="dlg-footer">
+            <button class="btn btn--outline">Cancel</button>
+            <button class="btn btn--default">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

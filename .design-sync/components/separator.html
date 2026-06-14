@@ -1,0 +1,110 @@
+<!-- @dsCard group="Layout" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Separator</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .ds-sub {
+        margin: 18px 0 8px;
+        font-size: 11px;
+        color: var(--muted-foreground);
+      }
+      .sep-h {
+        height: 1px;
+        width: 100%;
+        background: var(--border);
+      }
+      .sep-v {
+        width: 1px;
+        align-self: stretch;
+        background: var(--border);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 20px;
+        font-size: 14px;
+      }
+      .block {
+        font-size: 14px;
+      }
+      .block + .sep-h {
+        margin: 12px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Separator · light</p>
+        <p class="ds-sub">horizontal</p>
+        <div class="block">Today</div>
+        <div class="sep-h"></div>
+        <div class="block">History</div>
+        <p class="ds-sub">vertical</p>
+        <div class="row">
+          <span>Profile</span>
+          <span class="sep-v"></span>
+          <span>Settings</span>
+          <span class="sep-v"></span>
+          <span>Logout</span>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Separator · dark</p>
+        <p class="ds-sub">horizontal</p>
+        <div class="block">Today</div>
+        <div class="sep-h"></div>
+        <div class="block">History</div>
+        <p class="ds-sub">vertical</p>
+        <div class="row">
+          <span>Profile</span>
+          <span class="sep-v"></span>
+          <span>Settings</span>
+          <span class="sep-v"></span>
+          <span>Logout</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

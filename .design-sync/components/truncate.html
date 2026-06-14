@@ -1,0 +1,96 @@
+<!-- @dsCard group="Data display" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Truncate</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .ds-sub {
+        margin: 18px 0 6px;
+        font-size: 11px;
+        color: var(--muted-foreground);
+      }
+      .box {
+        width: 200px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .trunc {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+      .note {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--muted-foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Truncate · light</p>
+        <p class="ds-sub">single line, ellipsis on overflow</p>
+        <div class="box">
+          <span class="trunc">Draft the Q3 roadmap and review every milestone with the team</span>
+        </div>
+        <p class="note">Overflowing text shows a tooltip with the full string on hover/focus.</p>
+        <p class="ds-sub">short text — no tooltip</p>
+        <div class="box"><span class="trunc">Buy milk</span></div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Truncate · dark</p>
+        <p class="ds-sub">single line, ellipsis on overflow</p>
+        <div class="box">
+          <span class="trunc">Draft the Q3 roadmap and review every milestone with the team</span>
+        </div>
+        <p class="note">Overflowing text shows a tooltip with the full string on hover/focus.</p>
+        <p class="ds-sub">short text — no tooltip</p>
+        <div class="box"><span class="trunc">Buy milk</span></div>
+      </div>
+    </div>
+  </body>
+</html>

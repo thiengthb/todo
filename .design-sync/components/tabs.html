@@ -1,0 +1,141 @@
+<!-- @dsCard group="Layout" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tabs</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .ds-sub {
+        margin: 18px 0 8px;
+        font-size: 11px;
+        color: var(--muted-foreground);
+      }
+      /* default variant — segmented control on bg-muted */
+      .tabs-list {
+        display: inline-flex;
+        align-items: center;
+        height: 32px;
+        padding: 3px;
+        border-radius: 0.625rem;
+        background: var(--muted);
+      }
+      .tab {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: calc(100% - 1px);
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        color: color-mix(in oklch, var(--foreground) 60%, transparent);
+        cursor: pointer;
+      }
+      .tab--active {
+        background: var(--background);
+        color: var(--foreground);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+      /* line variant — underline */
+      .tabs-list--line {
+        display: inline-flex;
+        gap: 4px;
+        background: transparent;
+        height: auto;
+        padding: 0;
+        border-radius: 0;
+      }
+      .tab--line {
+        position: relative;
+        height: auto;
+        padding: 6px 8px;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .tab--line.tab--active {
+        background: transparent;
+        box-shadow: none;
+        color: var(--foreground);
+      }
+      .tab--line.tab--active::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -5px;
+        height: 2px;
+        background: var(--foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Tabs · light</p>
+        <p class="ds-sub">default (segmented)</p>
+        <div class="tabs-list">
+          <span class="tab tab--active">Settings</span>
+          <span class="tab">History</span>
+        </div>
+        <p class="ds-sub">line (underline)</p>
+        <div class="tabs-list--line">
+          <span class="tab tab--line tab--active">Using the app</span>
+          <span class="tab tab--line">Use with AI / MCP</span>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Tabs · dark</p>
+        <p class="ds-sub">default (segmented)</p>
+        <div class="tabs-list">
+          <span class="tab tab--active">Settings</span>
+          <span class="tab">History</span>
+        </div>
+        <p class="ds-sub">line (underline)</p>
+        <div class="tabs-list--line">
+          <span class="tab tab--line tab--active">Using the app</span>
+          <span class="tab tab--line">Use with AI / MCP</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

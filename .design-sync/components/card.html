@@ -1,0 +1,156 @@
+<!-- @dsCard group="Surfaces" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Card</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --card: oklch(1 0 0);
+        --card-foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --card: oklch(0.205 0 0);
+        --card-foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      /* Card — rounded-xl (radius * 1.4), ring-1 ring-foreground/10, --card-spacing 16px */
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 320px;
+        padding: 16px 0;
+        border-radius: calc(var(--radius) * 1.4);
+        background: var(--card);
+        color: var(--card-foreground);
+        font-size: 14px;
+        box-shadow: 0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent);
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 0 16px;
+      }
+      .card-title {
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.35;
+      }
+      .card-desc {
+        margin-top: 4px;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .card-content {
+        padding: 0 16px;
+        color: var(--muted-foreground);
+      }
+      .card-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px;
+        border-top: 1px solid var(--border);
+        background: color-mix(in oklch, var(--muted) 50%, transparent);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .btn--default {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .btn--outline {
+        border-color: var(--border);
+        background: var(--background);
+        color: var(--foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Card · light</p>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Suggest tomorrow</div>
+            <div class="card-desc">Grounded in your real pace, not wishes.</div>
+          </div>
+          <div class="card-content">
+            Done 4/6 today · ~5 tasks/day average. Two items carry over with a reason.
+          </div>
+          <div class="card-footer">
+            <button class="btn btn--default">Generate</button>
+            <button class="btn btn--outline">Later</button>
+          </div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Card · dark</p>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Suggest tomorrow</div>
+            <div class="card-desc">Grounded in your real pace, not wishes.</div>
+          </div>
+          <div class="card-content">
+            Done 4/6 today · ~5 tasks/day average. Two items carry over with a reason.
+          </div>
+          <div class="card-footer">
+            <button class="btn btn--default">Generate</button>
+            <button class="btn btn--outline">Later</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

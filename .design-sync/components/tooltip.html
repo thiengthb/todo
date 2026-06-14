@@ -1,0 +1,106 @@
+<!-- @dsCard group="Overlays" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tooltip</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .tt-stack {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        margin-top: 28px;
+      }
+      /* tooltip content — bg-foreground, text-background, rounded-md, text-xs */
+      .tip {
+        position: relative;
+        background: var(--foreground);
+        color: var(--background);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .tip-arrow {
+        position: absolute;
+        bottom: -3px;
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        background: var(--foreground);
+        transform: translateX(-50%) rotate(45deg);
+        border-radius: 2px;
+      }
+      .tt-trigger {
+        margin-top: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Tooltip · light</p>
+        <div class="tt-stack">
+          <span class="tip">Delete task<span class="tip-arrow"></span></span>
+          <span class="tt-trigger">🗑</span>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Tooltip · dark</p>
+        <div class="tt-stack">
+          <span class="tip">Delete task<span class="tip-arrow"></span></span>
+          <span class="tt-trigger">🗑</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

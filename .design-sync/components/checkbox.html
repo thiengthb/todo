@@ -1,0 +1,130 @@
+<!-- @dsCard group="Forms" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Checkbox</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --input: oklch(0.922 0 0);
+        --accent-brand: oklch(0.52 0.19 273);
+        --ring: var(--accent-brand);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --input: oklch(1 0 0 / 15%);
+        --accent-brand: oklch(0.7 0.16 273);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .ds-stack {
+        display: grid;
+        gap: 14px;
+      }
+      .ds-opt {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      .cbx {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border: 1px solid var(--input);
+        border-radius: 4px;
+        background: transparent;
+        color: transparent;
+        flex-shrink: 0;
+      }
+      .cbx--checked {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .cbx--focus {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent);
+      }
+      .cbx--disabled {
+        opacity: 0.5;
+      }
+      .cbx svg {
+        width: 14px;
+        height: 14px;
+      }
+      .ds-muted {
+        color: var(--muted-foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Checkbox · light</p>
+        <div class="ds-stack">
+          <label class="ds-opt"><span class="cbx"></span> Unchecked</label>
+          <label class="ds-opt"
+            ><span class="cbx cbx--checked"
+              ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M5 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round" /></svg></span
+            >
+            Checked</label
+          >
+          <label class="ds-opt"><span class="cbx cbx--focus"></span> Focused</label>
+          <label class="ds-opt ds-muted"><span class="cbx cbx--disabled"></span> Disabled</label>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Checkbox · dark</p>
+        <div class="ds-stack">
+          <label class="ds-opt"><span class="cbx"></span> Unchecked</label>
+          <label class="ds-opt"
+            ><span class="cbx cbx--checked"
+              ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M5 12l5 5L20 6" stroke-linecap="round" stroke-linejoin="round" /></svg></span
+            >
+            Checked</label
+          >
+          <label class="ds-opt"><span class="cbx cbx--focus"></span> Focused</label>
+          <label class="ds-opt ds-muted"><span class="cbx cbx--disabled"></span> Disabled</label>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

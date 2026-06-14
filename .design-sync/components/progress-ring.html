@@ -1,0 +1,121 @@
+<!-- @dsCard group="Feedback" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Progress ring</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14).
+         Ring = conic-gradient(tone pct%, muted 0) with an inner bg-background disc. */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --accent-brand: oklch(0.52 0.19 273);
+        --ok: oklch(0.58 0.13 155);
+        --warn: oklch(0.6 0.14 70);
+        --alert: oklch(0.585 0.2 20);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --accent-brand: oklch(0.7 0.16 273);
+        --ok: oklch(0.72 0.14 155);
+        --warn: oklch(0.8 0.13 75);
+        --alert: oklch(0.71 0.18 20);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .rings {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+      }
+      .ring {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 9999px;
+      }
+      .ring-inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 9999px;
+        background: var(--background);
+        font-size: 12px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Progress ring · light</p>
+        <div class="rings">
+          <div class="ring" style="background: conic-gradient(var(--foreground) 25%, var(--muted) 0)">
+            <div class="ring-inner">25%</div>
+          </div>
+          <div class="ring" style="background: conic-gradient(var(--ok) 60%, var(--muted) 0)">
+            <div class="ring-inner">60%</div>
+          </div>
+          <div class="ring" style="background: conic-gradient(var(--warn) 40%, var(--muted) 0)">
+            <div class="ring-inner">40%</div>
+          </div>
+          <div class="ring" style="background: conic-gradient(var(--accent-brand) 85%, var(--muted) 0)">
+            <div class="ring-inner">85%</div>
+          </div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Progress ring · dark</p>
+        <div class="rings">
+          <div class="ring" style="background: conic-gradient(var(--foreground) 25%, var(--muted) 0)">
+            <div class="ring-inner">25%</div>
+          </div>
+          <div class="ring" style="background: conic-gradient(var(--ok) 60%, var(--muted) 0)">
+            <div class="ring-inner">60%</div>
+          </div>
+          <div class="ring" style="background: conic-gradient(var(--warn) 40%, var(--muted) 0)">
+            <div class="ring-inner">40%</div>
+          </div>
+          <div class="ring" style="background: conic-gradient(var(--accent-brand) 85%, var(--muted) 0)">
+            <div class="ring-inner">85%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

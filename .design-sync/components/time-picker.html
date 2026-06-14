@@ -1,0 +1,164 @@
+<!-- @dsCard group="Forms" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Time picker</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14).
+         Composite: typed Input (clock icon, pl-8) + Popover list of 15′ marks. value = "HH:MM". */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --popover: oklch(1 0 0);
+        --popover-foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --input: oklch(0.922 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --popover: oklch(0.205 0 0);
+        --popover-foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --input: oklch(1 0 0 / 15%);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .tp-wrap {
+        position: relative;
+        width: 160px;
+      }
+      .tp-ic {
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        transform: translateY(-50%);
+        color: var(--muted-foreground);
+        font-size: 13px;
+      }
+      .tp-input {
+        height: 32px;
+        width: 100%;
+        padding: 4px 10px 4px 30px;
+        border: 1px solid var(--input);
+        border-radius: var(--radius);
+        background: transparent;
+        color: var(--foreground);
+        font: inherit;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        outline: none;
+      }
+      .tp-pop {
+        margin-top: 6px;
+        width: 160px;
+        padding: 4px;
+        border-radius: var(--radius);
+        background: var(--popover);
+        color: var(--popover-foreground);
+        box-shadow:
+          0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
+          0 8px 22px rgba(0, 0, 0, 0.14);
+      }
+      .tp-list {
+        height: 160px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .tp-list::-webkit-scrollbar {
+        width: 8px;
+      }
+      .tp-list::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 9999px;
+      }
+      .tp-opt {
+        padding: 6px 8px;
+        border-radius: calc(var(--radius) * 0.8);
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        text-align: left;
+      }
+      .tp-opt--active {
+        background: var(--muted);
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Time picker · light</p>
+        <div class="tp-wrap">
+          <span class="tp-ic">🕐</span>
+          <input class="tp-input" value="09:00" />
+        </div>
+        <div class="tp-pop">
+          <div class="tp-list">
+            <div class="tp-opt">08:00</div>
+            <div class="tp-opt">08:15</div>
+            <div class="tp-opt">08:30</div>
+            <div class="tp-opt">08:45</div>
+            <div class="tp-opt tp-opt--active">09:00</div>
+            <div class="tp-opt">09:15</div>
+            <div class="tp-opt">09:30</div>
+            <div class="tp-opt">09:45</div>
+            <div class="tp-opt">10:00</div>
+          </div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Time picker · dark</p>
+        <div class="tp-wrap">
+          <span class="tp-ic">🕐</span>
+          <input class="tp-input" value="09:00" />
+        </div>
+        <div class="tp-pop">
+          <div class="tp-list">
+            <div class="tp-opt">08:00</div>
+            <div class="tp-opt">08:15</div>
+            <div class="tp-opt">08:30</div>
+            <div class="tp-opt">08:45</div>
+            <div class="tp-opt tp-opt--active">09:00</div>
+            <div class="tp-opt">09:15</div>
+            <div class="tp-opt">09:30</div>
+            <div class="tp-opt">09:45</div>
+            <div class="tp-opt">10:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

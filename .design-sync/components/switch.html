@@ -1,0 +1,133 @@
+<!-- @dsCard group="Forms" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Switch</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --primary: oklch(0.205 0 0);
+        --input: oklch(0.922 0 0);
+        --accent-brand: oklch(0.52 0.19 273);
+        --ring: var(--accent-brand);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --primary: oklch(0.922 0 0);
+        --input: oklch(1 0 0 / 15%);
+        --accent-brand: oklch(0.7 0.16 273);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .ds-stack {
+        display: grid;
+        gap: 16px;
+      }
+      .ds-opt {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+      }
+      .sw {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 36px;
+        height: 20px;
+        border: 1px solid transparent;
+        border-radius: 9999px;
+        flex-shrink: 0;
+      }
+      .sw--off {
+        background: var(--input);
+      }
+      .sw--on {
+        background: var(--primary);
+      }
+      .sw--focus {
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent);
+      }
+      .sw--disabled {
+        opacity: 0.5;
+      }
+      .sw .thumb {
+        position: absolute;
+        top: 1px;
+        width: 16px;
+        height: 16px;
+        border-radius: 9999px;
+        background: var(--background);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      }
+      .sw--off .thumb {
+        left: 2px;
+      }
+      .sw--on .thumb {
+        left: 18px;
+      }
+      .ds-muted {
+        color: var(--muted-foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Switch · light</p>
+        <div class="ds-stack">
+          <label class="ds-opt"><span class="sw sw--off"><span class="thumb"></span></span> Off</label>
+          <label class="ds-opt"><span class="sw sw--on"><span class="thumb"></span></span> On</label>
+          <label class="ds-opt"
+            ><span class="sw sw--on sw--focus"><span class="thumb"></span></span> Focused</label
+          >
+          <label class="ds-opt ds-muted"
+            ><span class="sw sw--off sw--disabled"><span class="thumb"></span></span> Disabled</label
+          >
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Switch · dark</p>
+        <div class="ds-stack">
+          <label class="ds-opt"><span class="sw sw--off"><span class="thumb"></span></span> Off</label>
+          <label class="ds-opt"><span class="sw sw--on"><span class="thumb"></span></span> On</label>
+          <label class="ds-opt"
+            ><span class="sw sw--on sw--focus"><span class="thumb"></span></span> Focused</label
+          >
+          <label class="ds-opt ds-muted"
+            ><span class="sw sw--off sw--disabled"><span class="thumb"></span></span> Disabled</label
+          >
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

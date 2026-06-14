@@ -1,0 +1,110 @@
+<!-- @dsCard group="Layout" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Scroll area</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      /* bounded viewport + themed thin scrollbar (w-2.5 thumb rounded-full bg-border) */
+      .scroll {
+        height: 150px;
+        width: 240px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .scroll::-webkit-scrollbar {
+        width: 10px;
+      }
+      .scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scroll::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 9999px;
+        border: 3px solid transparent;
+        background-clip: padding-box;
+      }
+      .scroll-row {
+        padding: 8px 10px;
+        font-size: 14px;
+        border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+      }
+      .scroll-row:last-child {
+        border-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Scroll area · light</p>
+        <div class="scroll">
+          <div class="scroll-row">08:00 — Deep work</div>
+          <div class="scroll-row">09:30 — Standup</div>
+          <div class="scroll-row">10:00 — Write spec</div>
+          <div class="scroll-row">11:30 — Review PR</div>
+          <div class="scroll-row">13:00 — Lunch</div>
+          <div class="scroll-row">14:00 — Pairing</div>
+          <div class="scroll-row">15:30 — Emails</div>
+          <div class="scroll-row">16:00 — Plan tomorrow</div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Scroll area · dark</p>
+        <div class="scroll">
+          <div class="scroll-row">08:00 — Deep work</div>
+          <div class="scroll-row">09:30 — Standup</div>
+          <div class="scroll-row">10:00 — Write spec</div>
+          <div class="scroll-row">11:30 — Review PR</div>
+          <div class="scroll-row">13:00 — Lunch</div>
+          <div class="scroll-row">14:00 — Pairing</div>
+          <div class="scroll-row">15:30 — Emails</div>
+          <div class="scroll-row">16:00 — Plan tomorrow</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

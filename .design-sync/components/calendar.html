@@ -1,0 +1,214 @@
+<!-- @dsCard group="Forms" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Calendar</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14).
+         react-day-picker, locale vi (Monday-first), cell-size 28px, cell-radius radius-md. */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .cal {
+        width: 252px;
+        padding: 8px;
+        border-radius: var(--radius);
+      }
+      .cal-cap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 28px;
+        padding: 0 2px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .cal-nav {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: calc(var(--radius) * 0.8);
+        color: var(--foreground);
+      }
+      .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        margin-top: 8px;
+        row-gap: 2px;
+      }
+      .cal-wd {
+        font-size: 12.8px;
+        color: var(--muted-foreground);
+        text-align: center;
+        padding-bottom: 6px;
+      }
+      .cal-day {
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        border-radius: calc(var(--radius) * 0.8);
+      }
+      .cal-day--today {
+        background: var(--muted);
+      }
+      .cal-day--selected {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .cal-day--outside {
+        color: var(--muted-foreground);
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Calendar · light</p>
+        <div class="cal">
+          <div class="cal-cap"><span class="cal-nav">‹</span>Tháng 6, 2026<span class="cal-nav">›</span></div>
+          <div class="cal-grid">
+            <div class="cal-wd">T2</div>
+            <div class="cal-wd">T3</div>
+            <div class="cal-wd">T4</div>
+            <div class="cal-wd">T5</div>
+            <div class="cal-wd">T6</div>
+            <div class="cal-wd">T7</div>
+            <div class="cal-wd">CN</div>
+            <div class="cal-day">1</div>
+            <div class="cal-day">2</div>
+            <div class="cal-day">3</div>
+            <div class="cal-day">4</div>
+            <div class="cal-day">5</div>
+            <div class="cal-day">6</div>
+            <div class="cal-day">7</div>
+            <div class="cal-day">8</div>
+            <div class="cal-day">9</div>
+            <div class="cal-day">10</div>
+            <div class="cal-day">11</div>
+            <div class="cal-day">12</div>
+            <div class="cal-day">13</div>
+            <div class="cal-day cal-day--today">14</div>
+            <div class="cal-day">15</div>
+            <div class="cal-day">16</div>
+            <div class="cal-day">17</div>
+            <div class="cal-day cal-day--selected">18</div>
+            <div class="cal-day">19</div>
+            <div class="cal-day">20</div>
+            <div class="cal-day">21</div>
+            <div class="cal-day">22</div>
+            <div class="cal-day">23</div>
+            <div class="cal-day">24</div>
+            <div class="cal-day">25</div>
+            <div class="cal-day">26</div>
+            <div class="cal-day">27</div>
+            <div class="cal-day">28</div>
+            <div class="cal-day">29</div>
+            <div class="cal-day">30</div>
+            <div class="cal-day cal-day--outside">1</div>
+            <div class="cal-day cal-day--outside">2</div>
+            <div class="cal-day cal-day--outside">3</div>
+            <div class="cal-day cal-day--outside">4</div>
+            <div class="cal-day cal-day--outside">5</div>
+          </div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Calendar · dark</p>
+        <div class="cal">
+          <div class="cal-cap"><span class="cal-nav">‹</span>Tháng 6, 2026<span class="cal-nav">›</span></div>
+          <div class="cal-grid">
+            <div class="cal-wd">T2</div>
+            <div class="cal-wd">T3</div>
+            <div class="cal-wd">T4</div>
+            <div class="cal-wd">T5</div>
+            <div class="cal-wd">T6</div>
+            <div class="cal-wd">T7</div>
+            <div class="cal-wd">CN</div>
+            <div class="cal-day">1</div>
+            <div class="cal-day">2</div>
+            <div class="cal-day">3</div>
+            <div class="cal-day">4</div>
+            <div class="cal-day">5</div>
+            <div class="cal-day">6</div>
+            <div class="cal-day">7</div>
+            <div class="cal-day">8</div>
+            <div class="cal-day">9</div>
+            <div class="cal-day">10</div>
+            <div class="cal-day">11</div>
+            <div class="cal-day">12</div>
+            <div class="cal-day">13</div>
+            <div class="cal-day cal-day--today">14</div>
+            <div class="cal-day">15</div>
+            <div class="cal-day">16</div>
+            <div class="cal-day">17</div>
+            <div class="cal-day cal-day--selected">18</div>
+            <div class="cal-day">19</div>
+            <div class="cal-day">20</div>
+            <div class="cal-day">21</div>
+            <div class="cal-day">22</div>
+            <div class="cal-day">23</div>
+            <div class="cal-day">24</div>
+            <div class="cal-day">25</div>
+            <div class="cal-day">26</div>
+            <div class="cal-day">27</div>
+            <div class="cal-day">28</div>
+            <div class="cal-day">29</div>
+            <div class="cal-day">30</div>
+            <div class="cal-day cal-day--outside">1</div>
+            <div class="cal-day cal-day--outside">2</div>
+            <div class="cal-day cal-day--outside">3</div>
+            <div class="cal-day cal-day--outside">4</div>
+            <div class="cal-day cal-day--outside">5</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

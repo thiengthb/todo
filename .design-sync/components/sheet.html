@@ -1,0 +1,182 @@
+<!-- @dsCard group="Overlays" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sheet</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --popover: oklch(1 0 0);
+        --popover-foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --popover: oklch(0.205 0 0);
+        --popover-foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        position: relative;
+        min-height: 320px;
+        overflow: hidden;
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(2px);
+      }
+      /* right-side sheet */
+      .sheet {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 75%;
+        max-width: 280px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: var(--popover);
+        color: var(--popover-foreground);
+        border-left: 1px solid var(--border);
+        box-shadow: -8px 0 28px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+      }
+      .sheet-header {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 16px;
+      }
+      .sheet-title {
+        font-size: 16px;
+        font-weight: 500;
+      }
+      .sheet-desc {
+        font-size: 14px;
+        color: var(--muted-foreground);
+      }
+      .sheet-body {
+        padding: 0 16px;
+        color: var(--muted-foreground);
+      }
+      .sheet-footer {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px;
+      }
+      .sheet-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 15px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .btn--default {
+        background: var(--primary);
+        color: var(--primary-foreground);
+      }
+      .btn--outline {
+        border-color: var(--border);
+        background: var(--background);
+        color: var(--foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Sheet · light (right)</p>
+        <div class="overlay"></div>
+        <div class="sheet">
+          <div class="sheet-close">✕</div>
+          <div class="sheet-header">
+            <div class="sheet-title">Suggest tomorrow</div>
+            <div class="sheet-desc">5 tasks, grounded in your real pace.</div>
+          </div>
+          <div class="sheet-body">Carry over · Write spec · Review PR · Plan slice</div>
+          <div class="sheet-footer">
+            <button class="btn btn--default">Add all to tomorrow</button>
+            <button class="btn btn--outline">Close</button>
+          </div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Sheet · dark (right)</p>
+        <div class="overlay"></div>
+        <div class="sheet">
+          <div class="sheet-close">✕</div>
+          <div class="sheet-header">
+            <div class="sheet-title">Suggest tomorrow</div>
+            <div class="sheet-desc">5 tasks, grounded in your real pace.</div>
+          </div>
+          <div class="sheet-body">Carry over · Write spec · Review PR · Plan slice</div>
+          <div class="sheet-footer">
+            <button class="btn btn--default">Add all to tomorrow</button>
+            <button class="btn btn--outline">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

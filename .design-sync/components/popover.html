@@ -1,0 +1,133 @@
+<!-- @dsCard group="Overlays" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Popover</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --popover: oklch(1 0 0);
+        --popover-foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --input: oklch(0.922 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --border: oklch(0.922 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --popover: oklch(0.205 0 0);
+        --popover-foreground: oklch(0.985 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --input: oklch(1 0 0 / 15%);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --border: oklch(1 0 0 / 10%);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .btn--outline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--background);
+        color: var(--foreground);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .pop {
+        margin-top: 6px;
+        width: 240px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        border-radius: var(--radius);
+        background: var(--popover);
+        color: var(--popover-foreground);
+        font-size: 14px;
+        box-shadow:
+          0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
+          0 8px 22px rgba(0, 0, 0, 0.14);
+      }
+      .pop-title {
+        font-weight: 500;
+      }
+      .pop-desc {
+        color: var(--muted-foreground);
+      }
+      .pop-input {
+        height: 32px;
+        width: 100%;
+        padding: 4px 10px;
+        border: 1px solid var(--input);
+        border-radius: var(--radius);
+        background: transparent;
+        color: var(--foreground);
+        font: inherit;
+        font-size: 14px;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Popover · light</p>
+        <button class="btn--outline">Set due date ▾</button>
+        <div class="pop">
+          <div class="pop-header">
+            <div class="pop-title">Reschedule</div>
+            <div class="pop-desc">Move this task to another day.</div>
+          </div>
+          <input class="pop-input" value="2026-06-18" />
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Popover · dark</p>
+        <button class="btn--outline">Set due date ▾</button>
+        <div class="pop">
+          <div class="pop-header">
+            <div class="pop-title">Reschedule</div>
+            <div class="pop-desc">Move this task to another day.</div>
+          </div>
+          <input class="pop-input" value="2026-06-18" />
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

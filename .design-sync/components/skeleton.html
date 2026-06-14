@@ -1,0 +1,114 @@
+<!-- @dsCard group="Feedback" -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Skeleton</title>
+    <style>
+      /* tokens — copied verbatim from todo/app/globals.css (2026-06-14) */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      .ds-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+      }
+      .ds-pane {
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+      }
+      .ds-label {
+        margin: 0 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      @keyframes ds-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .skel {
+        background: var(--muted);
+        border-radius: 6px;
+        animation: ds-pulse 1.5s ease-in-out infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .skel {
+          animation: none;
+        }
+      }
+      .skel-card {
+        display: flex;
+        gap: 12px;
+        max-width: 260px;
+      }
+      .skel-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 9999px;
+        flex-shrink: 0;
+      }
+      .skel-lines {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+        padding-top: 4px;
+      }
+      .skel-line {
+        height: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ds-wrap">
+      <div class="ds-pane">
+        <p class="ds-label">Skeleton · light</p>
+        <div class="skel-card">
+          <div class="skel skel-avatar"></div>
+          <div class="skel-lines">
+            <div class="skel skel-line" style="width: 70%"></div>
+            <div class="skel skel-line" style="width: 100%"></div>
+            <div class="skel skel-line" style="width: 45%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="dark ds-pane">
+        <p class="ds-label">Skeleton · dark</p>
+        <div class="skel-card">
+          <div class="skel skel-avatar"></div>
+          <div class="skel-lines">
+            <div class="skel skel-line" style="width: 70%"></div>
+            <div class="skel skel-line" style="width: 100%"></div>
+            <div class="skel skel-line" style="width: 45%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
