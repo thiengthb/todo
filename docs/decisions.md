@@ -37,9 +37,14 @@
   accessible disclosure beats a hydrated Collapsible on a server page); used lightweight first-party **type
   guards** instead of client-side Zod at the `/api/suggest`+`/api/plan/decompose` boundaries (avoids bundling Zod
   to re-check our OWN server); did NOT fully eliminate the `setEmotion`/`scheduleTaskAt` read-before-write
-  (negligible on local SQLite, not worth the client coupling); **deferred** keyboard a11y for the pointer-drag
-  schedule grid (a sizable, risky change to a working widget — own pass). Schedule kind colors (sky/violet) stay
+  (negligible on local SQLite, not worth the client coupling). Schedule kind colors (sky/violet) stay
   a **categorical** palette, NOT semantic tokens (wrong axis) — a legend under the grid covers discoverability.
+- **Keyboard a11y for the pointer-drag schedule grid — reuse the dialog, don't rebuild drag.** Blocks became
+  `role="button"`+`tabIndex=0`+`aria-label`, Enter/Space opens the editor; create stays on the "Thêm lịch" button,
+  move/resize happen by editing day/time in that dialog. **Why:** full keyboard drag-create/move/resize on a
+  Pointer-Events widget is large + risky for little gain when the dialogs already give complete CRUD. Keep the two
+  input paths separate — keyboard via `onKeyDown`, pointer via the delegated `finish()` — so neither double-fires
+  (don't add `onClick` to a timed block, or a mouse tap fires both). `week-grid.tsx`.
 - **Process note:** the screen-by-screen audit that scoped this was fanned out to **Sonnet subagents under Opus
   review** (4 parallel read-only explorers → structured reports). Cheap, isolated, and the synthesis stayed on
   Opus — a good template for the next big multi-screen audit.

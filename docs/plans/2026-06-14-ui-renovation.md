@@ -99,7 +99,7 @@ which already carry meaning) · focus = Today+suggest, Plans+History, Schedule+R
 - [x] 4.3 — free-slot fill → `bg-free/20` (clearly visible vs today's muted bg) + a color/style **legend** under the grid (khe rảnh / cố định / linh hoạt / Học / Làm). Kind hues kept as a categorical palette (sky/violet) — NOT folded into semantic tokens (wrong axis); legend covers the discoverability gap
 - [x] 4.4 — half-hour tick lines (`bg-border/20`, lighter than the whole-hour lines)
 - [x] 4.5 — habit streak now shows a `--warn` Flame + count; settings form has a live "Cửa sổ thức ~Xh/ngày" preview that updates as wake/sleep/buffer change
-- [~] 4.6 — **deferred** (stretch): full keyboard create/move/resize on the pointer-driven drag grid is a sizable, risky change to a working widget; doing it half-way (focus without real interaction) adds risk for little gain. Worth a dedicated pass — logged as future work.
+- [x] 4.6 — keyboard a11y for the grid (done 2026-06-14, separate commit): timed blocks are now `role="button"` + `tabIndex=0` + `aria-label` (title/time/kind) + Enter/Space → open the editor; all-day chips got `aria-label` + `onClick` (were dead on tap). Did NOT build keyboard drag-create/move/resize — instead leaned on the EXISTING dialogs: create via the "Thêm lịch" button, move/resize by opening a block and changing day/time in the form. Full CRUD is keyboard-reachable; pointer-drag stays a mouse/touch enhancement (no double-fire: keyboard uses onKeyDown, pointer uses the delegated finish()). Hint text updated.
 
 ### Phase 5 — Quality-floor sweep + verify
 

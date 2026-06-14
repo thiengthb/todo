@@ -327,6 +327,7 @@ export function WeekGrid({
                 sleepMin={sleepMin}
                 freeSlots={freeSlotsByDate[d.date] ?? []}
                 nowMin={d.isToday ? nowMin : null}
+                onOpen={onOpen}
               />
             ))}
 
@@ -366,7 +367,8 @@ export function WeekGrid({
         </span>
       </div>
       <p className="border-t border-border/70 px-3 py-1.5 text-[11px] text-muted-foreground">
-        Kéo trên lưới để tạo · kéo block để dời · kéo mép dưới để đổi giờ kết thúc · chạm để sửa.
+        Kéo trên lưới để tạo · kéo block để dời · kéo mép dưới để đổi giờ kết thúc · chạm để sửa ·
+        bàn phím: Tab tới từng khối rồi Enter để mở sửa (đổi ngày/giờ trong hộp thoại).
       </p>
     </div>
   );
@@ -380,6 +382,7 @@ function DayColumnCell({
   sleepMin,
   freeSlots,
   nowMin,
+  onOpen,
 }: {
   day: DayColumn;
   colIndex: number;
@@ -387,6 +390,7 @@ function DayColumnCell({
   sleepMin: number;
   freeSlots: FreeSlot[];
   nowMin: number | null;
+  onOpen: (block: ScheduleBlock) => void;
 }) {
   const timed = layoutOverlaps(day.blocks);
   const allDay = day.blocks.filter((b) => !b.startTime || !b.endTime);
@@ -420,6 +424,8 @@ function DayColumnCell({
               type="button"
               data-block-id={b.id}
               data-block-source={b.source}
+              aria-label={`${b.title}, cả ngày. Nhấn Enter để sửa.`}
+              onClick={() => onOpen(b)}
               className="flex items-center gap-1 truncate rounded border border-border/60 bg-background px-1 py-0.5 text-left text-[10px]"
             >
               <CalendarOff className="size-2.5 shrink-0 text-muted-foreground" />
@@ -442,6 +448,15 @@ function DayColumnCell({
             data-block-id={b.id}
             data-block-source={b.source}
             data-col={colIndex}
+            role="button"
+            tabIndex={0}
+            aria-label={`${b.title}, ${b.startTime}–${b.endTime}, ${soft ? 'lịch linh hoạt' : 'lịch cố định'}. Nhấn Enter để sửa.`}
+            onKeyDown={(ev) => {
+              if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                onOpen(b);
+              }
+            }}
             style={{
               top,
               height: Math.max(16, bottom - top),
@@ -450,7 +465,7 @@ function DayColumnCell({
               touchAction: 'none',
             }}
             className={cn(
-              'absolute z-[5] cursor-grab touch-none overflow-hidden rounded-md border border-l-2 px-1.5 py-0.5 active:cursor-grabbing',
+              'absolute z-[5] cursor-grab touch-none overflow-hidden rounded-md border border-l-2 px-1.5 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
               soft
                 ? 'border-dashed border-border/60 bg-background'
                 : 'border-border/60 bg-muted/60',
@@ -472,6 +487,7 @@ function DayColumnCell({
             {/* mép kéo resize */}
             <div
               data-resize
+              aria-hidden
               className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
             />
           </div>
