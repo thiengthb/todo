@@ -6,6 +6,30 @@
 
 ---
 
+## 2026-06-14 — `.design-sync/` mirror for Claude Design (claude.ai/design)
+
+- **Context:** wanted to view/iterate `todo`'s shadcn/ui primitives inside Claude Design. Claude Design renders
+  **static HTML preview cards, NOT live React/TSX** — so the app can't be pointed at directly.
+- **Decision:** keep a hand-authored mirror in **`.design-sync/components/*.html`** (22 cards = the full
+  `components/ui/` set), each a self-contained light|dark split pane with **OKLCH tokens copied verbatim from
+  `app/globals.css`**. Dot-prefixed dir → ignored by Next file-routing, never part of the build (it's purely a
+  sync source). Synced to the shared **"Design System"** project via the **DesignSync tool**, namespaced under
+  `todo/` so sibling apps can sync alongside without path collisions.
+- **Pitfall / maintenance:** this is a **manual mirror — it drifts.** When a component variant or a token changes
+  in the app, update the matching card in the SAME change, or the design system lies. Composite cards
+  (`date-picker`/`time-picker`) + calendar use a **fixed sample month (June 2026)** to illustrate states, not a
+  live date. A few icons are emoji/glyph placeholders (`▦ 🕐 🗑 ✕ ‹ ›`) — a known lossy spot; upgrade to lucide
+  inline SVG if fidelity matters.
+- **Pitfall — `/design-sync` skill is NOT installed here**, only the raw DesignSync tool. The skill's self-check
+  is what compiles the `@dsCard` markers into the index; without it, **upload alone shows an empty pane** — you
+  must call **`register_assets`** explicitly (planId from `finalize_plan`, every asset path must be in that plan's
+  `writes`; `finalize_plan` requires both `writes` and `deletes`, deletes can be `[]`). All 22 were registered
+  (`registered: 22`).
+- **UNVERIFIED (resume here):** I confirmed upload + registration but NOT that the cards visibly render in the
+  pane — the user paused before refreshing claude.ai/design to check. Next session: confirm they appear; if still
+  empty, fetch one registered card and/or author a `_ds_manifest.json` manually. Open follow-ups: lucide-icon
+  fidelity upgrade; an optional "Design tokens" palette card. Detail: `.design-sync/README.md`.
+
 ## 2026-06-14 — UI/UX renovation (Phase 0–5; see `docs/plans/2026-06-14-ui-renovation.md`)
 
 - **§12 "no brand accent" is LIFTED → one restrained indigo `--accent-brand` + semantic color tokens
