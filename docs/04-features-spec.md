@@ -155,6 +155,83 @@ real data; (3) **ethics** — passes the "regret test", no dark patterns.
 
 ---
 
+## 12. UI shell & layout conventions (detailed)
+
+> 2026-06 overhaul: the app uses an **app-shell** instead of a horizontal nav. Keep the Notion-neutral feel
+> but use the desktop well, with low overwhelm. Based on research (NN/g, Refactoring UI). Every new page/feature
+> must follow it.
+> **Baseline:** §12 is `todo`'s OWN convention layer, ON TOP OF the shared engineering standard `/react-ui-craft`
+> (the 7-step process + quality floor + composition + UX states + security — see `../CLAUDE.md`). Where the two
+> overlap, follow §12 (more specific to this app); for anything §12 doesn't mention, follow react-ui-craft.
+> The thin summary + invariants live in `CLAUDE.md §12`; this is the full detail.
+
+- **Shell (2026-06 overhaul):** `components/app-shell.tsx` wraps the whole app (rendered in `layout.tsx`).
+  Desktop ≥`lg`: a collapsible **left sidebar, 7 items** in 3 groups (Daily: Today/Weekly calendar/Plans/
+  Routines · Looking back: History · System: Notifications/Guide) + footer streak chip + theme. Mobile <`lg`:
+  a thin **top-bar** (brand + streak + Notifications/Guide icon + theme) + a **5-item bottom tab bar** (Today ·
+  Calendar · Plans · Routines · History — always visible, NO hamburger). The streak chip is split into
+  `components/streak-chip.tsx`. (Before 2026-06 it was 4 tabs; raised to 5 + moved calendar/notifications to the sidebar.)
+- **Width (UNIFORM, locked 2026-06):** the shell auto-centers **`max-w-5xl`** (≈1024px) + px for **EVERY**
+  page. **Pages do NOT set their own `<main>`/`max-w`/`mx-auto`/`px`** — they only render `<div className="py-8">`
+  content (the shell owns width + px). Long text blocks (hero/CTA on the Guide page) wrap themselves in
+  `mx-auto max-w-2xl` INSIDE for readability, but the page frame stays the same width.
+- **Today = a 2-column dashboard** (`lg:grid-cols-[minmax(0,1fr)_300px]`): tasks on the left, stats/check-in/
+  suggest on the right; stacked on mobile. The "How was your day…" note sits at the BOTTOM of the task column
+  (no separate `max-w`) so it lines up exactly with the todo rows. Goal: see everything, scroll less.
+- **Page header is the shared `components/page-header.tsx`** (eyebrow + h1 `text-xl sm:text-2xl` + description +
+  right action + "‹ …" back-link). **Empty states use `components/empty-state.tsx`.** Don't hand-roll a separate
+  header/empty per page.
+- **Standard card set (MANDATORY, kills "misalignment"):** a raised block = `rounded-lg border border-border/70 p-4`
+  (NO `<Card>` ring, NO scattered `rounded-xl`/`p-6`, NO `border-input`). A list row = `flex items-center gap-3
+  border-b border-border/70 py-3 last:border-b-0` + `hover:bg-muted/40 transition-colors` if it's clickable/interactive.
+  Sections are spaced `space-y-10`; a page opens with `py-8`.
+- **Long descriptions → `components/info-hint.tsx`** (an ⓘ icon opening a Popover on tap — NOT hover-tooltip, for
+  touch + a11y). Keep action labels visible; only hide the _concept explanation_.
+- **Non-blocking reference flows use a Sheet**, not a long-scrolling modal: "Suggest tomorrow" =
+  `components/today/suggest-sheet.tsx` (right Sheet, fixed header/footer, list in a `ScrollArea`). A Dialog
+  (centered) is only for short confirmations / compact forms; long forms → 2 columns + `ScrollArea`.
+- **NO breadcrumbs** (the app is shallow): use the page title + a "‹ …" link on sub-pages.
+- **Scrollbar** is themed (set globally in `globals.css`); bounded areas use shadcn `ScrollArea`.
+- **Motion = Motion v12** (`motion`, `import { motion, AnimatePresence } from "motion/react"`) per the shared
+  `/react-ui-craft` standard (`references/motion.md`) — **the framer-motion ban is LIFTED (locked 2026-06; §12
+  banned it before)**. Files using `motion.*` need `"use client"` — keep that boundary SMALL (wrap only the
+  animated part, not the whole page). Still prefer RESTRAINT (per motion.md): light micro-interactions should
+  still use plain CSS (`transition-colors`, `active:scale-*`); animate ONLY `transform`/`opacity`; one notable
+  moment per screen; 150–250ms micro / 300–500ms entrance; the same easing/duration app-wide (`MotionConfig`).
+  Scroll-reveal: `components/reveal.tsx` or `whileInView` (`viewport={{ once: true }}`). ALWAYS respect
+  `prefers-reduced-motion` (`MotionConfig reducedMotion="user"` / `useReducedMotion`; a global guard already exists).
+  View Transitions are still usable for page transitions.
+- **Color (updated 2026-06-14, was "pure neutral, no accent"):** neutral base + **semantic color via CSS tokens**
+  `--ok` (on-track/done) · `--warn` (behind/overdue) · `--alert` (tired/error) · `--free` (available time) — use the
+  `text-warn`/`bg-warn/10` utilities, NEVER per-file `text-amber-*`/`emerald-*`. ONE restrained indigo accent
+  (`--accent-brand`, hue 273) is allowed, and ONLY on the global focus ring + the `link` button variant; the primary
+  action stays a neutral `default` button (black/white). Still no gradients. Schedule kind colors (sky=học/violet=làm)
+  are a separate categorical palette, not semantic tokens. (`app/globals.css`; `docs/decisions.md` 2026-06-14.)
+- **iPhone / mobile (locked 2026-06):** `layout.tsx` exports `viewport` with `viewportFit: "cover"`. Bottom tab
+  bar `pb-[env(safe-area-inset-bottom)]`, top-bar `pt-[env(safe-area-inset-top)]`, mobile main
+  `pb-[calc(env(safe-area-inset-bottom)+5rem)]` — don't let a bar cover the home indicator. Tap target ≥ ~44px
+  (tab bar `min-h-12`; small touch buttons widen to `size-9 sm:size-7`). Keep the neutral look (no large-title,
+  no inset-grouped).
+- **shadcn:** `sheet`, `scroll-area`, `switch`, `tabs`, `calendar`, `popover` (unified `radix-ui`, style
+  radix-nova `data-open/closed`).
+- **Shared primitives (MANDATORY reuse, 2026-06 overhaul):**
+  - **`components/ui/date-picker.tsx`** (Popover + Calendar, value local `"YYYY-MM-DD"`) +
+    **`components/ui/time-picker.tsx`** (type + 15′-step dropdown, value `"HH:MM"`). EVERY date/time input uses
+    these two — NO raw `<input type="date"/"time">`.
+  - **`components/field.tsx`** (`Field`: label + `w-full` control + hint/info) for every form in
+    `grid gap-3 sm:grid-cols-2` → equal-width fields filling the grid.
+  - **`components/icon-tooltip.tsx`** (`IconTooltip`) for read-only hints on icon buttons — NO `title=`. Long
+    concept explanations still use `InfoHint` (Popover, click).
+  - **`PageHeader` prop `info`** → an InfoHint next to the title (drop the long description, keep the title clean).
+  - **`components/skeletons.tsx`** + a `loading.tsx` per route → page transitions don't stutter.
+- **Tabs for multi-section pages:** `/notifications` (Settings | History), `/guide` (Using the app | Use with AI/MCP).
+- **`/schedule` = a drag-drop hour grid** (`components/schedule/week-grid.tsx` + `lib/schedule-grid.ts`):
+  drag-create + drag-move/resize with raw Pointer Events (NO drag lib), 15′ snap, touch + mouse. Move/resize
+  sends back the full field set (keeps parity/validity). Habits + waking-hours/time-budget are split into
+  **`/routines`** (Routines).
+
+---
+
 ## 13. Smart Discord notifications
 
 > Push the app from "see it only when opened" to **proactive reminders** via Discord. §11 philosophy is
