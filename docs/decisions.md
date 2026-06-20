@@ -6,6 +6,22 @@
 
 ---
 
+## 2026-06-20 — CLAUDE.md must not duplicate the Prisma schema (drift) + §12 extracted to spec
+
+- **Context:** an audit found `todo/CLAUDE.md` at 335 lines (over the thin-CLAUDE.md budget). §12 (UI-shell
+  conventions, ~64 lines) was kept inline, and §4 had a **hand-copied Prisma schema showing 2 models** while
+  `prisma/schema.prisma` had grown to **16** — silent, stale drift.
+- **Decision / Pitfall:** **never duplicate `schema.prisma` (or any generated/source-of-truth artifact) inside
+  CLAUDE.md** — point to it instead and keep only the invariants (dynamic-compute, split-task container, date/emotion
+  shape). Moved §12's full detail to `docs/04-features-spec.md §12` (inserted in order 11→12→13), leaving a thin
+  summary+invariants+pointer. Result: 335→274 lines.
+- **Why:** a copy in an auto-loaded file both costs context every turn AND rots independently of the real schema, so
+  the agent reads a false model. The tiered-docs model already says "thin CLAUDE.md, heavy spec in docs/" — §4 was the
+  one place that violated it by copying rather than pointing. (Did NOT push below 200: §6 AI-contract JSON and §16
+  tab-roles table are load-bearing invariants — fragmenting them to hit a number would hurt legibility.)
+- **Related:** `todo/CLAUDE.md` §4/§12; `docs/04-features-spec.md §12`; `nuc-platform/06-knowledge-ledger.md §A`
+  (2026-06-12 "CLAUDE.md thin"); `05-documentation-standard.md §2`; PR `todo#1`.
+
 ## 2026-06-14 — `.design-sync/` mirror for Claude Design (claude.ai/design)
 
 - **Context:** wanted to view/iterate `todo`'s shadcn/ui primitives inside Claude Design. Claude Design renders
