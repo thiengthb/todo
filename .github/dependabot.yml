@@ -1,0 +1,44 @@
+# Dependabot — dependency + CI update PRs.
+#
+# Deliberately conservative: this is a solo-maintained platform, and a wall of PRs is indistinguishable
+# from no PRs at all. Weekly, grouped, and capped, so the queue stays reviewable. Security advisories are
+# NOT rate-limited by `open-pull-requests-limit` — they always come through.
+#
+# Triage with the `/dependabot-review` skill (classifies by risk, checks CI, recommends per PR — it never
+# merges for you). Created 2026-07-28.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # One PR for the boring stuff; majors still arrive individually so they get read.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # One PR for the boring stuff; majors still arrive individually so they get read.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
