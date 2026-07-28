@@ -1,12 +1,12 @@
 # ---------- Stage 1: cài dependency ----------
-FROM node:24-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
 RUN npm ci
 
 # ---------- Stage 2: build ----------
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -16,13 +16,13 @@ RUN npx prisma generate && npm run build
 # ---------- Stage 2b: prisma CLI tối thiểu (chỉ để migrate deploy) ----------
 # Cài riêng trong stage này để lấy đủ CLI + dependency của nó (effect, @prisma/config...)
 # đúng version khai báo trong package.json, không phình node_modules của app.
-FROM node:24-alpine AS prisma-cli
+FROM node:26-alpine AS prisma-cli
 WORKDIR /cli
 COPY package.json ./
 RUN npm install --no-save --omit=dev prisma@"$(node -p "require('./package.json').devDependencies.prisma")"
 
 # ---------- Stage 3: runtime ----------
-FROM node:24-alpine
+FROM node:26-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
