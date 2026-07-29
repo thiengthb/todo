@@ -1,18 +1,8 @@
 {
   "_readme": "Per-repo configuration for the shared gate tests installed from commons (@thiengthb/test-*). Keeping it here means the test files stay byte-identical to the registry copies — an exception is data, never an edit to the check.",
   "no-emoji": {
-    "roots": [
-      "app",
-      "components",
-      "lib"
-    ],
-    "_allow_note": "BURN-DOWN LIST, not approval. These 29 sites predate the gate (installed 2026-07-29) and are listed so the gate can be green on new code while the debt stays visible. app/history/page.tsx was removed from this list once it carried an inline `rulebook-allow: emoji-as-icon — <reason>` directive, which this gate honours. Two groups, and they are NOT the same decision: (a) lib/notify/** is Discord message copy, where emoji may be a deliberate product voice; (b) the rest is in-app UI copy, which the platform rule (lucide icons only, no emoji as an icon-marker) says should be an icon or plain words. Awaiting the supervisor's call on each group; clear an entry as it is cleaned.",
-    "allow": [
-      "lib/notify/compose.ts",
-      "lib/notify/fallback.ts",
-      "components/notifications/settings-form.tsx",
-      "components/today/note-box.tsx",
-      "components/today/stats-cards.tsx"
-    ]
+    "roots": ["app", "components", "lib"],
+    "_allow_note": "Empty by design. Every remaining site is argued for IN CODE with an inline `rulebook-allow[-file]: emoji-as-icon — <reason>` directive, the same vocabulary the rulebook plugin enforces at generation time — one reason, written once, satisfies both. The in-app UI copy that had emoji standing in for icons was cleaned on 2026-07-29 (lucide icons or plain words); lib/notify/** kept its emoji as deliberate Discord voice. This key stays as the escape hatch for a future burn-down list at install time.",
+    "allow": []
   }
 }

@@ -1,3 +1,6 @@
+// rulebook-allow-file: emoji-as-icon — Discord message copy, not app UI. The emoji is this
+// product's notification VOICE inside a chat client that renders it as text, not an icon
+// standing in for an action or object in the interface. Supervisor decision, 2026-07-29.
 import { composeNotificationVoice, type NotificationFacts, type NotificationVoice } from '@/lib/ai';
 import { fallbackVoice } from '@/lib/notify/fallback';
 import type { DiscordMessage } from '@/lib/notify/discord';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { PenLine } from 'lucide-react';
+import { Check, PenLine } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { InfoHint } from '@/components/info-hint';
 import { saveNote } from '@/app/actions';
@@ -55,15 +55,24 @@ export function NoteBox({ initialNote }: { initialNote: string }) {
         autoFocus={initialNote.trim() === ''}
         onChange={(e) => {
           setNote(e.target.value);
-          if (savedAt) setSavedAt(null); // editing again → drop the stale "Đã lưu ✓"
+          if (savedAt) setSavedAt(null); // editing again → drop the stale "Đã lưu" state
         }}
         onBlur={persist}
         placeholder="VD: chiều nay hơi đuối vì họp nhiều, nhưng xong được việc khó nhất..."
         rows={3}
         className="resize-none border-border/70 shadow-none"
       />
-      <p className="mt-1.5 h-4 text-xs text-muted-foreground">
-        {pending ? 'Đang lưu...' : savedAt ? 'Đã lưu ✓' : 'Tự lưu khi rời ô nhập'}
+      <p className="mt-1.5 flex h-4 items-center gap-1 text-xs text-muted-foreground">
+        {pending ? (
+          'Đang lưu...'
+        ) : savedAt ? (
+          <>
+            <Check className="size-3" aria-hidden />
+            Đã lưu
+          </>
+        ) : (
+          'Tự lưu khi rời ô nhập'
+        )}
       </p>
     </div>
   );

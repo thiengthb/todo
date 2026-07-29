@@ -44,7 +44,7 @@ export function StatsCards({
                 Còn <span className="tabular-nums">{remaining}</span> việc chưa xong
               </>
             ) : total > 0 ? (
-              'Trọn vẹn cả ngày 🎉'
+              'Trọn vẹn cả ngày'
             ) : (
               'Chưa có việc nào'
             )}

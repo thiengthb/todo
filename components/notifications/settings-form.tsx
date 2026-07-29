@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Send, Loader2 } from 'lucide-react';
+import { Hand, Leaf, Loader2, Moon, Send, Sprout, Sunrise, type LucideIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -101,7 +101,7 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
         return;
       }
       const res = await sendTestNotification(kind);
-      if (res.status === 'sent') toast.success('Đã gửi thử lên Discord ✓');
+      if (res.status === 'sent') toast.success('Đã gửi thử lên Discord');
       else if (res.status === 'error') toast.error(`Gửi thất bại: ${res.detail}`);
       else toast.message(`Bỏ qua: ${res.detail}`);
     } finally {
@@ -129,7 +129,7 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
               Webhook URL
             </label>
             <InfoHint label="Lấy webhook ở đâu?">
-              Trong Discord: chọn kênh → ⚙ Chỉnh sửa kênh → Tích hợp → Webhook → Webhook mới → Sao
+              Trong Discord: chọn kênh → Chỉnh sửa kênh → Tích hợp → Webhook → Webhook mới → Sao
               chép URL. Dán vào đây.
             </InfoHint>
           </div>
@@ -190,7 +190,8 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
         <h2 className="text-sm font-medium">Loại thông báo</h2>
         <div className="rounded-lg border border-border/70">
           <KindRow
-            title="☀️ Bản tin sáng"
+            icon={Sunrise}
+            title="Bản tin sáng"
             hint="Đầu ngày: việc hôm nay, trạng thái streak, việc chính + 1 câu động lực/quote/tip do AI viết."
             enabled={s.morningEnabled}
             onToggle={(v) => set('morningEnabled', v)}
@@ -201,7 +202,8 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
             disabledTest={testing !== null}
           />
           <KindRow
-            title="🌱 Nhắc giữ streak"
+            icon={Sprout}
+            title="Nhắc giữ streak"
             hint="Chỉ bắn khi chuỗi đang nguy hiểm và hôm nay chưa làm việc nào. Giọng dịu, không doạ."
             enabled={s.streakGuardEnabled}
             onToggle={(v) => set('streakGuardEnabled', v)}
@@ -212,7 +214,8 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
             disabledTest={testing !== null}
           />
           <KindRow
-            title="👋 Cú hích ngẫu nhiên"
+            icon={Hand}
+            title="Cú hích ngẫu nhiên"
             hint="Tối đa 1 lần/ngày, vào một thời điểm ngẫu nhiên trong cửa sổ dưới đây. Bỏ qua nếu không còn việc dở."
             enabled={s.randomNudgeEnabled}
             onToggle={(v) => set('randomNudgeEnabled', v)}
@@ -227,7 +230,8 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
             }}
           />
           <KindRow
-            title="🌙 Đúc kết tối"
+            icon={Moon}
+            title="Đúc kết tối"
             hint="Cuối ngày: điểm lại việc đã làm, giọng tử tế, gợi ý ghi chú. Không phán xét phần chưa xong."
             enabled={s.eveningEnabled}
             onToggle={(v) => set('eveningEnabled', v)}
@@ -238,7 +242,8 @@ export function NotificationSettingsForm({ initial }: { initial: NotificationSet
             disabledTest={testing !== null}
           />
           <KindRow
-            title="🌿 Nhắc khi rảnh (Ấp ủ)"
+            icon={Leaf}
+            title="Nhắc khi rảnh (Ấp ủ)"
             hint="Khi quỹ giờ rảnh hôm nay cao, gợi ý nhẹ lấy một điều bạn đang ấp ủ ra làm. Cơ hội, không hối thúc. Dùng chung cửa giờ với cú hích ngẫu nhiên."
             enabled={s.queueNudgeEnabled}
             onToggle={(v) => set('queueNudgeEnabled', v)}
@@ -325,6 +330,7 @@ function TimeField({
 }
 
 function KindRow({
+  icon: Icon,
   title,
   hint,
   enabled,
@@ -337,6 +343,7 @@ function KindRow({
   disabledTest,
   last,
 }: {
+  icon: LucideIcon;
   title: string;
   hint: string;
   enabled: boolean;
@@ -362,6 +369,7 @@ function KindRow({
       )}
     >
       <div className="flex min-w-0 flex-1 items-start gap-1.5">
+        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         <div className="min-w-0">
           <p className="text-sm font-medium">{title}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{hint}</p>
