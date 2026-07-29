@@ -15,12 +15,17 @@ import { describe, expect, it } from 'vitest';
  * every turn), and they leak across layers — one app baked emoji INTO a label formatter and the UI then
  * called stripEmoji() to take them back out.
  *
- * Per-repo configuration lives OUTSIDE this file, in docs/gates.json, so the file itself stays identical
- * in every repo and a fork is never needed to add an exception:
+ * Two exception mechanisms, deliberately the same vocabulary the rulebook plugin already uses, so one
+ * written reason satisfies the generation-time hook AND this gate instead of each needing its own:
  *
- *   { "no-emoji": { "roots": ["app", "components", "lib"], "allow": ["lib/protocol.ts"] } }
+ *  1. Inline, per site — `rulebook-allow: emoji-as-icon — <reason>` in a comment on the offending line
+ *     or the line above, or `rulebook-allow-file: emoji-as-icon — <reason>` in the first 10 lines. The
+ *     reason must be at least 20 characters: writing the sentence is the point, because that is where a
+ *     person decides rather than silences.
+ *  2. Per repo, coarse — docs/gates.json, for a burn-down list at install time:
+ *     { "no-emoji": { "roots": ["app", "components", "lib"], "allow": ["lib/protocol.ts"] } }
  *
- * An exception is a listed, deliberate decision — never a silent weakening of the regex.
+ * An exception is always a listed, reasoned decision — never a silent weakening of the regex.
  */
 
 // Pictographs, dingbats, symbols, variation selector and keycap combiner. Deliberately EXCLUDES the
@@ -31,6 +36,15 @@ const EMOJI =
 
 const DEFAULT_ROOTS = ['app', 'components', 'lib'];
 const SKIP_DIRS = new Set(['node_modules', 'generated', '.next', 'dist', 'build', '.git']);
+
+// Same shape (and same 20-char reason floor) as the rulebook plugin's directives, so a site that has
+// already been argued for in code does not have to be argued for again here.
+const RULE_ID = 'emoji-as-icon';
+const ALLOW_LINE = new RegExp(`rulebook-allow:\\s*${RULE_ID}\\s*[—:-]\\s*(.+)$`);
+const ALLOW_FILE = new RegExp(`rulebook-allow-file:\\s*${RULE_ID}\\s*[—:-]\\s*(.+)$`);
+const MIN_REASON = 20;
+
+const reasoned = (match: RegExpMatchArray | null) => (match?.[1]?.trim().length ?? 0) >= MIN_REASON;
 
 interface GateConfig {
   roots?: string[];
@@ -68,11 +82,14 @@ describe('no emoji anywhere in the codebase', () => {
       for (const file of walk(root)) {
         const rel = relative(process.cwd(), file).split(sep).join('/');
         if (allow.has(rel)) continue;
-        readFileSync(file, 'utf8')
-          .split('\n')
-          .forEach((line, i) => {
-            if (EMOJI.test(line)) offenders.push(`${rel}:${i + 1}  ${line.trim().slice(0, 100)}`);
-          });
+        const lines = readFileSync(file, 'utf8').split('\n');
+        if (lines.slice(0, 10).some((line) => reasoned(line.match(ALLOW_FILE)))) continue;
+        lines.forEach((line, i) => {
+          if (!EMOJI.test(line)) return;
+          const excused =
+            reasoned(line.match(ALLOW_LINE)) || reasoned((lines[i - 1] ?? '').match(ALLOW_LINE));
+          if (!excused) offenders.push(`${rel}:${i + 1}  ${line.trim().slice(0, 100)}`);
+        });
       }
     }
 
