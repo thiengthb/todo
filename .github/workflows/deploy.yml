@@ -23,6 +23,12 @@ concurrency:
   group: build-and-push
   cancel-in-progress: false
 
+# Least privilege by DEFAULT: without this block every job inherits the repository default token
+# scope, which on an older repo is read/write. A job that runs `npm ci` executes arbitrary dependency
+# postinstall scripts and must not hold a token that can push. Jobs widen this individually.
+permissions:
+  contents: read
+
 jobs:
   # Gate the image build on the test suite (Vitest). The NUC still only PULLs —
   # tests run here in GitHub Actions. prisma generate is required: the mocked
