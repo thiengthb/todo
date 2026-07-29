@@ -144,6 +144,7 @@ export default async function HistoryPage() {
               />
             )}
             {streak.current > 0 && streak.current >= streak.longest && (
+              // rulebook-allow: emoji-as-icon — decoration at the end of a sentence of copy, not an icon standing in for an action or object
               <p className="mt-1.5 text-[11px] font-medium text-ok">Đang ở mức kỷ lục! 🔥</p>
             )}
           </div>
