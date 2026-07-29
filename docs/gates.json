@@ -1,0 +1,15 @@
+{
+  "_readme": "Per-repo configuration for the shared gate tests installed from commons (@thiengthb/test-*). Keeping it here means the test files stay byte-identical to the registry copies — an exception is data, never an edit to the check.",
+  "no-emoji": {
+    "roots": ["app", "components", "lib"],
+    "_allow_note": "BURN-DOWN LIST, not approval. These 30 sites predate the gate (installed 2026-07-29) and are listed so the gate can be green on new code while the debt stays visible. Two groups, and they are NOT the same decision: (a) lib/notify/** is Discord message copy, where emoji may be a deliberate product voice; (b) the rest is in-app UI copy, which the platform rule (lucide icons only, no emoji as an icon-marker) says should be an icon or plain words. Awaiting the supervisor's call on each group; clear an entry as it is cleaned.",
+    "allow": [
+      "lib/notify/compose.ts",
+      "lib/notify/fallback.ts",
+      "components/notifications/settings-form.tsx",
+      "components/today/note-box.tsx",
+      "components/today/stats-cards.tsx",
+      "app/history/page.tsx"
+    ]
+  }
+}
