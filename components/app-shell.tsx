@@ -24,6 +24,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
+/** UI copy for the shared ThemeToggle (@thiengthb/theme-toggle) — the component ships English defaults. */
+const THEME_LABELS = { toLight: 'Chuyển giao diện sáng', toDark: 'Chuyển giao diện tối' };
+
 /** Main desktop navigation — 7 items, lightly grouped by dividers (UI section, 2026-06 overhaul). */
 const NAV_GROUPS: NavItem[][] = [
   [
@@ -170,7 +173,7 @@ export function AppShell({ streak, children }: { streak: StreakProps; children: 
           )}
         >
           <StreakChip {...streak} />
-          <ThemeToggle />
+          <ThemeToggle labels={THEME_LABELS} />
         </div>
       </aside>
 
@@ -189,7 +192,7 @@ export function AppShell({ streak, children }: { streak: StreakProps; children: 
             {MOBILE_SECONDARY.map((item) => (
               <SecondaryLink key={item.href} {...item} active={isActive(item.href)} />
             ))}
-            <ThemeToggle />
+            <ThemeToggle labels={THEME_LABELS} />
           </div>
         </header>
 
