@@ -63,7 +63,7 @@ jobs:
       # Tag bằng cả "latest" lẫn git-SHA ngắn → rollback được bằng cách
       # đổi tag trong /opt/apps/todo/docker-compose.yml
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
