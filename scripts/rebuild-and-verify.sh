@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 #
 # Rebuild a local containerized app and verify it ACTUALLY SERVES. Generic: every app-specific value
-# comes from scripts/verify.env (or flags), so this file stays byte-identical in every repo.
+# comes from scripts/verify.conf (or flags), so this file stays byte-identical in every repo.
+#
+# The shebang says bash and it MEANS it — the route sweep below iterates `$ROUTES` unquoted, which is
+# correct in bash and silently wrong in zsh: zsh does not word-split an unquoted parameter, so
+# `ROUTES="/ /settings /guide"` collapses into ONE bogus route, one curl, and a green report that swept
+# nothing. Measured on this platform 2026-07-30 (a poller written in bash idiom ran 40 pointless
+# iterations under zsh because `set -- $out` never split). Hence the assertion, not a comment: the
+# failure mode here is a false PASS, and the only safe version of that is a loud refusal.
 #
 #   bash scripts/rebuild-and-verify.sh                # build, wait for health, sweep routes
 #   bash scripts/rebuild-and-verify.sh --gates        # run lint/test/format first (fail before the build)
@@ -12,7 +19,7 @@
 # Use --verify-only against an app that is already serving (a smoke check, or anything public where
 # `compose up` could recreate the container and cause downtime).
 #
-# Per-repo config — create scripts/verify.env (it is sourced if present):
+# Per-repo config — create scripts/verify.conf (it is sourced if present):
 #   SERVICE=myapp                       # compose service name, used for `logs` on failure
 #   BASE=http://localhost:3000          # where the app answers
 #   HEALTH=/api/health                  # health path
@@ -28,6 +35,14 @@
 
 set -uo pipefail
 
+# Refuse rather than sweep one bogus route — see the header. `sh script.sh` / `zsh script.sh` ignores the
+# shebang, and this script's whole purpose is to be trusted when it says green.
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "ERROR: this script must run under bash — it word-splits \$ROUTES, which zsh and dash do not." >&2
+  echo "       Run it as:  bash $0 $*" >&2
+  exit 1
+fi
+
 readonly ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
@@ -41,7 +56,7 @@ COMPOSE_FILES=""
 GATE_CMDS="npm run lint|npm test|npm run format:check"
 
 # shellcheck source=/dev/null
-[ -f "$ROOT/scripts/verify.env" ] && . "$ROOT/scripts/verify.env"
+[ -f "$ROOT/scripts/verify.conf" ] && . "$ROOT/scripts/verify.conf"
 
 BUILD=1
 GATES=0
